@@ -1,0 +1,25 @@
+name: suns
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - cudnn=7.6.5=cuda10.0_0
+  - h5py
+  - keras
+  - matplotlib
+  - numba
+  - numpy
+  - opencv
+  - python=3.7
+  - scikit-image
+  - scikit-learn
+  - scipy
+  - simplejson
+  - tensorboard=1.15.0=py37_0
+  - tensorflow-base=1.15.0=gpu_py37h1afeea4_0
+  - tensorflow-estimator=1.15.1=pyh2649769_0
+  - pip:
+    - fissa==0.6.1
+    - pyfftw
+    - tensorflow==1.13.2
+    - tensorflow-gpu==1.13.2

@@ -18,6 +18,7 @@ import multiprocessing as mp
 # sys.path.insert(0, '..\\PreProcessing')
 # sys.path.insert(0, '..\\Network')
 sys.path.insert(1, '..\\neuron_post')
+os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 from unet4_best_FL import get_unet
 from par2 import fastuint, fastcopy

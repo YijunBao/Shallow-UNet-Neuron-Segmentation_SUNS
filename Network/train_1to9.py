@@ -1,6 +1,5 @@
 # %%
 import os
-from unet4_best_FL import get_unet
 import random
 import numpy as np
 import cv2
@@ -11,6 +10,7 @@ import h5py
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 from data_gen import data_gen
+from unet4_best_FL import get_unet
 
 
 # %%
@@ -20,19 +20,22 @@ if __name__ == '__main__':
     nvideo = len(list_Exp_ID)
     size = 488
     rows = cols = size
-    thred_std = 3
+    thred_std = 6
     num_total = 20000
-    num_train_per = 200
+    num_train_per = 1800
     BATCH_SIZE = 20
     NO_OF_EPOCHS = 200
     train_every = num_total//num_train_per
     start_frame = random.randint(0,train_every-1)
     # Train the model
-    NO_OF_TRAINING_IMAGES = num_train_per*(nvideo-1)
-    NO_OF_VAL_IMAGES = num_train_per
+    num_val_per = num_train_per//90
+    val_every = num_total//num_val_per
+    start_frame_val = random.randint(0,val_every-1)
+    NO_OF_TRAINING_IMAGES = num_train_per
+    NO_OF_VAL_IMAGES = num_val_per*(nvideo-1)
 
     dir_parent = 'D:\\ABO\\20 percent\\ShallowUNet\\noSF\\'
-    dir_sub = 'std{}_nf{}_ne{}_bs{}\\DL+100FL(1,0.25)\\'.format(thred_std, num_train_per, NO_OF_EPOCHS, BATCH_SIZE)
+    dir_sub = '1to9\\std{}_nf{}_ne{}_bs{}\\'.format(thred_std, num_train_per, NO_OF_EPOCHS, BATCH_SIZE)
     dir_img = dir_parent + 'network_input\\'
     dir_mask = dir_parent + 'temporal_masks({})\\'.format(thred_std)
     weights_path = dir_parent+dir_sub + 'Weights\\'
@@ -42,39 +45,37 @@ if __name__ == '__main__':
     if not os.path.exists(training_output_path):
         os.makedirs(training_output_path) 
         
-    for CV in range(0,10): # [4]: # 
-        # if CV<9:
-        #     continue
+    for CV in range(10):
         # Exp_ID = list_Exp_ID[CV]
         # %% Load traiming images and masks from h5 files
         # val_imgs = np.zeros((num_train_per, rows, cols, 1), dtype='uint8')
         # val_masks = np.zeros((num_train_per, rows, cols, 1), dtype='uint8')
-        train_imgs = np.zeros((num_train_per*(nvideo-1), rows, cols), dtype='float32')
-        train_masks = np.zeros((num_train_per*(nvideo-1), rows, cols), dtype='uint8')
-        list_Exp_ID_train = list_Exp_ID.copy()
-        Exp_ID_val = list_Exp_ID_train.pop(CV)
+        val_imgs = np.zeros((NO_OF_VAL_IMAGES, rows, cols), dtype='float32')
+        val_masks = np.zeros((NO_OF_VAL_IMAGES, rows, cols), dtype='uint8')
+        list_Exp_ID_val = list_Exp_ID.copy()
+        Exp_ID_train = list_Exp_ID_val.pop(CV)
 
         print('Loading training images and masks.')
-        h5_img = h5py.File(dir_img+Exp_ID_val+'.h5', 'r')
-        val_imgs = np.array(h5_img['network_input'][start_frame:train_every*num_train_per:train_every])
+        h5_img = h5py.File(dir_img+Exp_ID_train+'.h5', 'r')
+        train_imgs = np.array(h5_img['network_input'][start_frame:train_every*num_train_per:train_every])
         # val_imgs = np.pad(val_imgs, ((0,0),(0,1),(0,1),(0,0)),'constant', constant_values=(0, 0))
         h5_img.close()
-        h5_mask = h5py.File(dir_mask+Exp_ID_val+'.h5', 'r')
-        val_masks = np.array(h5_mask['temporal_masks'][start_frame:train_every*num_train_per:train_every])
+        h5_mask = h5py.File(dir_mask+Exp_ID_train+'.h5', 'r')
+        train_masks = np.array(h5_mask['temporal_masks'][start_frame:train_every*num_train_per:train_every])
         h5_mask.close()
 
-        for cnt, Exp_ID in enumerate(list_Exp_ID_train):
+        for cnt, Exp_ID in enumerate(list_Exp_ID_val):
             h5_img = h5py.File(dir_img+Exp_ID+'.h5', 'r')
-            train_imgs[cnt*num_train_per:(cnt+1)*num_train_per,:,:] \
-                = np.array(h5_img['network_input'][start_frame:train_every*num_train_per:train_every])
+            val_imgs[cnt*num_val_per:(cnt+1)*num_val_per,:,:] \
+                = np.array(h5_img['network_input'][start_frame_val:val_every*num_val_per:val_every])
             h5_img.close()
             h5_mask = h5py.File(dir_mask+Exp_ID+'.h5', 'r')
-            train_masks[cnt*num_train_per:(cnt+1)*num_train_per,:,:] \
-                = np.array(h5_mask['temporal_masks'][start_frame:train_every*num_train_per:train_every])
+            val_masks[cnt*num_val_per:(cnt+1)*num_val_per,:,:] \
+                = np.array(h5_mask['temporal_masks'][start_frame_val:val_every*num_val_per:val_every])
             h5_mask.close()
 
         # [train_img1, train_mask1] = dataloader(train_frame_path, train_mask_path)
-        train_gen = data_gen(train_imgs, train_masks, batch_size=BATCH_SIZE, flips=True, rotate=(cols==rows))
+        train_gen = data_gen(train_imgs, train_masks, batch_size=BATCH_SIZE, flips=True, rotate=True)
         #train_gen = data_gen(train_frame_path, train_mask_path, batch_size=BATCH_SIZE)
         val_gen = data_gen(val_imgs, val_masks, batch_size=BATCH_SIZE, flips=False, rotate=False)
 

@@ -19,6 +19,7 @@ sys.path.insert(1, '..\\PreProcessing')
 # sys.path.insert(0, '..\\Network')
 sys.path.insert(1, '..\\neuron_post')
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 import par1
 from preprocessing_functions import process_video, process_video_prealloc
