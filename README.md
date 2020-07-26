@@ -16,12 +16,14 @@ The how-to guides are available on [the Wiki][wiki-link].
 
 ### Installation
 
-1.	Install Anaconda with Python 3.7
-2.	Launch Anaconda prompt and type the following in order (pathoffile is the directory to which the provided files were downloaded to):
+* Install Anaconda with Python 3.7
+* Launch Anaconda prompt and type the following in order (pathoffile is the directory to which the provided files were downloaded to):
+```bash
 cd pathoffile
 cd installation
 conda env create -f environment_suns_2.yml -n suns
-3.	Go to Folder “<Anaconda root>/envs/suns/Lib/site-packages/fissa”, overwrite “core.py” with the one provided in the “installation” folder. If the dataset you used is less than 4 GB, you can skip this step. 
+```
+* Go to Folder “<Anaconda root>/envs/suns/Lib/site-packages/fissa”, overwrite “core.py” with the one provided in the “installation” folder. If the dataset you used is less than 4 GB, you can skip this step. 
 
 
 #### Link to Datasets:
