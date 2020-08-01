@@ -52,7 +52,7 @@ if __name__ == '__main__':
     prealloc=False
     useWT=False
 
-    list_Exp_ID = ['YST_part11_int', 'YST_part12_int', 'YST_part21_int', 'YST_part22_int']
+    list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22']
     dir_video = 'data\\'
     dir_GTMasks = dir_video + 'FinalMasks_'
 
