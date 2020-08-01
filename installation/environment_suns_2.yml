@@ -14,9 +14,10 @@ dependencies:
   - scikit-learn
   - scipy
   - shapely 
-  - tensorflow==1.15
+  # - tensorflow==1.15
   - tensorflow-gpu==1.15
-  - tensorflow-estimator==1.15.1=pyh2649769_0
+  # - tensorflow-estimator==1.15.1=pyh2649769_0
   - pip:
     - fissa==0.6.1
     - pyfftw
+    - tensorflow-estimator==1.15.1

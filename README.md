@@ -14,30 +14,27 @@ The how-to guides are available on [the Wiki][wiki-link].
 
 [wiki-link]: https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/wiki
 
-### Installation
+### Installation on Windows
 
 * Install Anaconda with Python 3.7
 * Launch Anaconda prompt and type the following in order (pathoffile is the directory to which the provided files were downloaded to):
-```bash
+```bat
 cd pathoffile
 cd installation
 conda env create -f environment_suns_2.yml -n suns
 ```
-* Go to Folder `<Anaconda root>/envs/suns/Lib/site-packages/fissa`, overwrite `core.py` with the one provided in the `installation` folder. If the dataset you used is less than 4 GB, you can skip this step. 
+* Go to the Anaconda environment foler, (such as `C:/ProgramData/Anaconda3/envs` or `C:/Users/(username)/.conda/envs`), and then go to folder `suns/Lib/site-packages/fissa`, overwrite `core.py` with the one provided in the `installation` folder. If the dataset you used is less than 4 GB, you can skip this step. 
+The installation should take less than half an hour in total.
 
 
-#### Link to Datasets:
+#### Links to Datasets and Manual Markings:
 
-[Allen Brain Observatory dataset][Allen-github]
-
-[Neurofinder Challenge website][nf-website]
-
-[CaImAn dataset][CaImAn-github]
-
+In our paper, we used two-photon imaging videos from [Allen Brain Observatory dataset][Allen-github], [Neurofinder Challenge website][Neurofinder-website], and [CaImAn dataset][CaImAn-github]. We used the manual markings of Allen Brain Observatory and Neurofinder from [STNeuroNet][STNeuroNet-github], and used the manual markings of CaImAn dataset from [CaImAn dataset][CaImAn-github].
 
 [Allen-github]: https://github.com/AllenInstitute/AllenSDK/wiki/Use-the-Allen-Brain-Observatory-%E2%80%93-Visual-Coding-on-AWS
 [CaImAn-github]: https://github.com/flatironinstitute/CaImAn
-[nf-website]: https://github.com/codeneuro/neurofinder
+[Neurofinder-website]: https://github.com/codeneuro/neurofinder
+[STNeuroNet-github]: https://github.com/soltanianzadeh/STNeuroNet
 
 ### Citing 
 

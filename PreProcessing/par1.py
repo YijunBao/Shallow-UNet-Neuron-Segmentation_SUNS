@@ -111,7 +111,7 @@ def fastnormf(f, meds):
                 f[i,j,k] = (f[i,j,k] - meds[0,j,k])*meds[1,j,k]
 
 
-@jit("void(f4[:,:,:],f4)",nopython=True,parallel=True,cache=True,fastmath=True)
+@jit("void(f4[:,:,:],f4)",nopython=True,parallel=True,cache=True,fastmath=True,locals={'temp': numba.float32})
 def fastnormback(f, mu):
     '''Normalize the input video into SNR video.
         This function is used when SNR normalization is not used.
@@ -123,8 +123,9 @@ def fastnormback(f, mu):
     Outputs:
         f(numpy.ndarray of float32, shape = (T,Lx,Ly)): the output video, f/mu
     '''
+    mu_1 = 1/mu
     for i in prange(f.shape[0]):
         for j in prange(f.shape[1]):
             for k in prange(f.shape[2]):
-                f[i,j,k] = f[i,j,k]/mu
+                f[i,j,k] = f[i,j,k]*mu_1
 

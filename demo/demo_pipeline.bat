@@ -1,0 +1,4 @@
+python PreProcessing_masks_CM.py
+python train_CM.py
+python complete_inference_post_continue_CM.py
+python PostProcessing_CM.py
