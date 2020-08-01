@@ -13,7 +13,7 @@ if not os.path.exists(dir_wisdom):
 Dimens = [(224,224),(216,152), (248,248),(120,88)]
 Nframes = [90000, 41000, 116043, 3000]
 
-ind_video = 2
+ind_video = 3
 start = time.time()
 rows, cols = Dimens[ind_video] # 487, 487, #img1.shape
 x = cv2.getOptimalDFTSize(rows)

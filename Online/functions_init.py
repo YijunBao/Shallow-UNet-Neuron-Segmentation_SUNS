@@ -149,7 +149,7 @@ def preprocess_init(bb, dimspad, video_input=None, med_frame2=None, Poisson_filt
         med_frame2[:, :, 1] = np.reciprocal(temp_noise).astype('float32')
         # med_frame3 = np.copy(med_frame2.transpose([2,0,1]))
         med_frame3 = med_frame2.transpose([2, 0, 1])
-        par1.fastnormf(video_input, med_frame3, 0)
+        par1.fastnormf(video_input, med_frame3)
     else:
         par1.fastquant(result, np.array([0.5], dtype='float32'), med_frame2[:,:,0:1])
         par1.fastnormback(video_input, 0, med_frame2[:,:,0].mean())

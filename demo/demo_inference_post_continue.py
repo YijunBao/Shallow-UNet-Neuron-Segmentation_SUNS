@@ -70,11 +70,11 @@ if __name__ == '__main__':
     if not os.path.exists(dir_temp):
         os.makedirs(dir_temp) 
 
-    list_minArea = list(range(60,125,10)) # [90] # must be in ascend order
+    list_minArea = list(range(30,85,50)) # [90] # must be in ascend order
     # list_minArea = list(range(80,145,10)) # [90] # must be in ascend order
     list_avgArea = [177] # list(range(130,165,10)) #
     # list_thresh_pmap = list(range(244,253,2)) #list(range(230,248,4)) # [254] # 
-    list_thresh_pmap = list(range(140,235,10))
+    list_thresh_pmap = list(range(130,235,10))
     thresh_mask = 0.5
     thresh_COM0 = 2
     list_thresh_COM = list(np.arange(4, 9, 1)) #[5]#
@@ -122,7 +122,6 @@ if __name__ == '__main__':
                 test_imgs[t, :dims0,:dims1,0] = np.array(h5_img['network_input'][t])
             # test_imgs[:,:dims0,:dims1,0] = np.array(h5_img['network_input']) # [:nn]
             h5_img.close()
-            # test_imgs = np.pad(test_imgs, ((0,0),(0,1),(0,1),(0,0)),'constant', constant_values=(0, 0))
             nmask = 100
             h5_mask = h5py.File(dir_mask+Exp_ID+'.h5', 'r')
             test_masks = np.zeros((nmask, rows, cols, 1), dtype='float32')

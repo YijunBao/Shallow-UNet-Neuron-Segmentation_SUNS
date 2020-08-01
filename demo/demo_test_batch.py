@@ -20,7 +20,7 @@ sys.path.insert(1, '..\\neuron_post')
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 import par1
-from preprocessing_functions import process_video, process_video_prealloc
+from preprocessing_functions import process_video
 # from par2 import fastuint, fastcopy
 from par3 import fastthreshold
 from unet4_best import get_unet

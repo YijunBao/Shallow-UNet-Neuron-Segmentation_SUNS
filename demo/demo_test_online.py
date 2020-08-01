@@ -51,6 +51,7 @@ if __name__ == '__main__':
     useSNR=True
     prealloc=False
     useWT=False
+    show_intermediate=True
 
     list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22']
     dir_video = 'data\\'

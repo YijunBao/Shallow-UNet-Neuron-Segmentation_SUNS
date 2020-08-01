@@ -10,9 +10,9 @@ from numba import njit, prange
 dir_wisdom = 'wisdom\\'
 if not os.path.exists(dir_wisdom):
     os.makedirs(dir_wisdom) 
-ind_video = 4
-Dimens = [(504,504), (504,504), (464,504), (464,504), (416,480), (416,480)]
-# Dimens = [(224,224),(216,152), (248,248),(120,88)]
+ind_video = 3
+# Dimens = [(504,504), (504,504), (464,504), (464,504), (416,480), (416,480)]
+Dimens = [(224,224),(216,152), (248,248),(120,88)]
 start = time.time()
 rows, cols = Dimens[ind_video] # 487, 487, #img1.shape
 x = cv2.getOptimalDFTSize(rows)
