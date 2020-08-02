@@ -9,12 +9,12 @@ The how-to guides are available on [the Wiki][wiki-link].
 [wiki-link]: https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/wiki
 
 ### System requirement
-Operation system: Windows 10.
-Memory: ~6x file size of the raw video if the the raw video is in uint16 format. ~3x file size of the raw video if the the raw video is in float32 format. 
-A CUDA compatible GPU is preferred.
+* Operation system: Windows 10.
+* Memory: ~6x file size of the raw video if the the raw video is in uint16 format. ~3x file size of the raw video if the the raw video is in float32 format. 
+* A CUDA compatible GPU is preferred.
 
 ### Installation on Windows
-* Install Anaconda with Python 3.7
+* Install [Anaconda][Anaconda] with Python 3.7
 * Install [CUDA Toolkit 10.0][cuda-link] if you have a CUDA-compatiable GPU and want to use it.
 * Launch Anaconda prompt and type the following in order (pathoffile is the directory to which the provided files were downloaded to):
 ```bat
@@ -23,8 +23,10 @@ cd installation
 conda env create -f environment_suns_2.yml -n suns
 ```
 * Go to the Anaconda environment foler, (such as `C:/ProgramData/Anaconda3/envs` or `C:/Users/(username)/.conda/envs`), and then go to folder `suns/Lib/site-packages/fissa`, overwrite `core.py` with the one provided in the `installation` folder. If the dataset you used is less than 4 GB, you can skip this step. 
+
 The installation should take about an hour in total.
 
+[Anaconda]: https://www.anaconda.com/
 [cuda-link]: https://developer.nvidia.com/cuda-toolkit-archive
 
 ### Demo
