@@ -62,7 +62,7 @@ def process_video(dir_video:str, Exp_ID:str, Params:dict,
     nframes = min(nframes,nn)
     
     if useSF:
-        # %% FFT planning
+        # lateral dimensions slightly larger than the raw video but faster for FFT
         rows1 = cv2.getOptimalDFTSize(rows)
         cols1 = cv2.getOptimalDFTSize(cols)
         print(rows, cols, nn, '->', rows1, cols1, nn)
@@ -83,6 +83,7 @@ def process_video(dir_video:str, Exp_ID:str, Params:dict,
         except:
             pass
 
+        # FFT planning
         bb = pyfftw.zeros_aligned((nn, rows1, cols1), dtype='float32', n=8)
         if prealloc:
             bf = pyfftw.zeros_aligned((nn, rows1, cols1//2+1), dtype='complex64', n=8)

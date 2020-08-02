@@ -3,15 +3,12 @@ import os
 import cv2
 import math
 import numpy as np
-import matplotlib.pyplot as plt
 import time
 import h5py
 import sys
 import pyfftw
 from scipy import sparse
 
-# import random
-# import tensorflow as tf
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
 
@@ -24,7 +21,6 @@ sys.path.insert(1, '..\\online')
 
 from unet4_best import get_unet
 from evaluate_post import GetPerformance_Jaccard_2
-# from complete_post import complete_segment
 import functions_online
 import functions_init
 import par_online
@@ -34,70 +30,69 @@ from combine import uniqueNeurons1_simp, uniqueNeurons2_simp, group_neurons, pie
 
 # %%
 if __name__ == '__main__':
-    radius = 6
-    rate_hz = 10
-    # decay_time = 0.75
-    Dimens = (120,88)
-    nframes = 3000
-    Mag = radius/8
+    # %% setting parameters
+    rate_hz = 10 # frame rate of the video
+    Dimens = (120,88) # lateral dimensions of the video
+    nframes = 3000 # number of frames for each video
+    Mag = 6/8 # spatial magnification compared to ABO videos.
 
-    thred_std = 3
-    num_train_per = 2400
-    BATCH_SIZE = 10
-    NO_OF_EPOCHS = 50
-    batch_size_eval = 50
-    useSF=True
-    useTF=True
-    useSNR=True
-    prealloc=False
-    useWT=False
-    show_intermediate=True
+    useSF=True # True if spatial filtering is used in pre-processing.
+    useTF=True # True if temporal filtering is used in pre-processing.
+    useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
+    prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
+            # Achieve faster speed at the cost of higher memory occupation.
+    useWT=False # True if using additional watershed
+    show_intermediate=True # True if screen neurons with consecutive frame requirement after every merge
 
-    list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22']
-    dir_video = 'data\\'
-    dir_GTMasks = dir_video + 'FinalMasks_'
+    # file names of the ".h5" files storing the raw videos. 
+    list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
+    # folder of the raw videos
+    dir_video = 'data\\' 
+    # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
+    dir_GTMasks = dir_video + 'FinalMasks_' 
 
-    merge_every = rate_hz
-    frames_init = 30 * rate_hz
-    batch_size_init = frames_init
+    merge_every = rate_hz # number of frames every merge
+    frames_init = 30 * rate_hz # number of frames used for initialization
+    batch_size_init = 100 # batch size in CNN inference during initalization
 
-    # dir_parent_online = dir_video + 'ShallowUNet online\\complete\\'
-    dir_parent = dir_video + 'complete\\'
+    dir_parent = dir_video + 'complete\\' # folder to save all the processed data
     dir_sub = ''
-    dir_output = dir_parent + dir_sub + 'output_masks online\\' #
-    dir_params = dir_parent + dir_sub + 'output_masks\\'
-    weights_path = dir_parent + dir_sub + 'Weights\\'
+    dir_output = dir_parent + dir_sub + 'output_masks online\\' # folder to save the segmented masks and the performance scores
+    dir_params = dir_parent + dir_sub + 'output_masks\\' # folder of the optimized hyper-parameters
+    weights_path = dir_parent + dir_sub + 'Weights\\' # folder of the trained CNN
     if not os.path.exists(dir_output):
         os.makedirs(dir_output) 
 
-    # %% PreProcessing parameters
-    nn = nframes # 23200 # nframes # cv2.getOptimalDFTSize(nframes)
-    gauss_filt_size = 50*Mag  # signa in pixels
-    num_median_approx = frames_init
-    (Lx, Ly) = Dimens
-    dims = (Lx,Ly)
+    # %% pre-processing parameters
+    nn = nframes
+    gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
+    num_median_approx = frames_init # number of frames used to caluclate median and median-based standard deviation
+    (Lx, Ly) = Dimens # lateral dimensions of the video
+    dims = (Lx,Ly) # lateral dimensions of the video
+    # zero-pad the lateral dimensions to multiples of 8, suitable for CNN
     rowspad = math.ceil(Lx/8)*8
     colspad = math.ceil(Ly/8)*8
-    # rowspad = colspad = math.ceil(max(Lx,Ly)/8)*8
     dimspad = (rowspad, colspad)
+
     h5f = h5py.File('YST_spike_tempolate.h5','r')
     Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
-    Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)]
+    Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
     leng_tf = Poisson_filt.size
-    leng_past = 2*leng_tf
+    leng_past = 2*leng_tf # number of past frames stored for temporal filtering
+    # dictionary of pre-processing parameters
     Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
         'nn':nn, 'Poisson_filt': Poisson_filt}
 
-    # %% PostProcessing parameters
-    p = mp.Pool() #mp.cpu_count()
-
+    p = mp.Pool()
     list_CV = list(range(0,4))
     num_CV = len(list_CV)
+    # arrays to save the recall, precision, F1, total processing time, and average processing time per frame
     list_Recall = np.zeros((num_CV, 1))
     list_Precision = np.zeros((num_CV, 1))
     list_F1 = np.zeros((num_CV, 1))
     list_time = np.zeros((num_CV, 3))
     list_time_frame = np.zeros((num_CV, 3))
+
 
     for CV in list_CV:
         Exp_ID = list_Exp_ID[CV]
@@ -105,25 +100,38 @@ if __name__ == '__main__':
         list_time_per = np.zeros(nn)
 
         start = time.time()
-        fff = get_unet() #size
+        # load CNN model
+        fff = get_unet()
         fff.load_weights(weights_path+'Model_CV{}.h5'.format(CV))
-        init_imgs = np.zeros((batch_size_eval, Lx, Ly, 1), dtype='float32')
-        init_masks = np.zeros((batch_size_eval, Lx, Ly, 1), dtype='uint8')
-        fff.evaluate(init_imgs, init_masks, batch_size=batch_size_eval)
+        # run CNN inference once to warm up
+        init_imgs = np.zeros((batch_size_init, Lx, Ly, 1), dtype='float32')
+        init_masks = np.zeros((batch_size_init, Lx, Ly, 1), dtype='uint8')
+        fff.evaluate(init_imgs, init_masks, batch_size=batch_size_init)
         del init_imgs, init_masks
-        # print('Load parameters')
+
+        # load optimal post-processing parameters
         time_init = time.time()
         Optimization_Info = loadmat(dir_params+'Optimization_Info_{}.mat'.format(CV))
         Params_post_mat = Optimization_Info['Params'][0]
+        # minimum area of a neuron (unit: pixels).
         minArea = Params_post_mat['minArea'][0][0,0]
+        # average area of a typical neuron (unit: pixels) 
         avgArea = Params_post_mat['avgArea'][0][0,0]
+        # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels)
         thresh_COM0 = Params_post_mat['thresh_COM0'][0][0,0]
+        # maximum COM distance of two masks to be considered the same neuron (unit: pixels)
         thresh_COM = Params_post_mat['thresh_COM'][0][0,0]
+        # minimum IoU of two masks to be considered the same neuron
         thresh_IOU = Params_post_mat['thresh_IOU'][0][0,0]
+        # minimum consume ratio of two masks to be considered the same neuron
         thresh_consume = Params_post_mat['thresh_consume'][0][0,0]
+        # minimum consecutive number of frames of active neurons
         cons = Params_post_mat['cons'][0][0,0]
+        # values higher than "thresh_mask" times the maximum value of the mask are set to one.
         thresh_mask = Params_post_mat['thresh_mask'][0][0,0]
+        # threshould of probablity map (float)
         thresh_pmap_float = (Params_post_mat['thresh_pmap'][0][0,0]+1.5)/256
+        # dictionary of all optimized post-processing parameters.
         Params_post={'minArea': Params_post_mat['minArea'][0][0,0], 
             'avgArea': Params_post_mat['avgArea'][0][0,0],
             'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
@@ -141,9 +149,11 @@ if __name__ == '__main__':
 
         # Spatial filtering preparation
         if useSF==True:
+            # lateral dimensions slightly larger than the raw video but faster for FFT
             rows1 = cv2.getOptimalDFTSize(rowspad)
             cols1 = cv2.getOptimalDFTSize(colspad)
             
+            # if the learned 2D and 3D wisdom files have been saved, load them. Otherwise, learn wisdom later
             try:
                 Length_data=str((rows1, cols1))
                 cc2 = functions_init.load_wisdom_txt('wisdom\\'+Length_data)
@@ -157,7 +167,9 @@ if __name__ == '__main__':
             except:
                 cc3 = None
 
+            # mask for spatial filter
             mask2 = functions_init.plan_mask2(dims, (rows1, cols1), gauss_filt_size)
+            # FFT planning
             (bb, bf, fft_object_b, fft_object_c) = functions_init.plan_fft3(frames_init, (rows1, cols1))
         else:
             (mask2, bf, fft_object_b, fft_object_c) = (None, None, None, None)
@@ -166,23 +178,33 @@ if __name__ == '__main__':
         # Temporal filtering preparation
         frames_initf = frames_init - leng_tf + 1
         if useTF==True:
-            video_input_init = np.ones((frames_initf, rowspad, colspad), dtype='float32')
-            past_frames = np.ones((leng_past, rowspad, colspad), dtype='float32')
+            if prealloc:
+                # past frames stored for temporal filtering
+                past_frames = np.ones((leng_past, rowspad, colspad), dtype='float32')
+            else:
+                past_frames = np.zeros((leng_past, rowspad, colspad), dtype='float32')
         else:
-            (video_input_init, past_frames) = (None, None)
+            past_frames = None
         
-        # Pre-allocate memory for some future variables
-        med_frame2 = np.ones((rowspad, colspad, 2), dtype='float32')
-        video_input = np.ones((frames_initf, rowspad, colspad), dtype='float32')        
-        pmaps_b_init = np.ones((frames_initf, Lx, Ly), dtype='uint8')        
-        frame_input = np.ones(dimspad, dtype='float32')
-        pmaps_b = np.ones(dims, dtype='uint8')
-        # segs_all = None
+        if prealloc:
+            # Pre-allocate memory for some future variables
+            med_frame2 = np.ones((rowspad, colspad, 2), dtype='float32')
+            video_input = np.ones((frames_initf, rowspad, colspad), dtype='float32')        
+            pmaps_b_init = np.ones((frames_initf, Lx, Ly), dtype='uint8')        
+            frame_input = np.ones(dimspad, dtype='float32')
+            pmaps_b = np.ones(dims, dtype='uint8')
+        else:
+            med_frame2 = np.zeros((rowspad, colspad, 2), dtype='float32')
+            video_input = np.zeros((frames_initf, rowspad, colspad), dtype='float32')        
+            pmaps_b_init = np.zeros((frames_initf, Lx, Ly), dtype='uint8')        
+            frame_input = np.zeros(dimspad, dtype='float32')
+            pmaps_b = np.zeros(dims, dtype='uint8')
 
         time_init = time.time()
         print('Parameter initialization time: {} s'.format(time_init-start))
 
-        # %% Load data and preparation
+
+        # %% Load raw video
         h5_img = h5py.File(dir_video+Exp_ID+'.h5', 'r')
         video_raw = np.array(h5_img['mov'])
         h5_img.close()
@@ -191,9 +213,7 @@ if __name__ == '__main__':
         bb[:, :Lx, :Ly] = video_raw[:frames_init] #, :Lx, :Ly
         time_load = time.time()
         print('Load data: {} s'.format(time_load-time_init))
-        # time_pre = np.zeros(nframes-frames_init)
-        # time_CNN = np.zeros(nframes-frames_init)
-        # time_frame = np.zeros(nframes-frames_init)
+
 
         # %% Initialization using the first 30 s
         print('Initialization of algorithms using the first {} frames'.format(frames_init))
@@ -213,6 +233,7 @@ if __name__ == '__main__':
         time_frame_init = time_init/(frames_initf)*1000
         print('Initialization time: {:6f} s, {:6f} ms/frame'.format(time_init, time_frame_init))
 
+
         start_online = time.time()
         # Spatial filtering preparation for online processing. 
         # Attention: this part counts to the total time
@@ -225,106 +246,94 @@ if __name__ == '__main__':
             bb=np.zeros(dimspad, dtype='float32')
 
         print('Start frame by frame processing')
-        # Online process for the following frames
+        # %% Online processing for the following frames
         current_frame = leng_tf
         t_merge = frames_initf
         for t in range(frames_initf,nframesf):
-            # print('Pre-processing')
             start_frame = time.time()
-            # frame_raw = video_raw[ind]
-            bb[:Lx, :Ly] = video_raw[t] #, :Lx, :Ly
+            bb[:Lx, :Ly] = video_raw[t]
 
-            # Preprocessing a frame
-            # frame_input = functions_online.preprocess_online(bb, dimspad, med_frame3, frame_input, \
-            #     past_frames[current_frame-leng_tf:current_frame], mask2, bf, fft_object_b, fft_object_c, \
-            #     Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR)
-            if useSF:
+            if useSF: # Spatial filtering
                 par_online.fastlog(bb)
                 fft_object_b()
                 par_online.fastmask(bf, mask2)
                 fft_object_c()
                 par_online.fastexp(bb)
 
-            # %% Temporal filtering
-            if useTF:
+            if useTF: # Temporal filtering
                 past_frames[current_frame] = bb[:rowspad, :colspad]
                 par_online.fastconv(past_frames[current_frame-leng_tf:current_frame], frame_input, Poisson_filt)
             else:
                 frame_input = bb[:rowspad, :colspad]
 
-            # %% Median computation and normalization
-            if useSNR:
+            if useSNR: # SNR normalization
                 par_online.fastnormf(frame_input, med_frame3)
             else:
                 par_online.fastnormback(frame_input, 0, med_frame3[0,:,:].mean())
 
-            # print('CNN inference')
-            # frame_prob = functions_online.CNN_online(frame_input, fff, dims)
-            frame_input_exp = frame_input[np.newaxis,:,:,np.newaxis] # 
+            # CNN inference
+            frame_input_exp = frame_input[np.newaxis,:,:,np.newaxis]
             frame_prob = fff.predict(frame_input_exp, batch_size=1)
-            frame_prob = frame_prob.squeeze()[:dims[0], :dims[1]] # 
+            frame_prob = frame_prob.squeeze()[:dims[0], :dims[1]]
 
-            # print('Post-processing')
-            # segs = functions_online.postprocess_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT=useWT)
+            # post-processing
+            # threshold the probability map to binary activity
             par_online.fastthreshold(frame_prob, pmaps_b, thresh_pmap_float)
-            # print('Post-processing')
+            # spatial clustering each frame to form connected regions representing active neurons
             segs = separateNeuron_b(pmaps_b, thresh_pmap_float, minArea, avgArea, useWT)
-            # print('Post-processing')
             segs_all.append(segs)
 
-            # print('Merge 1')
-            if ((t + 1 - t_merge) == merge_every) or (t==nframesf-1): # merge
+            # temporal merging 1: combine neurons with COM distance smaller than thresh_COM0
+            if ((t + 1 - t_merge) == merge_every) or (t==nframesf-1):
                 uniques, times_uniques = uniqueNeurons1_simp(segs_all[t_merge:(t+1)], thresh_COM0) # minArea,
 
-            # print('Merge 2')
-            if ((t + 0 - t_merge) == merge_every) or (t==nframesf-1): # merge
+            # temporal merging 2: combine neurons with COM distance smaller than thresh_COM
+            if ((t + 0 - t_merge) == merge_every) or (t==nframesf-1):
                 if uniques.size:
                     groupedneurons, times_groupedneurons = \
                         group_neurons(uniques, thresh_COM, thresh_mask, dims, times_uniques)
 
-            # print('Merge 3')
-            if ((t - 1 - t_merge) == merge_every) or (t==nframesf-1): # merge
+            # temporal merging 3: combine neurons with IoU larger than thresh_IOU
+            if ((t - 1 - t_merge) == merge_every) or (t==nframesf-1):
                 if uniques.size:
                     piecedneurons_1, times_piecedneurons_1 = \
                         piece_neurons_IOU(groupedneurons, thresh_mask, thresh_IOU, times_groupedneurons)
 
-            # print('Merge 4')
-            if ((t - 2 - t_merge) == merge_every) or (t==nframesf-1): # merge
+            # temporal merging 4: combine neurons with conumse ratio larger than thresh_consume
+            if ((t - 2 - t_merge) == merge_every) or (t==nframesf-1):
                 if uniques.size:
                     piecedneurons, times_piecedneurons = \
                         piece_neurons_consume(piecedneurons_1, avgArea, thresh_mask, thresh_consume, times_piecedneurons_1)
+                    # masks of new neurons
                     masks_add = piecedneurons
+                    # indices of frames when the neurons are active
                     times_add = [np.unique(x) + t_merge for x in times_piecedneurons]
                         
-                    # %% Refine neurons using consecutive occurence
-                    # masks_2_float = refine_seperate_nommin_float(masks_final_2, times_final, cons, thresh_mask)
-                    # masks_2_float = masks_final_2
+                    # Refine neurons using consecutive occurence
                     if masks_add.size:
+                        # new real-number masks
                         masks_add = [x for x in masks_add]
+                        # new binary masks
                         Masksb_add = [(x >= x.max() * thresh_mask).astype('float') for x in masks_add]
-                        area_add = np.array([x.nnz for x in Masksb_add]) # Masks_2.sum(axis=1).A.squeeze()
-                        # if select_cons:
+                        # areas of new masks
+                        area_add = np.array([x.nnz for x in Masksb_add])
+                        # indicators of whether the new masks satisfy consecutive frame requirement
                         have_cons_add = functions_online.refine_seperate_cons(times_add, cons)
-                        # else:
-                            # have_cons=np.zeros(masks_final_2.size, dtype='bool')
                     else:
                         Masksb_add = []
                         area_add = np.array([])
                         have_cons_add = np.array([])
-                else:
+
+                else: # does not find any active neuron
                     Masksb_add = []
-                    masks_add = [] # masks_2_float = 
+                    masks_add = []
                     times_add = times_uniques
                     area_add = np.array([])
                     have_cons_add = np.array([])
                 tuple_add = (Masksb_add, masks_add, times_add, area_add, have_cons_add)
-                # tuple_add = functions_online.merge_complete(segs_all[t_merge:(t+1)], dims, Params_post)
-                # (Masksb_add, masks_add, times_add, area_add, have_cons_add) = tuple_add
-                # times_add = [x + t_merge for x in times_add]
-                # tuple_add = (Masksb_add, masks_add, times_add, area_add, have_cons_add)
 
-            # print('Merge 5')
-            if ((t - 3 - t_merge) == merge_every) or (t==nframesf-1): # merge
+            # temporal merging 5: merge newly found neurons within the recent "merge_every" frames with existing neurons
+            if ((t - 3 - t_merge) == merge_every) or (t==nframesf-1):
                 # tuple_temp = merge_2_Jaccard(tuple_temp, tuple_add, dims, Params)
                 tuple_temp = functions_online.merge_2(tuple_temp, tuple_add, dims, Params_post)
                 t_merge = t+1
@@ -332,13 +341,13 @@ if __name__ == '__main__':
                     Masks_2 = functions_online.select_cons(tuple_temp)
 
             current_frame +=1
-            # print('Update latest frames if needed')
+            # Update the stored latest frames when it runs out: move them "leng_tf" ahead
             if current_frame >= leng_past:
                 current_frame = leng_tf
                 past_frames[:leng_tf] = past_frames[-leng_tf:]
             end_frame = time.time()
             list_time_per[t] = end_frame - start_frame
-            if t % 1000 == 0: #True: # 
+            if t % 1000 == 0:
                 print('{} frames has been processed'.format(t))
 
         if not show_intermediate:
@@ -348,22 +357,24 @@ if __name__ == '__main__':
         time_frame_online = time_online/(nframesf-frames_initf)*1000
         print('Online time: {:6f} s, {:6f} ms/frame'.format(time_online, time_frame_online))
 
+        # final result. Masks_2 is a 2D sparse matrix of the segmented neurons
         if len(Masks_2):
             Masks_2 = sparse.vstack(Masks_2)
         else:
             Masks_2 = sparse.csc_matrix((0,dims[0]*dims[1]))
-        # Masks_2 = functions_online.merge_complete(segs_all, dims, Params_post)
         end_final = time.time()
 
-        # %% Evaluation
+        # %% Evaluation of the segmentation accuracy compared to manual ground truth
         filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
         data_GT=loadmat(filename_GT)
         GTMasks_2 = data_GT['GTMasks_2'].transpose()
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks_2':Masks_2})
+        # convert to a 3D array of the segmented neurons
+        Masks = np.reshape(Masks_2.todense().A, (Masks_2.shape[0], Lx, Ly))
+        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks':Masks})
 
-        # %% Save information
+        # %% Save recall, precision, F1, total processing time, and average processing time per frame
         time_all = end_final-start_init
         time_frame_all = time_all/nframes*1000
         print('Total time: {:6f} s, {:6f} ms/frame'.format(time_all, time_frame_all))
@@ -373,10 +384,10 @@ if __name__ == '__main__':
         list_time[CV] = np.array([time_init, time_online, time_all])
         list_time_frame[CV] = np.array([time_frame_init, time_frame_online, time_frame_all])
 
-        # del video_input, fff#, Masks
         Info_dict = {'list_Recall':list_Recall, 'list_Precision':list_Precision, 'list_F1':list_F1, 
             'list_time':list_time, 'list_time_frame':list_time_frame}
         savemat(dir_output+'Output_Info_All.mat', Info_dict)
+        del video_input, fff
 
     p.close()
 

@@ -3,20 +3,19 @@
 Shallow UNet Neuron Segmentation (SUNS) is an automatic algorithm to segment active neurons from two-photon calcium imaging videos. It used temporal filtering and whitening schemes to extract temporal features associated with active neurons, and used a compact shallow U-Net to extract spatial features of neurons.
 
 
-### System Requirements
-* Anaconda with Python 3.7
-* Tensorflow-gpu 1.15 (CUDA Toolkit 10.0 and cuDNN v7.6.5 required. Detailed instructions can be found [here][cuda-link].)
-
-[cuda-link]: https://www.tensorflow.org/install/gpu
-
 ### Documentation
 The how-to guides are available on [the Wiki][wiki-link].
 
 [wiki-link]: https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/wiki
 
-### Installation on Windows
+### System requirement
+Operation system: Windows 10.
+Memory: ~6x file size of the raw video if the the raw video is in uint16 format. ~3x file size of the raw video if the the raw video is in float32 format. 
+A CUDA compatible GPU is preferred.
 
+### Installation on Windows
 * Install Anaconda with Python 3.7
+* Install [CUDA Toolkit 10.0][cuda-link] if you have a CUDA-compatiable GPU and want to use it.
 * Launch Anaconda prompt and type the following in order (pathoffile is the directory to which the provided files were downloaded to):
 ```bat
 cd pathoffile
@@ -24,10 +23,23 @@ cd installation
 conda env create -f environment_suns_2.yml -n suns
 ```
 * Go to the Anaconda environment foler, (such as `C:/ProgramData/Anaconda3/envs` or `C:/Users/(username)/.conda/envs`), and then go to folder `suns/Lib/site-packages/fissa`, overwrite `core.py` with the one provided in the `installation` folder. If the dataset you used is less than 4 GB, you can skip this step. 
-The installation should take less than half an hour in total.
+The installation should take about an hour in total.
+
+[cuda-link]: https://developer.nvidia.com/cuda-toolkit-archive
+
+### Demo
+We provided a demo for all users to get familiar with our software. We provided four two-photon imaging videos as well as their manually marked neurons in `demo/data`. The demo will perform a cross validation over the four videos: train the CNN and search for optimal hyper-parameters using three videos, and test SUNS with the training output on the remaining video. 
+To run the demo, launch Anaconda prompt and type the following script 
+```bat
+cd pathoffile
+cd demo
+conda activate suns
+demo_pipeline.bat
+```
+The demo contains three parts: training CNN and hyper-parameters, testing SUNS batch, and testing SUNS online. The output masks of SUNS batch will be in `demo/complete/output_masks`, and the output masks of SUNS batch will be in `demo/complete/output_masks online`. The average F1 score of the training videos should be ~0.8, and the average F1 of the test videos should be ~0.75 for SUNS batch and ~0.67 for SUNS online. The processing time depends on the hardware. When executing on a laptop (Intel Core i5-6200U dual-core CPU, NVIDIA 940MX GPU), the training takes ~6 hours in total, testing SUNS batch takes ~6 seconds per video, and testing SUNS online takes ~30 seconds per video. When executing on a desktop computer (AMD 1920X 12-core CPU, NVIDIA Titan RTX GPU), the training takes ~50 minutes in total, testing SUNS batch takes ~1.5 seconds per video, and testing SUNS online takes ~20 seconds per video.
 
 
-#### Links to Datasets and Manual Markings:
+### Links to Datasets and Manual Markings:
 
 In our paper, we used two-photon imaging videos from [Allen Brain Observatory dataset][Allen-github], [Neurofinder Challenge website][Neurofinder-website], and [CaImAn dataset][CaImAn-github]. We used the manual markings of Allen Brain Observatory and Neurofinder from [STNeuroNet][STNeuroNet-github], and used the manual markings of CaImAn dataset from [CaImAn dataset][CaImAn-github].
 
