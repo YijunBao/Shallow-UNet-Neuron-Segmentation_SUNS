@@ -4,6 +4,7 @@ channels:
   - defaults
 dependencies:
   - python=3.7.8
+  - pip=19.3.1=py37_0
   - numpy
   - h5py
   - keras
@@ -16,7 +17,6 @@ dependencies:
   - shapely 
   # - tensorflow==1.15
   - tensorflow-gpu==1.15
-  # - tensorflow-estimator==1.15.1=pyh2649769_0
   - pip:
     - fissa==0.6.1
     - pyfftw

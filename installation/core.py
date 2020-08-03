@@ -26,8 +26,8 @@ try:
     has_multiprocessing = True
 except BaseException:
     warnings.warn('Multiprocessing library is not installed, using single ' +
-                    'core instead. To use multiprocessing install it by: ' +
-                    'pip install multiprocessing')
+                  'core instead. To use multiprocessing install it by: ' +
+                  'pip install multiprocessing')
     has_multiprocessing = False
 
 
@@ -118,7 +118,7 @@ def separate_func(inputs):
         X, method, maxiter=20000, tol=1e-4, maxtries=1, alpha=alpha
     )
     ROInum = inputs[3]
-    print('Finished ROI number ' + str(ROInum))
+    # print('Finished ROI number ' + str(ROInum))
     return Xsep, Xmatch, Xmixmat, convergence
 
 
@@ -239,11 +239,11 @@ class Experiment():
         # check if any data already exists
         if not os.path.exists(folder):
             os.makedirs(folder)
-        # if os.path.isfile(folder + '/preparation.npy'):
-        #     if os.path.isfile(folder + '/separated.npy'):
-        #         self.separate()
-        #     else:
-        #         self.separation_prep()
+        if os.path.isfile(folder + '/preparation.npy'):
+            if os.path.isfile(folder + '/separated.npy'):
+                self.separate()
+            else:
+                self.separation_prep()
 
     def separation_prep(self, redo=False):
         """Prepare and extract the data to be separated.
@@ -280,7 +280,7 @@ class Experiment():
         # try to load data from filename
         if not redo:
             try:
-                nCell, raw, roi_polys = np.load(fname, allow_pickle=True)
+                nCell, raw, roi_polys = np.load(fname)
                 print('Reloading previously prepared data...')
             except BaseException:
                 redo = True
@@ -294,7 +294,7 @@ class Experiment():
                                  self.nRegions, self.expansion]
 
             # Do the extraction
-            if self.nTrials > 1 and has_multiprocessing: #
+            if has_multiprocessing:
                 # define pool
                 pool = Pool(self.ncores_preparation)
 
@@ -370,7 +370,7 @@ class Experiment():
         fname = self.folder + '/separated.npy'
         if not redo_sep:
             try:
-                info, mixmat, sep, result = np.load(fname, allow_pickle=True)
+                info, mixmat, sep, result = np.load(fname)
                 print('Reloading previously separated data...')
             except BaseException:
                 redo_sep = True
