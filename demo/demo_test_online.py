@@ -49,7 +49,7 @@ if __name__ == '__main__':
     # folder of the raw videos
     dir_video = 'data\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = dir_video + 'FinalMasks_' 
+    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
     merge_every = rate_hz # number of frames every merge
     frames_init = 30 * rate_hz # number of frames used for initialization

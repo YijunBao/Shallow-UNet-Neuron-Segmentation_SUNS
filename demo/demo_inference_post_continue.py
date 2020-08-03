@@ -37,7 +37,7 @@ if __name__ == '__main__':
     # folder of the raw videos
     dir_video = 'data\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = dir_video + 'FinalMasks_' 
+    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
     dir_parent = dir_video + 'complete\\' # folder to save all the processed data
     dir_sub = ''
@@ -178,7 +178,6 @@ if __name__ == '__main__':
         F1_mean = F1_train[CV].mean(axis=0)*nvideo/(nvideo-1)
         Table=np.vstack([array_minArea.ravel(), array_AvgArea.ravel(), array_thresh_pmap.ravel(), array_cons.ravel(), 
             array_thresh_COM.ravel(), array_thresh_IOU.ravel(), Recall_mean.ravel(), Precision_mean.ravel(), F1_mean.ravel()]).T
-        print('F1_max=', [x.max() for x in F1_train])
 
         # find the post-processing hyper-parameters to achieve the highest average F1 over the training videos
         ind = F1_mean.argmax()

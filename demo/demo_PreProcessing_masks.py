@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # folder of the raw videos
     dir_video = 'data\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = dir_video + 'FinalMasks_' 
+    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
     dir_save = dir_video + 'complete\\' # folder to save all the processed data
     dir_network_input = dir_save+"network_input\\" # folder to save the SNR videos
