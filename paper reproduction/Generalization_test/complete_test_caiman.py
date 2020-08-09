@@ -140,7 +140,6 @@ if __name__ == '__main__':
         Params_post={'minArea': Params_post_mat['minArea'][0][0,0] * Mxy**2, 
             'avgArea': Params_post_mat['avgArea'][0][0,0] * Mxy**2,
             'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
-            'win_avg':Params_post_mat['win_avg'][0][0,0], 
             'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
             'thresh_COM0': Params_post_mat['thresh_COM0'][0][0,0] * Mxy, 
             'thresh_COM': Params_post_mat['thresh_COM'][0][0,0] * Mxy, 
@@ -150,6 +149,7 @@ if __name__ == '__main__':
         time_init = time.time()
         print('Initialization time: {} s'.format(time_init-start))
         print(Params_post)
+        Params_post['thresh_pmap'] = None # Avoid repeated thresholding in postprocessing
 
         # %% Load data and preparation
         # h5_img = h5py.File(dir_img+Exp_ID+'.h5', 'r')
@@ -188,7 +188,7 @@ if __name__ == '__main__':
         # %% PostProcessing
         start_post = time.time()
         Masks_2 = complete_segment(pmaps, Params_post, display=True, p=p, useWT=False)
-        Masks = np.reshape(Masks_2.todense().A, (Masks_2.shape[0], Lx, Ly))
+        Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly))
         finish = time.time()
         time_post = finish-start_post
         time_frame_post = time_post/nframes*1000

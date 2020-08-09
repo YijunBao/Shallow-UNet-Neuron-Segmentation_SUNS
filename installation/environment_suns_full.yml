@@ -284,7 +284,7 @@ dependencies:
   - singledispatch=3.4.0.3=py37_1000
   - sip=4.19.20=py37h6538335_0
   - six=1.14.0=py37_0
-  - snappy=1.1.8=he025d50_0
+  - snappy # =1.1.8=he025d50_0
   - snowballstemmer=2.0.0=py_0
   - sortedcollections=1.1.2=py_0
   - sortedcontainers=2.1.0=py_0
@@ -351,7 +351,7 @@ dependencies:
     - holoviews==1.12.7
     - imagecodecs==2019.12.16
     - matlab==0.1
-    - matlabengineforpython==R2018a
+    # - matlabengineforpython==R2018a
     - memory-profiler==0.57.0
     - nibabel==3.0.0
     - param==1.9.2
@@ -360,6 +360,8 @@ dependencies:
     - pyqt5-sip==4.19.18
     - pyqtwebengine==5.12.1
     - pyviz-comms==0.7.2
-    - tensorflow==1.13.2
-    - tensorflow-gpu==1.13.2
+    # - tensorflow==1.13.2
+    # - tensorflow-gpu==1.13.2
+    - tensorflow==1.15.0
+    - tensorflow-gpu==1.15.0
 prefix: C:\ProgramData\Anaconda3

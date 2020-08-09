@@ -16,9 +16,9 @@ sys.path.insert(1, '..\\neuron_post')
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 import par1
-from preprocessing_functions import process_video
+from preprocessing_functions import preprocess_video
 from par3 import fastthreshold
-from unet4_best import get_unet
+from shallow_unet import get_shallow_unet
 from evaluate_post import GetPerformance_Jaccard_2
 from complete_post import complete_segment
 
@@ -29,10 +29,10 @@ if __name__ == '__main__':
     nframes = 3000 # number of frames for each video
     Mag = 6/8 # spatial magnification compared to ABO videos.
 
-    useSF=True # True if spatial filtering is used in pre-processing.
+    useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
-    prealloc=False # True if pre-allocate memory space for large variables in pre-processing. 
+    prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     batch_size_eval = 100 # batch size in CNN inference
     useWT=False # True if using additional watershed
@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
         start = time.time()
         # load CNN model
-        fff = get_unet()
+        fff = get_shallow_unet()
         fff.load_weights(weights_path+'Model_CV{}.h5'.format(CV))
         # run CNN inference once to warm up
         init_imgs = np.zeros((batch_size_eval, Lx, Ly, 1), dtype='float32')
@@ -101,8 +101,6 @@ if __name__ == '__main__':
             'avgArea': Params_post_mat['avgArea'][0][0,0],
             # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1.5)
             'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
-            # unused
-            'win_avg':Params_post_mat['win_avg'][0][0,0], 
             # values higher than "thresh_mask" times the maximum value of the mask are set to one.
             'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
             # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels)
@@ -123,7 +121,7 @@ if __name__ == '__main__':
 
         # %% pre-processing including loading data
         # start = time.time()
-        video_input, start = process_video(dir_video, Exp_ID, Params_pre, \
+        video_input, start = preprocess_video(dir_video, Exp_ID, Params_pre, \
             useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=prealloc)
         end_pre = time.time()
         nframes = video_input.shape[0]
@@ -143,6 +141,7 @@ if __name__ == '__main__':
         # %% post-processing
         prob_map = prob_map.squeeze()[:, :Lx, :Ly]
         print(Params_post)
+        Params_post['thresh_pmap'] = None # Avoid repeated thresholding in postprocessing
         start_post = time.time()
         pmaps_b = np.zeros(prob_map.shape, dtype='uint8')
         # threshold the probability map to binary activity
@@ -162,7 +161,7 @@ if __name__ == '__main__':
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
         # convert to a 3D array of the segmented neurons
-        Masks = np.reshape(Masks_2.todense().A, (Masks_2.shape[0], Lx, Ly))
+        Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly))
         savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks':Masks})
 
         # %% Save recall, precision, F1, total processing time, and average processing time per frame

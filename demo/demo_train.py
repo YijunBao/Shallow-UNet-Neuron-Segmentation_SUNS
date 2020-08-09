@@ -12,7 +12,7 @@ sys.path.insert(1, '..\\Network')
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 from data_gen import data_gen
-from unet4_best import get_unet
+from shallow_unet import get_shallow_unet
 import time
 
 # %%
@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     thred_std = 3 # SNR threshold used to determine when neurons are active
     num_train_per = 2400 # Number of frames per video used for training 
-    BATCH_SIZE = 10 # Batch size for training 
+    BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
 
     # file names of the ".h5" files storing the raw videos. 
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         val_gen = data_gen(val_imgs, val_masks, batch_size=BATCH_SIZE, flips=False, rotate=False)
 
 
-        fff = get_unet()
+        fff = get_shallow_unet()
 
         class LossAndErrorPrintingCallback(tf.keras.callbacks.Callback):
             def on_epoch_end(self, epoch, logs=None):

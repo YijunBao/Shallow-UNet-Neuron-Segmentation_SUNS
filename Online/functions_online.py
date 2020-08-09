@@ -1,9 +1,7 @@
 # %%
 import os
-# import cv2
 import math
 import numpy as np
-import matplotlib.pyplot as plt
 import time
 import h5py
 import sys
@@ -13,12 +11,8 @@ from scipy import signal
 from scipy import special
 from scipy.optimize import linear_sum_assignment
 
-# import random
-# import tensorflow as tf
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
-# import matlab
-# import matlab.engine as engine
 
 sys.path.insert(1, '..\\PreProcessing')
 sys.path.insert(1, '..\\Network')
@@ -26,12 +20,9 @@ sys.path.insert(1, '..\\neuron_post')
 # os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 import par_online
-import par1
-# from preprocessing_functions import process_video, process_video_prealloc
-# from complete_post import complete_segment
-from seperate_multi import separateNeuron_b, separateNeuron
-from combine import uniqueNeurons1_simp, uniqueNeurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
-# from evaluate_post import refine_seperate_nommin, refine_seperate_nommin_float
+from seperate_multi import separateNeuron
+from combine import segs_results, uniqueNeurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
+
 
 
 # %%
@@ -84,7 +75,7 @@ def postprocess_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea,
     # start = time.time()
     # pmaps_b = np.zeros(dims, dtype='uint8')
     par_online.fastthreshold(frame_prob, pmaps_b, thresh_pmap_float)
-    segs = separateNeuron_b(pmaps_b, thresh_pmap_float, minArea, avgArea, useWT)
+    segs = separateNeuron(pmaps_b, None, minArea, avgArea, useWT)
     # end = time.time()
     # time_frame = end-start
     return segs#, time_frame
@@ -117,9 +108,10 @@ def merge_complete(segs, dims, Params): # , select_cons=True
     thresh_IOU = Params['thresh_IOU']
     thresh_consume = Params['thresh_consume']
     cons = Params['cons']
-    # win_avg = Params['win_avg']
 
-    uniques, times_uniques = uniqueNeurons1_simp(segs, thresh_COM0) # minArea,
+    totalmasks, neuronstate, COMs, areas, probmapID = segs_results(segs)
+    uniques, times_uniques = uniqueNeurons2_simp(totalmasks, neuronstate, COMs, \
+        areas, probmapID, minArea=0, thresh_COM0=thresh_COM0)
     if uniques.size:
         groupedneurons, times_groupedneurons = \
             group_neurons(uniques, thresh_COM, thresh_mask, (dims[0], dims[1]), times_uniques)
@@ -132,8 +124,6 @@ def merge_complete(segs, dims, Params): # , select_cons=True
         times_final = [np.unique(x) for x in times_piecedneurons]
             
         # %% Refine neurons using consecutive occurence
-        # masks_2_float = refine_seperate_nommin_float(masks_final_2, times_final, cons, thresh_mask)
-        # masks_2_float = masks_final_2
         if masks_final_2.size:
             masks_final_2 = [x for x in masks_final_2]
             Masks_2 = [(x >= x.max() * thresh_mask).astype('float') for x in masks_final_2]
@@ -167,7 +157,6 @@ def merge_2(tuple1, tuple2, dims, Params):
     thresh_IOU = Params['thresh_IOU']
     thresh_consume = Params['thresh_consume']
     cons = Params['cons']
-    # win_avg = Params['win_avg']
     Masksb1, masks1, times1, area1, have_cons1 = tuple1
     Masksb2, masks2, times2, area2, have_cons2 = tuple2
 
@@ -180,8 +169,8 @@ def merge_2(tuple1, tuple2, dims, Params):
 
     area1_2d = np.expand_dims(area1, axis=1).repeat(N2, axis=1)
     area2_2d = np.expand_dims(area2, axis=0).repeat(N1, axis=0)
-    # area_i = Masksb1.dot(Masksb2.T).todense().A
-    area_i = sparse.vstack(Masksb1).dot(sparse.vstack(Masksb2).T).todense().A
+    # area_i = Masksb1.dot(Masksb2.T).toarray()
+    area_i = sparse.vstack(Masksb1).dot(sparse.vstack(Masksb2).T).toarray()
     # area_i = np.array([[x.dot(y.T)[0,0] for y in Masksb2] for x in Masksb1])
     area_u = area1_2d + area2_2d - area_i
     IOU = area_i/area_u
@@ -195,11 +184,6 @@ def merge_2(tuple1, tuple2, dims, Params):
         Masksb_merge = Masksb1 + Masksb2
         area_merge = np.hstack([area1, area2])
         have_cons_merge = np.hstack([have_cons1, have_cons2])
-        # %% Refine neurons using consecutive occurence
-        # masks_float = refine_seperate_nommin_float(masks_final_2, times_final, cons, thresh_mask)
-        # masks_float = masks_merge
-        # Masksb_merge = sparse.vstack([x >= x.max() * thresh_mask for x in masks_merge]).astype('float')
-        # area_merge = Masksb_merge.sum(axis=1).A.squeeze()
         return (Masksb_merge, masks_merge, times_merge, area_merge, have_cons_merge) # Masks_2, masks_2_float, 
 
     # if a mask in masks2 is overlapped with multiple masks in makes1, keep only the one with the largest IOU
@@ -270,7 +254,6 @@ def merge_2_nocons(tuple1, tuple2, dims, Params): # only merge masks2 to masks1 
     thresh_IOU = Params['thresh_IOU']
     thresh_consume = Params['thresh_consume']
     cons = Params['cons']
-    # win_avg = Params['win_avg']
 
     Masksb2, masks2, times2, area2, have_cons2 = tuple2
     N2 = len(masks2)
@@ -298,8 +281,8 @@ def merge_2_nocons(tuple1, tuple2, dims, Params): # only merge masks2 to masks1 
 
     area1_2d = np.expand_dims(area1_nocons, axis=1).repeat(N2, axis=1)
     area2_2d = np.expand_dims(area2, axis=0).repeat(N1_nocons, axis=0)
-    # area_i = Masksb1_nocons.dot(Masksb2.T).todense().A
-    area_i = sparse.vstack(Masksb1_nocons).dot(sparse.vstack(Masksb2).T).todense().A
+    # area_i = Masksb1_nocons.dot(Masksb2.T).toarray()
+    area_i = sparse.vstack(Masksb1_nocons).dot(sparse.vstack(Masksb2).T).toarray()
     # area_i = np.array([[x.dot(y.T)[0,0] for y in Masksb2] for x in Masksb1_nocons])
     area_u = area1_2d + area2_2d - area_i
     IOU = area_i/area_u
@@ -384,7 +367,6 @@ def merge_final_track(tuple_temp, segs, dims, Params, frames_initf, merge_every)
     thresh_IOU = Params['thresh_IOU']
     thresh_consume = Params['thresh_consume']
     # cons = Params['cons']
-    # # win_avg = Params['win_avg']
     nframes_online = len(segs)
     (Masksb_temp, masks_temp, times_temp, area_temp, have_cons_temp) = tuple_temp
     Masks_cons = select_cons(tuple_temp)
@@ -538,16 +520,6 @@ def merge_final_track(tuple_temp, segs, dims, Params, frames_initf, merge_every)
 
 
 def merge_final(tuple_temp, segs, dims, Params, frames_initf, merge_every, show_intermediate=True):
-    # # minArea = Params['minArea']
-    # avgArea = Params['avgArea']
-    # # thresh_pmap = Params['thresh_pmap']
-    # thresh_mask = Params['thresh_mask']
-    # thresh_COM0 = Params['thresh_COM0']
-    # thresh_COM = Params['thresh_COM']
-    # thresh_IOU = Params['thresh_IOU']
-    # thresh_consume = Params['thresh_consume']
-    # cons = Params['cons']
-    # # win_avg = Params['win_avg']
     nframes_online = len(segs)
 
     if show_intermediate:
@@ -626,34 +598,6 @@ def refine_seperate_cons_new(tuple_temp, cons=1):
 
     return Masks_2
 
-
-# def merge_2_slow(uniques, times_uniques, dims, Params):
-#     # minArea = Params['minArea']
-#     avgArea = Params['avgArea']
-#     # thresh_pmap = Params['thresh_pmap']
-#     thresh_mask = Params['thresh_mask']
-#     # thresh_COM0 = Params['thresh_COM0']
-#     thresh_COM = Params['thresh_COM']
-#     thresh_IOU = Params['thresh_IOU']
-#     thresh_consume = Params['thresh_consume']
-#     # cons = Params['cons']
-#     # win_avg = Params['win_avg']
-
-#     # uniques, times_uniques = uniqueNeurons1_simp(segs, thresh_COM0) # minArea,
-#     groupedneurons, times_groupedneurons = \
-#         group_neurons(uniques, thresh_COM, thresh_mask, (dims[0], dims[1]), times_uniques)
-#     piecedneurons_1, times_piecedneurons_1 = \
-#         piece_neurons_IOU(groupedneurons, thresh_mask, thresh_IOU, times_groupedneurons)
-#     piecedneurons, times_piecedneurons = \
-#         piece_neurons_consume(piecedneurons_1, avgArea, thresh_mask, thresh_consume, times_piecedneurons_1)
-#     # %% Final result
-#     masks_final_2 = piecedneurons
-#     times_final = [np.unique(x) for x in times_piecedneurons]
-        
-#     # %% Refine neurons using consecutive occurence
-#     # masks_2_float = refine_seperate_nommin_float(masks_final_2, times_final, cons, thresh_mask)
-#     # Masks_2 = sparse.vstack([x >= x.max() * thresh_mask for x in masks_2_float])
-#     return masks_final_2, times_final # Masks_2, masks_2_float, 
 
 
 

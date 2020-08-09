@@ -7,7 +7,7 @@ import h5py
 import os
 
 sys.path.insert(1, '..\\PreProcessing')
-from preprocessing_functions import process_video, generate_masks
+from preprocessing_functions import preprocess_video, generate_masks
 import par1
 
 
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     nframes = 3000 # number of frames for each video
     Mag = 6/8 # spatial magnification compared to ABO videos.
 
-    useSF=True # True if spatial filtering is used in pre-processing.
+    useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     prealloc=False # True if pre-allocate memory space for large variables in pre-processing. 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     # pre-processing for training
     for Exp_ID in list_Exp_ID: #
         # %% Pre-process video
-        video_input, _ = process_video(dir_video, Exp_ID, Params, dir_network_input, \
+        video_input, _ = preprocess_video(dir_video, Exp_ID, Params, dir_network_input, \
             useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=prealloc) #
 
         # %% Determine active neurons in all frames using FISSA

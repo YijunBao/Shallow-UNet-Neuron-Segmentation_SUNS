@@ -10,12 +10,8 @@ import sys
 import pyfftw
 from scipy import sparse
 
-# import random
-# import tensorflow as tf
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
-# import matlab
-# import matlab.engine as engine
 
 sys.path.insert(1, '..\\PreProcessing')
 sys.path.insert(1, '..\\Network')
@@ -23,17 +19,12 @@ sys.path.insert(1, '..\\neuron_post')
 # os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
-# import par1
-# from preprocessing_functions import process_video, process_video_prealloc
-# from par2 import fastuint, fastcopy
-# from par3 import fastthreshold
 from unet4_best import get_unet
 from evaluate_post import GetPerformance_Jaccard_2
-# from complete_post import complete_segment
 import functions_online
 import functions_init
 import par_online
-from seperate_multi import separateNeuron_b
+from seperate_multi import separateNeuron
 
 
 # %%
@@ -131,7 +122,6 @@ def main():
         Params_post={'minArea': Params_post_mat['minArea'][0][0,0], 
             'avgArea': Params_post_mat['avgArea'][0][0,0],
             'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
-            'win_avg':Params_post_mat['win_avg'][0][0,0], # Params_post_mat['thresh_pmap'][0][0,0]+1)/256
             'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
             'thresh_COM0': Params_post_mat['thresh_COM0'][0][0,0], 
             'thresh_COM': Params_post_mat['thresh_COM'][0][0,0], 
@@ -273,7 +263,7 @@ def main():
 
             # segs = functions_online.postprocess_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT=useWT)
             par_online.fastthreshold(frame_prob, pmaps_b, thresh_pmap_float)
-            segs = separateNeuron_b(pmaps_b, thresh_pmap_float, minArea, avgArea, useWT)
+            segs = separateNeuron(pmaps_b, None, minArea, avgArea, useWT)
             # segs_all.append(segs)
 
             active_old = np.zeros(N1, dtype='bool')

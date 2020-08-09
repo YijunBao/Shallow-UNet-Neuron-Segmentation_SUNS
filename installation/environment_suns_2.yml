@@ -4,10 +4,10 @@ channels:
   - defaults
 dependencies:
   - python=3.7.8
-  - pip=19.3.1=py37_0
+  - pip
+  # - pip=19.3.1=py37_0
   - numpy
-  - h5py
-  - keras
+  - h5pypy
   - matplotlib
   - numba
   - opencv
@@ -17,6 +17,7 @@ dependencies:
   - shapely 
   # - tensorflow==1.15
   - tensorflow-gpu==1.15
+  - keras
   - pip:
     - fissa==0.6.1
     - pyfftw

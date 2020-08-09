@@ -4,14 +4,6 @@ from scipy import sparse
 from scipy import ndimage as ndi
 from skimage.morphology import watershed
 from skimage.feature import peak_local_max
-# import matlab
-# import matlab.engine as engine
-
-
-# def watershed_ski_matlab(seg: bool): # Watershed using matlab
-#     dist_transform = cv2.distanceTransform(seg, cv2.DIST_L2, 0) # 0
-#     wt = np.array(eng.watershed(matlab.double((-dist_transform).tolist()))) * seg
-#     return wt
 
 
 def watershed_ski(seg: bool): # Watershed using skimage
@@ -87,7 +79,7 @@ def watershed_CV_unknown(seg: bool): # Watershed using OpenCV
     return bw
 
 
-def refineNeuron_WT(seg: bool, minArea, avgArea): #, eng=None
+def refineNeuron_WT(seg: bool, minArea, avgArea):
     # wt = watershed_ski(seg)
     # wt = watershed_ski_nomarker(seg)
     # wt = watershed_CV(seg)
@@ -121,7 +113,7 @@ def refineNeuron_WT(seg: bool, minArea, avgArea): #, eng=None
     return totalx, totaly, tempcent, tempstate, temparea
 
 
-def refineNeuron_WT_keep(seg: bool, minArea, avgArea): #, eng=None
+def refineNeuron_WT_keep(seg: bool, minArea, avgArea):
     # wt = watershed_ski(seg)
     # wt = watershed_ski_nomarker(seg)
     # wt = watershed_CV(seg)
@@ -165,58 +157,24 @@ def refineNeuron_WT_keep(seg: bool, minArea, avgArea): #, eng=None
     return totalx, totaly, tempcent, tempstate, temparea
     
 
-def separateNeuron_noWT(img: np.array, thresh_pmap, minArea): #, eng=None
-    dims = img.shape
-    if img.dtype =='bool':
-        thresh1 = img
-    else:
-        _, thresh1 = cv2.threshold(img, thresh_pmap, 255, cv2.THRESH_BINARY) #255 * 
-    thresh1 = thresh1.astype('uint8')
-    # kernel = np.ones((3, 3), np.uint8)
-    # thresh1 = cv2.erode(thresh1, kernel, iterations=1)
-    nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh1, connectivity=4)
-    col = []
-    neuronstate, cents, areas = [], [], []
-    if nlabels > 0:
-        for k in range(1, nlabels):
-            current_stat = stats[k]
-            k_area = current_stat[4]
-            if k_area > minArea:
-                BW = (labels == k)
-                xmin = max((0, current_stat[0] - 1))
-                xmax = min((dims[1], current_stat[0] + current_stat[2] + 1))
-                ymin = max((0, current_stat[1] - 1))
-                ymax = min((dims[0], current_stat[1] + current_stat[3] + 1))
-                # the -1 and +1 in the above four line can be removed for a faster speed
-                BW1 = BW[ymin:ymax, xmin:xmax]
-
-                tempy, tempx = BW1.nonzero()
-                tempind = (tempy + ymin) * dims[1] + (tempx + xmin)
-                col.append(tempind)
-                neuronstate.append(True)
-                cents.append(centroids[k])
-                areas.append(k_area)
-
-    neuron_cnt = len(col)
-    if neuron_cnt == 0:
-        masks = sparse.csr_matrix((neuron_cnt, dims[0] * dims[1]))
-        neuronstate = np.array([], dtype='int')
-        cents = np.empty((0, 2))
-        areas = np.array([], dtype='int')
-    else:
-        ind_col = np.hstack(col)
-        temp = [np.ones(x.size, dtype='int') for x in col]
-        ind_row = np.hstack([j * tj for (j, tj) in enumerate(temp)])
-        vals = np.hstack(temp)
-        masks = sparse.csr_matrix((vals, (ind_row, ind_col)), shape=(neuron_cnt, dims[0] * dims[1]))
-        neuronstate = np.array(neuronstate) 
-        cents = np.array(cents)
-        areas = np.array(areas)
-
-    return masks, neuronstate, cents, areas
-
-
 def watershed_neurons(dims, frame_seg, minArea, avgArea):
+    '''Try to further segment large masks using watershed.
+
+    Inputs: 
+        dims (tuple of int, shape = (2,)): the lateral shape of the region.
+        frame_seg (a list of 4 elements): corresponding to the four outputs of this function, but before watershed.
+        minArea (float or int, default to 0): Minimum area of a valid neuron mask (unit: pixels).
+        avgArea (float or int, default to 0): The typical neuron area (unit: pixels). 
+            Neuron masks with areas larger than avgArea will be further segmented by watershed.
+
+    Outputs:
+        masks (sparse.csr_matrix of float32, shape = (n,Lx*Ly)): the segmented neuron masks.
+            Totally "n" neurons. Each neuron is represented by a 1D array reshaped from a 2D binary image.
+            Nonzero points belong to the neuron. 
+        neuronstate (1D numpy.ndarray of bool, shape = (n,)): Indicators of whether a neuron is obtained without watershed. 
+        cents (2D numpy.ndarray of float, shape = (n,2)): COMs of the neurons.
+        areas (1D numpy.ndarray of int, shape = (n,)): Areas of the neurons.
+    '''
     masks = frame_seg[0]
     neuronstate = frame_seg[1]
     cents = frame_seg[2]
@@ -226,41 +184,47 @@ def watershed_neurons(dims, frame_seg, minArea, avgArea):
         masks_new, neuronstate_new, cents_new, areas_new = [], [], [], []
         for (k, k_area) in enumerate(areas):
             if k_area > avgArea:
+                # Crop a small rectangle containing mask k
                 _, inds = masks[k].nonzero()
                 rows = inds // dims[1]
                 cols = inds % dims[1]
-                # xmin = max((0, cols.min() - 1))
-                # ymin = max((0, rows.min() - 1))
                 xmin = cols.min() - 1
                 ymin = rows.min() - 1
                 xsize = cols.max()-cols.min()+3
                 ysize = rows.max()-rows.min()+3
-                BW1 = sparse.coo_matrix((np.ones(k_area, dtype = 'uint8'), (rows-ymin, cols-xmin)), shape = (ysize, xsize)).todense().A
+                BW1 = sparse.coo_matrix((np.ones(k_area, dtype = 'uint8'), (rows-ymin, cols-xmin)), shape = (ysize, xsize)).toarray()
                 
-                tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT(BW1.astype('uint8'), minArea, avgArea) #, eng
-                # tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT_keep(BW1.astype('uint8'), minArea, avgArea) #, eng
+                # Apply watershed to each mask, and create a series of possibly smaller masks
+                tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT(BW1, minArea, avgArea)
+                # tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT_keep(BW1, minArea, avgArea)
                 dcnt = len(tempcent)
                 if dcnt > 0:
-                    masks_new = masks_new + [sparse.csr_matrix((np.ones(x1.size)*(1 / 4 + 3 / 4 * tempstate), (np.zeros(x1.size, dtype='int'), \
-                        (y1 + ymin) * dims[1] + (x1 + xmin))), shape = (1, dims[0]*dims[1])) for (x1, y1) in zip(tempx1, tempy1)]
+                    # convert a 2D coordiate into a 1D index
+                    # weighted by 1/4 for masks segmented after watershed 
+                    masks_new = masks_new + [sparse.csr_matrix((np.ones(x1.size)*(1 / 4 + 3 / 4 * tempstate), \
+                        (np.zeros(x1.size, dtype='int'), (y1 + ymin) * dims[1] + (x1 + xmin))), \
+                        shape = (1, dims[0]*dims[1])) for (x1, y1) in zip(tempx1, tempy1)]
                     neuronstate_new = neuronstate_new + [tempstate] * dcnt
                     cents_new = cents_new + [tj + [xmin, ymin] for tj in tempcent]
                     areas_new = areas_new + temparea
 
             else:
+                # add the information of the segmented mask to the output lists
                 masks_new.append(masks[k])
                 neuronstate_new.append(True)
                 cents_new.append(cents[k])
                 areas_new.append(k_area)
 
         neuron_cnt = len(masks_new)
-        if neuron_cnt == 0:
+        if neuron_cnt == 0: # does not find any neuron
             masks = sparse.csr_matrix((0, dims[0] * dims[1]))
             neuronstate = np.array([], dtype='int')
             cents = np.empty((0, 2))
             areas = np.array([], dtype='int')
         else:
+            # convert "masks" from list to sparse matrix
             masks = sparse.vstack(masks_new)
+            # convert "neuronstate", "cents", and "areas" from list to numpy.array
             neuronstate = np.array(neuronstate_new) 
             cents = np.array(cents_new)
             areas = np.array(areas_new)
@@ -268,31 +232,55 @@ def watershed_neurons(dims, frame_seg, minArea, avgArea):
     return masks, neuronstate, cents, areas
     
 
-def separateNeuron(img: np.array, thresh_pmap, minArea, avgArea, useWT=False): #, eng=None
+def separateNeuron(img: np.array, thresh_pmap=None, minArea=0, avgArea=0, useWT=False):
+    '''Segment a frame of image (probablity map) into active neuron masks.
+
+    Inputs: 
+        img (2D numpy.ndarray of bool, uint8, uint16, int16, float32, or float64): the probablity map to be segmented.
+        thresh_pmap (float or int, default to None): The probablity threshold. Values higher than thresh_pmap are active pixels. 
+            if thresh_pmap==None, then thresholding is not performed. This is used when thresholding is done before this function.
+        minArea (float or int, default to 0): Minimum area of a valid neuron mask (unit: pixels).
+        avgArea (float or int, default to 0): The typical neuron area (unit: pixels). If watershed is used, 
+            neuron masks with areas larger than avgArea will be further segmented by watershed.
+        useWT (bool, default to False): Indicator of whether watershed is used. 
+
+    Outputs:
+        masks (sparse.csr_matrix of float32, shape = (n,Lx*Ly)): the segmented neuron masks.
+            Totally "n" neurons. Each neuron is represented by a 1D array reshaped from a 2D binary image.
+            Nonzero points belong to the neuron. 
+        neuronstate (1D numpy.ndarray of bool, shape = (n,)): Indicators of whether a neuron is obtained without watershed. 
+            if useWT=False, then all the elements should be True.
+        cents (2D numpy.ndarray of float, shape = (n,2)): COMs of the neurons.
+        areas (1D numpy.ndarray of int, shape = (n,)): Areas of the neurons.
+    '''
     dims = img.shape
-    if img.dtype =='bool':
+    if img.dtype =='bool' or thresh_pmap is None: # skip thresholding
         thresh1 = img
-    else:
-        _, thresh1 = cv2.threshold(img, thresh_pmap, 255, cv2.THRESH_BINARY) #255 * 
-    thresh1 = thresh1.astype('uint8')
-    # kernel = np.ones((3, 3), np.uint8)
-    # thresh1 = cv2.erode(thresh1, kernel, iterations=1)
+    else: # Threshold the input image to binary
+        _, thresh1 = cv2.threshold(img, thresh_pmap, 255, cv2.THRESH_BINARY)
+    thresh1 = thresh1.astype('uint8') # Convert the binary image to uint8
+
+    # Segment the binary image into connected components with statistics
     nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh1, connectivity=4)
-    col = []
+
+    col = [] # will store non-zero elements of each segmented neuron
     neuronstate, cents, areas = [], [], []
-    if nlabels > 0:
-        for k in range(1, nlabels):
+    if nlabels > 0: # nlabel is the number of connected components. If nlabel=0, no active pixel is found
+        for k in range(1, nlabels): # for all connected components 
             current_stat = stats[k]
             k_area = current_stat[4]
-            if k_area > minArea:
+            if k_area > minArea: # Only keep the connected regions with area larger than minArea
                 BW = (labels == k)
+                # Crop a small rectangle containing mask k
                 xmin = max((0, current_stat[0] - 1))
                 xmax = min((dims[1], current_stat[0] + current_stat[2] + 1))
                 ymin = max((0, current_stat[1] - 1))
                 ymax = min((dims[0], current_stat[1] + current_stat[3] + 1))
                 BW1 = BW[ymin:ymax, xmin:xmax]
 
-                if useWT and k_area > avgArea: # False: # 
+                if useWT and k_area > avgArea: # If useWT==True and the mask area is larger than avgArea, 
+                    # then try to use watershed to further segment the mask
+                    # Zero-pad the rectangular regions if necessary, so that no active pixels are on the boundarys.
                     if current_stat[0]==0:
                         xmin = -1
                         BW1 = np.pad(BW1, ((0,0),(1,0)),'constant', constant_values=(0, 0))
@@ -303,27 +291,30 @@ def separateNeuron(img: np.array, thresh_pmap, minArea, avgArea, useWT=False): #
                         BW1 = np.pad(BW1, ((1,0),(0,0)),'constant', constant_values=(0, 0))
                     if current_stat[1] + current_stat[3]==dims[0]:
                         BW1 = np.pad(BW1, ((0,1),(0,0)),'constant', constant_values=(0, 0))
-                    tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT(BW1.astype('uint8'), minArea, avgArea) #, eng
-                    # tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT_keep(BW1.astype('uint8'), minArea, avgArea) #, eng
+                    tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT(BW1.astype('uint8'), minArea, avgArea)
+                    # tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT_keep(BW1.astype('uint8'), minArea, avgArea)
                     
-                    dcnt = len(tempcent)
+                    dcnt = len(tempcent) # Number of segmented pieces obtained by watershed
                     if dcnt > 0:
+                        # convert a 2D coordiate into a 1D index
                         tempind = [(y1 + ymin) * dims[1] + (x1 + xmin) for (x1, y1) in zip(tempx1, tempy1)]
                         col = col + tempind
                         neuronstate = neuronstate + [tempstate] * dcnt
                         cents = cents + [tj + [xmin, ymin] for tj in tempcent]
                         areas = areas + temparea
 
-                else:
+                else: # If not using watershed, each mask is final
                     tempy, tempx = BW1.nonzero()
+                    # convert a 2D coordiate into a 1D index
                     tempind = (tempy + ymin) * dims[1] + (tempx + xmin)
+                    # add the information of the segmented mask to the output lists
                     col.append(tempind)
                     neuronstate.append(True)
                     cents.append(centroids[k])
                     areas.append(k_area)
 
     neuron_cnt = len(col)
-    if neuron_cnt == 0:
+    if neuron_cnt == 0: # does not find any neuron
         masks = sparse.csr_matrix((neuron_cnt, dims[0] * dims[1]))
         neuronstate = np.array([], dtype='int')
         cents = np.empty((0, 2))
@@ -331,78 +322,12 @@ def separateNeuron(img: np.array, thresh_pmap, minArea, avgArea, useWT=False): #
     else:
         ind_col = np.hstack(col)
         temp = [np.ones(x.size, dtype='int') for x in col]
-        ind_row = np.hstack([j * tj for (j, tj) in enumerate(temp)])
+        ind_row = np.hstack([j * tj for (j, tj) in enumerate(temp)]) # corresponding index of segmented neurons
+        # weighted by 1/4 for masks segmented after watershed 
         vals = np.hstack([(1 / 4 + 3 / 4 * sj) * tj for (sj, tj) in zip(neuronstate, temp)])
+        # create a sparse matrix with "neuron_cnt" rows to represent the "neuron_cnt" segmented neurons
         masks = sparse.csr_matrix((vals, (ind_row, ind_col)), shape=(neuron_cnt, dims[0] * dims[1]))
-        neuronstate = np.array(neuronstate) 
-        cents = np.array(cents)
-        areas = np.array(areas)
-
-    return masks, neuronstate, cents, areas
-    
-
-def separateNeuron_b(img: np.array('uint8'), thresh_pmap, minArea, avgArea, useWT=False): #, eng=None
-    '''pre-thresholded (binary) probability map'''
-    dims = img.shape
-    # kernel = np.ones((3, 3), np.uint8)
-    # thresh1 = cv2.erode(thresh1, kernel, iterations=1)
-    nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(img, connectivity=4)
-    col = []
-    neuronstate, cents, areas = [], [], []
-    if nlabels > 0:
-        for k in range(1, nlabels):
-            current_stat = stats[k]
-            k_area = current_stat[4]
-            if k_area > minArea:
-                BW = (labels == k)
-                xmin = max((0, current_stat[0] - 1))
-                xmax = min((dims[1], current_stat[0] + current_stat[2] + 1))
-                ymin = max((0, current_stat[1] - 1))
-                ymax = min((dims[0], current_stat[1] + current_stat[3] + 1))
-                BW1 = BW[ymin:ymax, xmin:xmax]
-
-                if useWT and k_area > avgArea: # False: # 
-                    if current_stat[0]==0:
-                        xmin = -1
-                        BW1 = np.pad(BW1, ((0,0),(1,0)),'constant', constant_values=(0, 0))
-                    if current_stat[0] + current_stat[2]==dims[1]:
-                        BW1 = np.pad(BW1, ((0,0),(0,1)),'constant', constant_values=(0, 0))
-                    if current_stat[1]==0:
-                        ymin = -1
-                        BW1 = np.pad(BW1, ((1,0),(0,0)),'constant', constant_values=(0, 0))
-                    if current_stat[1] + current_stat[3]==dims[0]:
-                        BW1 = np.pad(BW1, ((0,1),(0,0)),'constant', constant_values=(0, 0))
-                    tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT(BW1.astype('uint8'), minArea, avgArea) #, eng
-                    # tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT_keep(BW1.astype('uint8'), minArea, avgArea) #, eng
-                    
-                    dcnt = len(tempcent)
-                    if dcnt > 0:
-                        tempind = [(y1 + ymin) * dims[1] + (x1 + xmin) for (x1, y1) in zip(tempx1, tempy1)]
-                        col = col + tempind
-                        neuronstate = neuronstate + [tempstate] * dcnt
-                        cents = cents + [tj + [xmin, ymin] for tj in tempcent]
-                        areas = areas + temparea
-
-                else:
-                    tempy, tempx = BW1.nonzero()
-                    tempind = (tempy + ymin) * dims[1] + (tempx + xmin)
-                    col.append(tempind)
-                    neuronstate.append(True)
-                    cents.append(centroids[k])
-                    areas.append(k_area)
-
-    neuron_cnt = len(col)
-    if neuron_cnt == 0:
-        masks = sparse.csr_matrix((neuron_cnt, dims[0] * dims[1]))
-        neuronstate = np.array([], dtype='int')
-        cents = np.empty((0, 2))
-        areas = np.array([], dtype='int')
-    else:
-        ind_col = np.hstack(col)
-        temp = [np.ones(x.size, dtype='int') for x in col]
-        ind_row = np.hstack([j * tj for (j, tj) in enumerate(temp)])
-        vals = np.hstack([(1 / 4 + 3 / 4 * sj) * tj for (sj, tj) in zip(neuronstate, temp)])
-        masks = sparse.csr_matrix((vals, (ind_row, ind_col)), shape=(neuron_cnt, dims[0] * dims[1]))
+        # convert "neuronstate", "cents", and "areas" from list to numpy.array
         neuronstate = np.array(neuronstate) 
         cents = np.array(cents)
         areas = np.array(areas)

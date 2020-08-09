@@ -19,13 +19,13 @@ sys.path.insert(1, '..\\online')
 # os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
-from unet4_best import get_unet
+from shallow_unet import get_shallow_unet
 from evaluate_post import GetPerformance_Jaccard_2
 import functions_online
 import functions_init
 import par_online
-from seperate_multi import separateNeuron_b
-from combine import uniqueNeurons1_simp, uniqueNeurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
+from seperate_multi import separateNeuron
+from combine import segs_results, uniqueNeurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
 
 
 # %%
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     nframes = 3000 # number of frames for each video
     Mag = 6/8 # spatial magnification compared to ABO videos.
 
-    useSF=True # True if spatial filtering is used in pre-processing.
+    useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
@@ -101,7 +101,7 @@ if __name__ == '__main__':
 
         start = time.time()
         # load CNN model
-        fff = get_unet()
+        fff = get_shallow_unet()
         fff.load_weights(weights_path+'Model_CV{}.h5'.format(CV))
         # run CNN inference once to warm up
         init_imgs = np.zeros((batch_size_init, Lx, Ly, 1), dtype='float32')
@@ -135,7 +135,6 @@ if __name__ == '__main__':
         Params_post={'minArea': Params_post_mat['minArea'][0][0,0], 
             'avgArea': Params_post_mat['avgArea'][0][0,0],
             'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
-            'win_avg':Params_post_mat['win_avg'][0][0,0], # Params_post_mat['thresh_pmap'][0][0,0]+1)/256
             'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
             'thresh_COM0': Params_post_mat['thresh_COM0'][0][0,0], 
             'thresh_COM': Params_post_mat['thresh_COM'][0][0,0], 
@@ -154,18 +153,13 @@ if __name__ == '__main__':
             cols1 = cv2.getOptimalDFTSize(colspad)
             
             # if the learned 2D and 3D wisdom files have been saved, load them. Otherwise, learn wisdom later
-            try:
-                Length_data=str((rows1, cols1))
-                cc2 = functions_init.load_wisdom_txt('wisdom\\'+Length_data)
-            except:
-                cc2 = None
+            Length_data=str((rows1, cols1))
+            cc2 = functions_init.load_wisdom_txt('wisdom\\'+Length_data)
             
-            try:
-                Length_data=str((frames_init, rows1, cols1))
-                cc3 = functions_init.load_wisdom_txt('wisdom\\'+Length_data)
+            Length_data=str((frames_init, rows1, cols1))
+            cc3 = functions_init.load_wisdom_txt('wisdom\\'+Length_data)
+            if cc3:
                 pyfftw.import_wisdom(cc3)
-            except:
-                cc3 = None
 
             # mask for spatial filter
             mask2 = functions_init.plan_mask2(dims, (rows1, cols1), gauss_filt_size)
@@ -280,12 +274,15 @@ if __name__ == '__main__':
             # threshold the probability map to binary activity
             par_online.fastthreshold(frame_prob, pmaps_b, thresh_pmap_float)
             # spatial clustering each frame to form connected regions representing active neurons
-            segs = separateNeuron_b(pmaps_b, thresh_pmap_float, minArea, avgArea, useWT)
+            segs = separateNeuron(pmaps_b, None, minArea, avgArea, useWT)
             segs_all.append(segs)
 
             # temporal merging 1: combine neurons with COM distance smaller than thresh_COM0
             if ((t + 1 - t_merge) == merge_every) or (t==nframesf-1):
-                uniques, times_uniques = uniqueNeurons1_simp(segs_all[t_merge:(t+1)], thresh_COM0) # minArea,
+                # uniques, times_uniques = uniqueNeurons1_simp(segs_all[t_merge:(t+1)], thresh_COM0) # minArea,
+                totalmasks, neuronstate, COMs, areas, probmapID = segs_results(segs_all[t_merge:(t+1)])
+                uniques, times_uniques = uniqueNeurons2_simp(totalmasks, neuronstate, COMs, \
+                    areas, probmapID, minArea=0, thresh_COM0=thresh_COM0)
 
             # temporal merging 2: combine neurons with COM distance smaller than thresh_COM
             if ((t + 0 - t_merge) == merge_every) or (t==nframesf-1):
@@ -371,7 +368,7 @@ if __name__ == '__main__':
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
         # convert to a 3D array of the segmented neurons
-        Masks = np.reshape(Masks_2.todense().A, (Masks_2.shape[0], Lx, Ly))
+        Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly))
         savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks':Masks})
 
         # %% Save recall, precision, F1, total processing time, and average processing time per frame

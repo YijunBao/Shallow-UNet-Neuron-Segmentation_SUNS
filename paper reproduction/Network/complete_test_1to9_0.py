@@ -125,7 +125,6 @@ if __name__ == '__main__':
             Params_post={'minArea': Params_post_mat['minArea'][0][0,0], 
                 'avgArea': Params_post_mat['avgArea'][0][0,0],
                 'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
-                'win_avg':Params_post_mat['win_avg'][0][0,0], # Params_post_mat['thresh_pmap'][0][0,0]+1)/256
                 'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
                 'thresh_COM0': Params_post_mat['thresh_COM0'][0][0,0], 
                 'thresh_COM': Params_post_mat['thresh_COM'][0][0,0], 
@@ -147,6 +146,7 @@ if __name__ == '__main__':
 
             # %% PostProcessing
             print(Params_post)
+            Params_post['thresh_pmap'] = None # Avoid repeated thresholding in postprocessing
             start_post = time.time()
             # # pmaps =(prob_map*256-0.5).astype(np.uint8)
             pmaps_b = np.zeros(prob_map.shape, dtype='uint8')
@@ -157,7 +157,7 @@ if __name__ == '__main__':
             # pmaps = prob_map
 
             Masks_2 = complete_segment(pmaps_b, Params_post, display=True, p=p, useWT=useWT)
-            # Masks = np.reshape(Masks_2.todense().A, (Masks_2.shape[0], Lx, Ly))
+            # Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly))
             finish = time.time()
             time_post = finish-start_post
             time_frame_post = time_post/nframes*1000

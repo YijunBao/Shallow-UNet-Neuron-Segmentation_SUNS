@@ -1,4 +1,5 @@
-demo/data/complete
+demo/data/complete*
+demo/data float32
 demo/wisdom
 .vscode
 __pycache__

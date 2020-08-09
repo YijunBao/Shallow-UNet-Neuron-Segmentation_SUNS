@@ -12,10 +12,11 @@ import multiprocessing as mp
 sys.path.insert(1, '..\\Network')
 sys.path.insert(1, '..\\neuron_post')
 
-from unet4_best import get_unet
+# from unet4_best import get_unet
+from shallow_unet import get_shallow_unet
 from par2 import fastuint, fastcopy
 from evaluate_post import GetPerformance_Jaccard_2
-from complete_post import paremter_optimization_after, paremter_optimization_WT_after, paremter_optimization_before
+from complete_post import paremter_optimization_after
 
 # %%
 if __name__ == '__main__':
@@ -27,6 +28,7 @@ if __name__ == '__main__':
 
     batch_size_eval = 100 # batch size in CNN inference
     useWT=False # True if using additional watershed
+    load_exist=False # True if using temp files already saved in the folders
 
     (rows, cols) = Dimens # size of the network input and output
     (Lx, Ly) = (rows, cols) # size of the original video
@@ -53,7 +55,7 @@ if __name__ == '__main__':
 
     # %% set the range of hyper-parameters to be optimized in
     # minimum area of a neuron (unit: pixels in ABO videos). must be in ascend order
-    list_minArea = list(range(30,85,50)) 
+    list_minArea = list(range(30,85,5)) 
     # average area of a typical neuron (unit: pixels in ABO videos)
     list_avgArea = [177] 
     # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1.5)
@@ -69,8 +71,6 @@ if __name__ == '__main__':
     list_thresh_IOU = [0.5] 
     # minimum consecutive number of frames of active neurons
     list_cons = list(range(1, 8, 1)) 
-    # unused
-    list_win_avg = [1]
 
     # adjust the units of the hyper-parameters to pixels in the test videos according to relative magnification
     list_minArea= list(np.round(np.array(list_minArea) * Mag**2))
@@ -78,12 +78,12 @@ if __name__ == '__main__':
     thresh_COM0= thresh_COM0 * Mag
     list_thresh_COM= list(np.array(list_thresh_COM) * Mag)
     # adjust the minimum consecutive number of frames according to different frames rates between ABO videos and the test videos
-    list_cons=list(np.round(np.array(list_cons) * rate_hz/30).astype('int'))
+    # list_cons=list(np.round(np.array(list_cons) * rate_hz/30).astype('int'))
 
     # dictionary of all fixed and searched post-processing parameters.
     Params_set = {'list_minArea': list_minArea, 'list_avgArea': list_avgArea, 'list_thresh_pmap': list_thresh_pmap,
             'thresh_COM0': thresh_COM0, 'list_thresh_COM': list_thresh_COM, 'list_thresh_IOU': list_thresh_IOU,
-            'thresh_mask': thresh_mask, 'list_cons': list_cons, 'list_win_avg': list_win_avg}
+            'thresh_mask': thresh_mask, 'list_cons': list_cons}
     print(Params_set)
 
     nvideo = len(list_Exp_ID) # number of videos used for cross validation
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     for (eid,Exp_ID) in enumerate(list_Exp_ID):
         list_saved_results = glob.glob(dir_temp+'Parameter Optimization * Exp{}.mat'.format(Exp_ID))
         p = mp.Pool(mp.cpu_count())
-        if len(list_saved_results)<4: # load SNR videos as "test_imgs"
+        if len(list_saved_results)<nvideo-1 or not load_exist: # load SNR videos as "test_imgs"
             test_imgs = 0
             print('Video '+Exp_ID)
             start = time.time()
@@ -123,7 +123,7 @@ if __name__ == '__main__':
 
         for CV in list_CV:
             mat_filename = dir_temp+'Parameter Optimization CV{} Exp{}.mat'.format(CV,Exp_ID)
-            if os.path.exists(mat_filename): # if the temporary output file already exists, load it
+            if os.path.exists(mat_filename) and load_exist: # if the temporary output file already exists, load it
                 mdict = loadmat(mat_filename)
                 Recall_train[CV,eid] = np.array(mdict['list_Recall'])
                 Precision_train[CV,eid] = np.array(mdict['list_Precision'])
@@ -132,7 +132,7 @@ if __name__ == '__main__':
             else:
                 start = time.time()
                 # load CNN model
-                fff = get_unet()
+                fff = get_shallow_unet()
                 fff.load_weights(weights_path+'Model_CV{}.h5'.format(CV))
 
                 # run CNN inference once to warm up
@@ -178,6 +178,7 @@ if __name__ == '__main__':
         F1_mean = F1_train[CV].mean(axis=0)*nvideo/(nvideo-1)
         Table=np.vstack([array_minArea.ravel(), array_AvgArea.ravel(), array_thresh_pmap.ravel(), array_cons.ravel(), 
             array_thresh_COM.ravel(), array_thresh_IOU.ravel(), Recall_mean.ravel(), Precision_mean.ravel(), F1_mean.ravel()]).T
+        print('F1_max=', [x.max() for x in F1_train[CV]])
 
         # find the post-processing hyper-parameters to achieve the highest average F1 over the training videos
         ind = F1_mean.argmax()
@@ -189,8 +190,7 @@ if __name__ == '__main__':
         thresh_IOU = list_thresh_IOU[ind[4]]
         thresh_consume = (1+thresh_IOU)/2
         cons = list_cons[ind[5]]
-        win_avg = 1
-        Params={'minArea': minArea, 'avgArea': avgArea, 'thresh_pmap': thresh_pmap, 'win_avg':win_avg, 'thresh_mask': thresh_mask, 
+        Params={'minArea': minArea, 'avgArea': avgArea, 'thresh_pmap': thresh_pmap, 'thresh_mask': thresh_mask, 
             'thresh_COM0': thresh_COM0, 'thresh_COM': thresh_COM, 'thresh_IOU': thresh_IOU, 'thresh_consume': thresh_consume, 'cons':cons}
         print(Params)
         print('F1_mean=', F1_mean[ind])

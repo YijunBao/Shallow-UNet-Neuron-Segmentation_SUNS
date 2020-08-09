@@ -18,14 +18,13 @@ import multiprocessing as mp
 sys.path.insert(1, '..\\PreProcessing')
 # sys.path.insert(0, '..\\Network')
 sys.path.insert(1, '..\\neuron_post')
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-os.environ['KERAS_BACKEND'] = 'tensorflow'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
 import par1
 from preprocessing_functions import process_video, process_video_prealloc
 # from par2 import fastuint, fastcopy
 from par3 import fastthreshold
-from unet4_best_FL import get_unet
+from unet4_float import get_unet
 from evaluate_post import GetPerformance_Jaccard_2
 from complete_post import complete_segment
 
@@ -33,7 +32,7 @@ from complete_post import complete_segment
 if __name__ == '__main__':
     list_Exp_ID = [ '501484643','501574836','501729039','502608215','503109347',
                     '510214538','524691284','527048992','531006860','539670003']
-    thred_std = 3
+    thred_std = 6
     num_train_per = 200
     BATCH_SIZE = 20
     NO_OF_EPOCHS = 200
@@ -41,13 +40,11 @@ if __name__ == '__main__':
     useSF=False
     useTF=True
     useSNR=True
-    useWT=False
     dir_video = 'D:\\ABO\\20 percent\\'
     dir_parent = dir_video + 'ShallowUNet\\noSF\\'
-    # dir_sub = 'DL\\std{}_nf{}_ne{}_bs{}\\'.format(thred_std, num_train_per, NO_OF_EPOCHS, BATCH_SIZE)
-    dir_sub = 'std{}_nf{}_ne{}_bs{}\\DL+100FL(1,0.25)\\'.format(thred_std, num_train_per, NO_OF_EPOCHS, BATCH_SIZE)
-    dir_output = dir_parent + dir_sub + 'output_masks cons1\\' #
-    dir_params = dir_parent + dir_sub + 'output_masks cons1\\'
+    dir_sub = 'std{}_nf{}_ne{}_bs{}\\DL+100FL(2,0.25)\\'.format(thred_std, num_train_per, NO_OF_EPOCHS, BATCH_SIZE)
+    dir_output = dir_parent + dir_sub + 'output_masks\\' #
+    dir_params = dir_parent + dir_sub + 'output_masks\\'
     weights_path = dir_parent + dir_sub + 'Weights\\'
     dir_GTMasks = r'C:\Matlab Files\STNeuroNet-master\Markings\ABO\Layer275\FinalGT\FinalMasks_FPremoved_'
     if not os.path.exists(dir_output):
@@ -102,7 +99,6 @@ if __name__ == '__main__':
         Params_post={'minArea': Params_post_mat['minArea'][0][0,0], 
             'avgArea': Params_post_mat['avgArea'][0][0,0],
             'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
-            'win_avg':Params_post_mat['win_avg'][0][0,0], # Params_post_mat['thresh_pmap'][0][0,0]+1)/256
             'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
             'thresh_COM0': Params_post_mat['thresh_COM0'][0][0,0], 
             'thresh_COM': Params_post_mat['thresh_COM'][0][0,0], 
@@ -142,6 +138,7 @@ if __name__ == '__main__':
         prob_map = prob_map.squeeze()[:, :Lx, :Ly]
         # %% PostProcessing
         print(Params_post)
+        Params_post['thresh_pmap'] = None # Avoid repeated thresholding in postprocessing
         start_post = time.time()
         # # pmaps =(prob_map*256-0.5).astype(np.uint8)
         pmaps_b = np.zeros(prob_map.shape, dtype='uint8')
@@ -151,8 +148,8 @@ if __name__ == '__main__':
         # fastcopy(prob_map, pmaps) 
         # pmaps = prob_map
 
-        Masks_2 = complete_segment(pmaps_b, Params_post, display=True, p=p, useWT=useWT)
-        # Masks = np.reshape(Masks_2.todense().A, (Masks_2.shape[0], Lx, Ly))
+        Masks_2 = complete_segment(pmaps_b, Params_post, display=True, p=p, useWT=False)
+        # Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly))
         finish = time.time()
         time_post = finish-start_post
         time_frame_post = time_post/nframes*1000

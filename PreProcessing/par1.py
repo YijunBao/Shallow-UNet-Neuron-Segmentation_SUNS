@@ -118,7 +118,7 @@ def fastnormback(f, mu):
 
     Inputs: 
         f(numpy.ndarray of float32, shape = (T,Lx,Ly)): the input video
-        mu(float): the mean of pixel-wise median of the video
+        mu(float32): the mean of pixel-wise median of the video
 
     Outputs:
         f(numpy.ndarray of float32, shape = (T,Lx,Ly)): the output video, f/mu

@@ -10,12 +10,8 @@ import sys
 import pyfftw
 from scipy import sparse
 
-# import random
-# import tensorflow as tf
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
-# import matlab
-# import matlab.engine as engine
 
 sys.path.insert(1, '..\\PreProcessing')
 sys.path.insert(1, '..\\Network')
@@ -23,18 +19,13 @@ sys.path.insert(1, '..\\neuron_post')
 # os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
-# import par1
-# from preprocessing_functions import process_video, process_video_prealloc
-# from par2 import fastuint, fastcopy
-# from par3 import fastthreshold
 from unet4_best import get_unet
 from evaluate_post import GetPerformance_Jaccard_2
-# from complete_post import complete_segment
 import functions_online
 import functions_init
 import par_online
-from seperate_multi import separateNeuron_b
-from combine import uniqueNeurons1_simp, uniqueNeurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
+from seperate_multi import separateNeuron
+from combine import segs_results, uniqueNeurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
 
 
 # %%
@@ -137,7 +128,6 @@ def main():
         Params_post={'minArea': Params_post_mat['minArea'][0][0,0], 
             'avgArea': Params_post_mat['avgArea'][0][0,0],
             'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
-            'win_avg':Params_post_mat['win_avg'][0][0,0], # Params_post_mat['thresh_pmap'][0][0,0]+1)/256
             'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
             'thresh_COM0': Params_post_mat['thresh_COM0'][0][0,0], 
             'thresh_COM': Params_post_mat['thresh_COM'][0][0,0], 
@@ -272,11 +262,13 @@ def main():
 
             # segs = functions_online.postprocess_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT=useWT)
             par_online.fastthreshold(frame_prob, pmaps_b, thresh_pmap_float)
-            segs = separateNeuron_b(pmaps_b, thresh_pmap_float, minArea, avgArea, useWT)
+            segs = separateNeuron(pmaps_b, None, minArea, avgArea, useWT)
             segs_all.append(segs)
 
             if ((t + 1 - t_merge) == merge_every) or (t==nframesf-1): # merge
-                uniques, times_uniques = uniqueNeurons1_simp(segs_all[t_merge:(t+1)], thresh_COM0) # minArea,
+                totalmasks, neuronstate, COMs, areas, probmapID = segs_results(segs_all[t_merge:(t+1)])
+                uniques, times_uniques = uniqueNeurons2_simp(totalmasks, neuronstate, COMs, \
+                    areas, probmapID, minArea=0, thresh_COM0=thresh_COM0)
 
             if ((t + 0 - t_merge) == merge_every) or (t==nframesf-1): # merge
                 if uniques.size:
@@ -296,8 +288,6 @@ def main():
                     times_add = [np.unique(x) + t_merge for x in times_piecedneurons]
                         
                     # %% Refine neurons using consecutive occurence
-                    # masks_2_float = refine_seperate_nommin_float(masks_final_2, times_final, cons, thresh_mask)
-                    # masks_2_float = masks_final_2
                     if masks_add.size:
                         masks_add = [x for x in masks_add]
                         Masksb_add = [(x >= x.max() * thresh_mask).astype('float') for x in masks_add]

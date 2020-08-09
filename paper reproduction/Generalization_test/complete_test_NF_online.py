@@ -3,7 +3,7 @@ import os
 import cv2
 import math
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import time
 import h5py
 import sys
@@ -17,117 +17,142 @@ import multiprocessing as mp
 # import matlab
 # import matlab.engine as engine
 
-sys.path.insert(1, '..\\PreProcessing')
+sys.path.insert(0, '..\\PreProcessing')
 sys.path.insert(0, '..\\Network')
-sys.path.insert(1, '..\\neuron_post')
+sys.path.insert(0, '..\\neuron_post')
 sys.path.insert(1, '..\\online')
 # os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
+# import par1
+# from preprocessing_functions import process_video, process_video_prealloc
+# from par2 import fastuint, fastcopy
+# from par3 import fastthreshold
 from unet4_best import get_unet
 from evaluate_post import GetPerformance_Jaccard_2
-# from complete_post import complete_segment
+from functions_other_data import process_video_prealloc_others, data_info_neurofinder, temporal_filter
+from seperate_multi import separateNeuron
+from combine import segs_results, uniqueNeurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
 import functions_online
 import functions_init
 import par_online
-from seperate_multi import separateNeuron_b
-from combine import uniqueNeurons1_simp, uniqueNeurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
-
 
 # %%
 if __name__ == '__main__':
-    list_name_video = ['J115', 'J123', 'K53', 'YST']
-    list_radius = [8,10,8,6] # 
-    list_rate_hz = [30,30,30,10] # 
-    list_decay_time = [0.4, 0.5, 0.4, 0.75]
-    Dimens = [(224,224),(216,152), (248,248),(120,88)]
-    list_nframes = [90000, 41000, 116043, 3000]
-    ID_part = ['_part11', '_part12', '_part21', '_part22']
-    list_Mag = [x/8 for x in list_radius]
+    list_neurofinder = ['01.00', '01.01', '02.00', '02.01', '04.00', '04.01']
+    for trainset_type in {'train','test'}: #  'train','test'
+        testset_type = list({'train','test'}-{trainset_type})[0]
+        nvideo = len(list_neurofinder)
 
-    thred_std = 5
-    num_train_per = 2400
-    BATCH_SIZE = 20
-    NO_OF_EPOCHS = 200
-    batch_size_eval = 1
-    useSF=False
-    useTF=True
-    useSNR=True
-    show_intermediate=True
-    useWT=False
+        thred_std = 3
+        num_train_per = 1800
+        BATCH_SIZE = 20
+        NO_OF_EPOCHS = 200
+        frames_init = 300
+        merge_every = 10
+        useSF=False
+        useTF=True
+        useSNR=True
+        useWT=False
+        show_intermediate=True
+        batch_size_eval = 1
+        batch_size_init = 150
 
-    for ind_video in [1]: # range(0,3): # 
-        name_video = list_name_video[ind_video]
-        list_Exp_ID = [name_video+x for x in ID_part]
-        dir_video = 'F:\\CaImAn data\\WEBSITE\\divided_data\\'+name_video+'\\'
-        dir_GTMasks = dir_video + 'FinalMasks_'
-        merge_every = list_rate_hz[ind_video]
-        frames_init = 30 * list_rate_hz[ind_video]
-        batch_size_init = frames_init
+        dir_video_test = 'E:\\NeuroFinder\\{} videos\\'.format(testset_type)
+        dir_video_train = 'E:\\NeuroFinder\\{} videos\\'.format(trainset_type)
+        dir_parent_test = dir_video_test + 'ShallowUNet\\noSF\\'
+        dir_parent_train = dir_video_train + 'ShallowUNet\\noSF\\'
+        dir_sub = '1to1\\DL+BCE\\std{}_nf{}_ne{}_bs{}\\'.format(thred_std, num_train_per, NO_OF_EPOCHS, BATCH_SIZE)
+        weights_path = dir_parent_train + dir_sub + 'train\\Weights\\'
+        dir_params = dir_parent_train + dir_sub + 'train\\params\\' #
+        dir_output = dir_parent_test + dir_sub + 'test\\output_masks online\\'
+        dir_GTMasks = dir_video_test + 'GTMasks_'
 
-        # dir_parent_online = dir_video + 'ShallowUNet online\\complete\\'
-        dir_parent = dir_video + 'ShallowUNet\\noSF\\'
-        dir_sub = 'std{}_nf{}_ne{}_bs{}\\DL+20BCE\\'.format(thred_std, num_train_per, NO_OF_EPOCHS, BATCH_SIZE)
-        dir_output = dir_parent + dir_sub + 'output_masks online\\' #
-        dir_params = dir_parent + dir_sub + 'output_masks\\'
-        weights_path = dir_parent + dir_sub + 'Weights\\'
         if not os.path.exists(dir_output):
             os.makedirs(dir_output) 
 
         # %% PreProcessing parameters
-        nn = list_nframes[ind_video] # 23200 # nframes # cv2.getOptimalDFTSize(nframes)
-        gauss_filt_size = 50*list_Mag[ind_video]  # signa in pixels
+        nn = 10000 # nframes # cv2.getOptimalDFTSize(nframes)
+        gauss_filt_size = 50  # signa in pixels
         num_median_approx = frames_init
         network_baseline = 0 # 64.0
         network_SNRscale = 1 # 32.0
-        # size = 248
-        (Lx, Ly) = Dimens[ind_video]
-        dims = (Lx,Ly)
-        rowspad = math.ceil(Lx/8)*8
-        colspad = math.ceil(Ly/8)*8
-        # Lx = Ly #= 120
-        # dims = (Lx,Ly)
-        # rowspad = colspad = math.ceil(max(Lx,Ly)/8)*8
-        dimspad = (rowspad, colspad)
         # frame_rate = 30
         # decay = 0.2
         # leng_tf = math.ceil(frame_rate*decay) # 6
-        h5f = h5py.File('C:\\Matlab Files\\Generalization_test\\{}_spike_tempolate.h5'.format(name_video),'r')
-        Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
-        Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)]
-        leng_tf = Poisson_filt.size
-        leng_past = 2*leng_tf
-        Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
-            'network_baseline':network_baseline, 'network_SNRscale':network_SNRscale, 
-            'nn':nn, 'Poisson_filt': Poisson_filt}
-            # 'frame_rate':frame_rate, 'decay':decay, 'leng_tf':leng_tf, 
+        # h5f = h5py.File(r'C:\Matlab Files\PreProcessing\GCaMP6f_spike_tempolate_mean.h5','r')
+        # Poisson_filt = np.array(h5f['filter_tempolate']).squeeze()[3:12].astype('float32')
 
         # %% PostProcessing parameters
+        # Lx = Ly = 512
         p = mp.Pool() #mp.cpu_count()
 
-        list_CV = list(range(0,4))
-        num_CV = 4
+        list_vid = list(range(0,6))
+        num_CV = len(list_vid)
         list_Recall = np.zeros((num_CV, 1))
         list_Precision = np.zeros((num_CV, 1))
         list_F1 = np.zeros((num_CV, 1))
         list_time = np.zeros((num_CV, 3))
         list_time_frame = np.zeros((num_CV, 3))
 
-        for CV in list_CV:
-            Exp_ID = list_Exp_ID[CV]
+        for vid in list_vid: #[5:6]
+            # if vid!=5:
+            #     continue
+            Exp_ID = list_neurofinder[vid]
+            if trainset_type == 'test':
+                Exp_ID_train = Exp_ID + '.test'
+            else:
+                Exp_ID_train = Exp_ID
+            if testset_type == 'test':
+                Exp_ID_test = Exp_ID + '.test'
+            else:
+                Exp_ID_test = Exp_ID
+            # if trainset_type == 'train':
+            #     Exp_ID_test = Exp_ID + '.test'
+            # elif trainset_type == 'test':
+            #     Exp_ID_test = Exp_ID
             print('Video ', Exp_ID)
             list_time_per = np.zeros(nn)
+            fname_output_masks = dir_output+'Output_Masks_{}.mat'.format(Exp_ID_test)
+
+            # if os.path.exists(fname_output_masks):
+            #     start = time.time()
+            #     file_Masks = loadmat(fname_output_masks)
+            #     Masks = np.array(file_Masks['Masks'])
+            #     dims_Masks = Masks.shape
+            #     Masks_2 = sparse.csr_matrix(Masks.reshape((dims_Masks[0], dims_Masks[1]*dims_Masks[2])))
+            #     finish = time.time()
+            #     nframes = 1
+            #     (time_pre, time_CNN, time_post, time_all) = (0,0,0,0)
+            #     (time_frame_pre, time_frame_CNN, time_frame_post, time_frame_all) = (0,0,0,0)
+            # else:
+            fname_info = dir_video_test + 'neurofinder.' + Exp_ID_test + '\\info.json'
+            info, Mxy = data_info_neurofinder(fname_info)
+            dims_raw = info['dimensions'][::-1]
 
             start = time.time()
             fff = get_unet() #size
-            fff.load_weights(weights_path+'Model_CV{}.h5'.format(CV))
-            init_imgs = np.zeros((batch_size_eval, Lx, Ly, 1), dtype='float32')
-            init_masks = np.zeros((batch_size_eval, Lx, Ly, 1), dtype='uint8')
+            fff.load_weights(weights_path+'Model_{}.h5'.format(Exp_ID_train))
+            size = 512
+            init_imgs = np.zeros((batch_size_eval, size, size, 1), dtype='float32')
+            init_masks = np.zeros((batch_size_eval, size, size, 1), dtype='uint8')
             fff.evaluate(init_imgs, init_masks, batch_size=batch_size_eval)
-            del init_imgs, init_masks
-            # print('Load parameters')
-            time_init = time.time()
-            Optimization_Info = loadmat(dir_params+'Optimization_Info_{}.mat'.format(CV))
+
+            # frame_rate = info['rate-hz']
+            # indicator = info['indicator']
+            # # decay = info['decay_time']
+            # leng_tf = np.ceil(frame_rate*decay)+1
+            # Poisson_filt = np.exp(-np.arange(leng_tf)/frame_rate/decay).astype('float32')
+            # Poisson_filt = Poisson_filt / Poisson_filt.sum()
+            Poisson_filt = temporal_filter(info)
+            leng_tf = Poisson_filt.size
+            leng_past = 2*leng_tf
+            # print(Poisson_filt.size)
+            # continue
+            Params_pre = {'gauss_filt_size':gauss_filt_size*Mxy, 'num_median_approx':num_median_approx, 
+                'network_baseline':network_baseline, 'network_SNRscale':network_SNRscale, 
+                'nn':nn, 'Poisson_filt': Poisson_filt} #, 'frame_rate':frame_rate, 'decay':decay, 'leng_tf':leng_tf
+            Optimization_Info = loadmat(dir_params+'Optimization_Info_{}.mat'.format(Exp_ID_train))
             Params_post_mat = Optimization_Info['Params'][0]
             minArea = Params_post_mat['minArea'][0][0,0]
             avgArea = Params_post_mat['avgArea'][0][0,0]
@@ -141,7 +166,6 @@ if __name__ == '__main__':
             Params_post={'minArea': Params_post_mat['minArea'][0][0,0], 
                 'avgArea': Params_post_mat['avgArea'][0][0,0],
                 'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
-                'win_avg':Params_post_mat['win_avg'][0][0,0], # Params_post_mat['thresh_pmap'][0][0,0]+1)/256
                 'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
                 'thresh_COM0': Params_post_mat['thresh_COM0'][0][0,0], 
                 'thresh_COM': Params_post_mat['thresh_COM'][0][0,0], 
@@ -149,14 +173,23 @@ if __name__ == '__main__':
                 'thresh_consume': Params_post_mat['thresh_consume'][0][0,0], 
                 'cons':Params_post_mat['cons'][0][0,0]}
             # thresh_pmap_float = (Params_post_mat['thresh_pmap'][0][0,0]+1.5)/256
-            # thresh_pmap_float = (Params_post_mat['thresh_pmap'][0][0,0]+1)/256 # for published version
+            time_init = time.time()
             print('Initialization time: {} s'.format(time_init-start))
+            print(Params_post)
 
+
+            # get the size of the video
+            h5_img = h5py.File(dir_video_test+Exp_ID_test+'.h5', 'r')
+            (nframes, Lx, Ly) = h5_img['mov'].shape
+            dims = (Lx,Ly)
+            rowspad = math.ceil(Lx/8)*8
+            colspad = math.ceil(Ly/8)*8
+            dimspad = (rowspad, colspad)
 
             # Spatial filtering preparation
             if useSF==True:
-                rows1 = cv2.getOptimalDFTSize(rowspad)
-                cols1 = cv2.getOptimalDFTSize(colspad)
+                rows1 = cv2.getOptimalDFTSize(Lx)
+                cols1 = cv2.getOptimalDFTSize(Ly)
                 
                 try:
                     Length_data=str((rows1, cols1))
@@ -197,12 +230,10 @@ if __name__ == '__main__':
             print('Parameter initialization time: {} s'.format(time_init-start))
 
             # %% Load data and preparation
-            h5_img = h5py.File(dir_video+Exp_ID+'.h5', 'r')
             video_raw = np.array(h5_img['mov'])
             h5_img.close()
-            nframes = video_raw.shape[0]
             nframesf = nframes - leng_tf + 1
-            bb[:, :Lx, :Ly] = video_raw[:frames_init] #, :Lx, :Ly
+            bb[:, :Lx, :Ly] = video_raw[:frames_init]
             time_load = time.time()
             print('Load data: {} s'.format(time_load-time_init))
             # time_pre = np.zeros(nframes-frames_init)
@@ -243,10 +274,9 @@ if __name__ == '__main__':
             current_frame = leng_tf
             t_merge = frames_initf
             for t in range(frames_initf,nframesf):
-                # print('Pre-processing')
                 start_frame = time.time()
                 # frame_raw = video_raw[ind]
-                bb[:Lx, :Ly] = video_raw[t] #, :Lx, :Ly
+                bb[:Lx, :Ly] = video_raw[t]
 
                 # Preprocessing a frame
                 # frame_input = functions_online.preprocess_online(bb, dimspad, med_frame3, frame_input, \
@@ -272,37 +302,32 @@ if __name__ == '__main__':
                 else:
                     par_online.fastnormback(frame_input, 0, med_frame3[0,:,:].mean())
 
-                # print('CNN inference')
                 # frame_prob = functions_online.CNN_online(frame_input, fff, dims)
                 frame_input_exp = frame_input[np.newaxis,:,:,np.newaxis] # 
                 frame_prob = fff.predict(frame_input_exp, batch_size=1)
                 frame_prob = frame_prob.squeeze()[:dims[0], :dims[1]] # 
 
-                # print('Post-processing')
                 # segs = functions_online.postprocess_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT=useWT)
                 par_online.fastthreshold(frame_prob, pmaps_b, thresh_pmap_float)
-                # print('Post-processing')
-                segs = separateNeuron_b(pmaps_b, thresh_pmap_float, minArea, avgArea, useWT)
-                # print('Post-processing')
+                segs = separateNeuron(pmaps_b, None, minArea, avgArea, useWT)
                 segs_all.append(segs)
 
-                # print('Merge 1')
                 if ((t + 1 - t_merge) == merge_every) or (t==nframesf-1): # merge
-                    uniques, times_uniques = uniqueNeurons1_simp(segs_all[t_merge:(t+1)], thresh_COM0) # minArea,
+                    # uniques, times_uniques = uniqueNeurons1_simp(segs_all[t_merge:(t+1)], thresh_COM0) # minArea,
+                    totalmasks, neuronstate, COMs, areas, probmapID = segs_results(segs_all[t_merge:(t+1)])
+                    uniques, times_uniques = uniqueNeurons2_simp(totalmasks, neuronstate, COMs, \
+                        areas, probmapID, minArea=0, thresh_COM0=thresh_COM0)
 
-                # print('Merge 2')
                 if ((t + 0 - t_merge) == merge_every) or (t==nframesf-1): # merge
                     if uniques.size:
                         groupedneurons, times_groupedneurons = \
                             group_neurons(uniques, thresh_COM, thresh_mask, dims, times_uniques)
 
-                # print('Merge 3')
                 if ((t - 1 - t_merge) == merge_every) or (t==nframesf-1): # merge
                     if uniques.size:
                         piecedneurons_1, times_piecedneurons_1 = \
                             piece_neurons_IOU(groupedneurons, thresh_mask, thresh_IOU, times_groupedneurons)
 
-                # print('Merge 4')
                 if ((t - 2 - t_merge) == merge_every) or (t==nframesf-1): # merge
                     if uniques.size:
                         piecedneurons, times_piecedneurons = \
@@ -311,8 +336,6 @@ if __name__ == '__main__':
                         times_add = [np.unique(x) + t_merge for x in times_piecedneurons]
                             
                         # %% Refine neurons using consecutive occurence
-                        # masks_2_float = refine_seperate_nommin_float(masks_final_2, times_final, cons, thresh_mask)
-                        # masks_2_float = masks_final_2
                         if masks_add.size:
                             masks_add = [x for x in masks_add]
                             Masksb_add = [(x >= x.max() * thresh_mask).astype('float') for x in masks_add]
@@ -337,7 +360,6 @@ if __name__ == '__main__':
                     # times_add = [x + t_merge for x in times_add]
                     # tuple_add = (Masksb_add, masks_add, times_add, area_add, have_cons_add)
 
-                # print('Merge 5')
                 if ((t - 3 - t_merge) == merge_every) or (t==nframesf-1): # merge
                     # tuple_temp = merge_2_Jaccard(tuple_temp, tuple_add, dims, Params)
                     tuple_temp = functions_online.merge_2(tuple_temp, tuple_add, dims, Params_post)
@@ -346,13 +368,12 @@ if __name__ == '__main__':
                         Masks_2 = functions_online.select_cons(tuple_temp)
 
                 current_frame +=1
-                # print('Update latest frames if needed')
                 if current_frame >= leng_past:
                     current_frame = leng_tf
                     past_frames[:leng_tf] = past_frames[-leng_tf:]
                 end_frame = time.time()
                 list_time_per[t] = end_frame - start_frame
-                if t % 1000 == 0: #True: # 
+                if t % 1000 == 0:
                     print('{} frames has been processed'.format(t))
 
             if not show_intermediate:
@@ -369,30 +390,72 @@ if __name__ == '__main__':
             # Masks_2 = functions_online.merge_complete(segs_all, dims, Params_post)
             end_final = time.time()
 
-            # %% Evaluation
-            filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
-            data_GT=loadmat(filename_GT)
-            GTMasks_2 = data_GT['GTMasks_2'].transpose()
-            (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
-            print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-            savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks_2':Masks_2})
 
-            # %% Save information
+            Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly))
             time_all = end_final-start_init
             time_frame_all = time_all/nframes*1000
             print('Total time: {:6f} s, {:6f} ms/frame'.format(time_all, time_frame_all))
-            list_Recall[CV] = Recall
-            list_Precision[CV] = Precision
-            list_F1[CV] = F1
-            list_time[CV] = np.array([time_init, time_online, time_all])
-            list_time_frame[CV] = np.array([time_frame_init, time_frame_online, time_frame_all])
 
-            # del video_input, fff#, Masks
-            Info_dict = {'list_Recall':list_Recall, 'list_Precision':list_Precision, 'list_F1':list_F1, 
+            # f = h5py.File(dir_output + 'probability_map {}.h5'.format(Exp_ID_test), "w")
+            # f.create_dataset("probability_map", data = pmaps)
+            # f.close()
+
+            # %% Evaluation
+            filename_GT = dir_GTMasks + Exp_ID_test + '_sparse.mat'
+            data_GT=loadmat(filename_GT)
+            GTMasks_2 = data_GT['GTMasks_2'].transpose()
+
+            (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
+            print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
+            savemat(fname_output_masks, {'Masks':Masks})
+
+            # %% Save information
+            list_Recall[vid] = Recall
+            list_Precision[vid] = Precision
+            list_F1[vid] = F1
+            list_time[vid] = np.array([time_init, time_online, time_all])
+            list_time_frame[vid] = np.array([time_frame_init, time_frame_online, time_frame_all])
+
+            # del video_input, pmaps, prob_map, Masks
+            Info_dict = {'Params':Params_post, 'Recall':Recall, 'Precision':Precision, 'F1':F1, 
+                'time':list_time[vid], 'time_frame':list_time_frame[vid]}
+            savemat(dir_output+'Output_Info_{}.mat'.format(Exp_ID_test), Info_dict)
+            Info_dict_all = {'list_Recall':list_Recall, 'list_Precision':list_Precision, 'list_F1':list_F1, 
                 'list_time':list_time, 'list_time_frame':list_time_frame}
-            savemat(dir_output+'Output_Info_All.mat', Info_dict)
+            savemat(dir_output+'Output_Info_All.mat', Info_dict_all)
+
+    # %% Plot some figures
+            # SNR_max = video_input.squeeze().max(axis=0)
+            # plt.imshow(SNR_max[:raw_dims[1], :raw_dims[2]], vmin=2, vmax=10)
+            # plt.title('Max Projection of SNR Video')
+            # plt.colorbar()
+            # plt.savefig(dir_output + Exp_ID_test + '_SNR_max.png')
+            # # plt.show()
+            # plt.clf()
+
+            # GTMasks_sum = GTMasks_2.sum(axis=0).A.reshape(Lx,Ly)
+            # plt.imshow(GTMasks_sum[:raw_dims[1], :raw_dims[2]])
+            # plt.title('Sum of Ground Truth Masks')
+            # plt.colorbar()
+            # plt.savefig(dir_output + Exp_ID_test + '_GTMasks.png')
+            # # plt.show()
+            # plt.clf()
+
+            # pmaps_max = pmaps.max(axis=0)
+            # plt.imshow(pmaps_max[:raw_dims[1], :raw_dims[2]])
+            # plt.title('Max Projection of Probability Map')
+            # plt.colorbar()
+            # plt.savefig(dir_output + Exp_ID_test + '_pmaps_max.png')
+            # # plt.show()
+            # plt.clf()
+
+            # Masks_sum = Masks.sum(axis=0)
+            # plt.imshow(Masks_sum[:raw_dims[1], :raw_dims[2]])
+            # plt.title('Sum of Segmented Masks')
+            # plt.colorbar()
+            # plt.savefig(dir_output + Exp_ID_test + '_Masks.png')
+            # # plt.show()
+            # plt.clf()
 
         p.close()
-
-
     # %%

@@ -4,22 +4,16 @@ import os
 import random
 import time
 import numpy as np
-# import cv2
-# import tensorflow as tf
 import h5py
 from scipy.io import savemat, loadmat
 import matplotlib.pyplot as plt
 import multiprocessing as mp
-# import matlab
-# import matlab.engine as engine
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-# sys.path.insert(0, '..\\PreProcessing')
-# sys.path.insert(0, '..\\Network')
 sys.path.insert(1, '..\\neuron_post')
 
 from functions_other_data import data_info_neurofinder
-from complete_post import paremter_optimization_after, paremter_optimization_WT_after, complete_segment
+from complete_post import paremter_optimization_after
 
 
 # %%
@@ -61,11 +55,9 @@ if __name__ == '__main__':
         list_thresh_IOU = [0.5]#list(np.arange(0.3, 0.85, 0.1)) #
         # list_thresh_consume = [(1+x)/2 for x in list_thresh_IOU]
         list_cons = list(range(1, 8, 1)) #[1] #
-        list_win_avg = [1]#list(range(1, 13, 3)) #
-        # consecutive = 'after'
         Params_set = {'list_minArea': list_minArea, 'list_avgArea': list_avgArea, 'list_thresh_pmap': list_thresh_pmap,
                 'thresh_COM0': thresh_COM0, 'list_thresh_COM': list_thresh_COM, 'list_thresh_IOU': list_thresh_IOU,
-                'thresh_mask': thresh_mask, 'list_cons': list_cons, 'list_win_avg': list_win_avg}
+                'thresh_mask': thresh_mask, 'list_cons': list_cons}
         print('Original Params_set before resizing: ', Params_set)
 
         size_F1 = (nvideo,len(list_minArea),len(list_avgArea),len(list_thresh_pmap),len(list_thresh_COM),len(list_thresh_IOU),len(list_cons))
@@ -98,7 +90,6 @@ if __name__ == '__main__':
             Params_set={'list_minArea': list(np.round(np.array(list_minArea) * Mxy**2)), 
                 'list_avgArea': list(np.round(np.array(list_avgArea) * Mxy**2)),
                 'list_thresh_pmap': list(np.array(list_thresh_pmap)), 
-                'list_win_avg':list(np.array(list_win_avg)), 
                 'thresh_mask': thresh_mask, 
                 'thresh_COM0': thresh_COM0 * Mxy, 
                 'list_thresh_COM': list(np.array(list_thresh_COM) * Mxy), 
@@ -106,7 +97,6 @@ if __name__ == '__main__':
                 'list_cons':list(np.round(np.array(list_cons) * info['rate-hz']/30*5).astype('int'))}
                 
             list_Recall, list_Precision, list_F1 = paremter_optimization_after(pmaps, Params_set, filename_GT, useWT=useWT, p=p) # , eng
-            # list_Recall, list_Precision, list_F1 = paremter_optimization_WT_after(pmaps, Params_set, filename_GT) # , eng
             Table=np.vstack([array_minArea.ravel(), array_AvgArea.ravel(), array_thresh_pmap.ravel(), array_cons.ravel(), 
                 array_thresh_COM.ravel(), array_thresh_IOU.ravel(), list_Recall.ravel(), list_Precision.ravel(), list_F1.ravel()]).T
             
@@ -128,8 +118,7 @@ if __name__ == '__main__':
             thresh_IOU = Params_set['list_thresh_IOU'][ind[4]]
             thresh_consume = (1+thresh_IOU)/2
             cons = Params_set['list_cons'][ind[5]]
-            win_avg = 1
-            Params={'minArea': minArea, 'avgArea': avgArea, 'thresh_pmap': thresh_pmap, 'win_avg':win_avg, 'thresh_mask': thresh_mask, 
+            Params={'minArea': minArea, 'avgArea': avgArea, 'thresh_pmap': thresh_pmap, 'thresh_mask': thresh_mask, 
                 'thresh_COM0': thresh_COM0, 'thresh_COM': thresh_COM, 'thresh_IOU': thresh_IOU, 'thresh_consume': thresh_consume, 'cons':cons}
             print(Params)
             Info_dict={'Recall':Recall, 'Precision':Precision, 'F1':F1, 'Params_set':Params_set, 'Params':Params, 'Table':Table}
