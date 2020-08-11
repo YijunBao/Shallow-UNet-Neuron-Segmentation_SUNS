@@ -21,14 +21,15 @@ cd SUNS_python_root_path
 cd installation
 conda env create -f environment_suns_2.yml -n suns
 ```
-* Go to the Anaconda environment foler, (such as `C:/ProgramData/Anaconda3/envs` or `C:/Users/(username)/.conda/envs`), and then go to folder `suns/Lib/site-packages/fissa`, overwrite `core.py` and `neuropil.py` with the files provided in the `installation` folder. If the dataset you used is less than 4 GB and you don't mind a lot of text output from FISSA, you can skip this step. 
+* Go to the Anaconda environment foler, (such as `C:/ProgramData/Anaconda3/envs` or `C:/Users/(username)/.conda/envs`), and then go to folder `suns/Lib/site-packages/fissa`, overwrite `core.py` and `neuropil.py` with the files provided in the `installation` folder. If the dataset you used is less than 4 GB after the data type is converted to float32 and you don't mind a lot of text output from FISSA, you can skip this step. 
 
-The installation should take less than half an hour in total.
+The installation should take less than half an hour in total. The first run of the software may take some additional time (up to 20 minutes on a laptop) to add the GPU, but this extra time will not occur in later runs.
 
 [Anaconda]: https://www.anaconda.com/
 
 ### Demo
 We provided a demo for all users to get familiar with our software. We provided four two-photon imaging videos as well as their manually marked neurons in `demo/data`. The demo will perform a cross validation over the four videos: train the CNN and search for optimal hyper-parameters using three videos, and test SUNS with the training output on the remaining video. 
+
 To run the demo, launch Anaconda prompt and type the following script 
 ```bat
 cd SUNS_python_root_path

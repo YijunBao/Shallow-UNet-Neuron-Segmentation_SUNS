@@ -17,7 +17,7 @@ if __name__ == '__main__':
     nframes = 3000 # number of frames for each video
     Mag = 6/8 # spatial magnification compared to ABO videos.
 
-    useSF=False # True if spatial filtering is used in pre-processing.
+    useSF=True # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     prealloc=False # True if pre-allocate memory space for large variables in pre-processing. 

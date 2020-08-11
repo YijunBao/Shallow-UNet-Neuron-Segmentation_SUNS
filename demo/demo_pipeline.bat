@@ -2,11 +2,11 @@ REM REM Training pipeline
 REM REM Prepare for FFT-based spatial filtering
 REM python demo_learn_wisdom.py
 REM python demo_learn_wisdom_2d.py
-REM Pre-processing and generate temporal labels
-python demo_PreProcessing_masks.py
-REM Train CNN
-python demo_train.py
-REM Search optimal post-processing parameters
+REM REM Pre-processing and generate temporal labels
+REM python demo_PreProcessing_masks.py
+REM REM Train CNN
+REM python demo_train.py
+REM REM Search optimal post-processing parameters
 python demo_inference_post_continue.py
 
 REM Run SUNS batch

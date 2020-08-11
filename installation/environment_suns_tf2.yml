@@ -5,7 +5,6 @@ channels:
 dependencies:
   - python=3.7.8
   - pip
-  # - pip=19.3.1=py37_0
   - numpy
   - h5py
   - matplotlib
@@ -15,10 +14,10 @@ dependencies:
   - scikit-learn
   - scipy
   - shapely 
-  # - tensorflow==1.15
-  - tensorflow-gpu==1.15
+  # - tensorflow ==2.1
+  - tensorflow-gpu ==2.1
   - keras
   - pip:
     - fissa==0.6.1
     - pyfftw
-    - tensorflow-estimator==1.15.1
+    - tensorflow-estimator==2.1

@@ -76,43 +76,13 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
         cc = functions_init.load_wisdom_txt('wisdom\\'+Length_data)
         if cc:
             pyfftw.import_wisdom(cc)
-        # try: 
-        #     file = open('wisdom\\'+Length_data+'x1.txt', 'rb')
-        #     cc = file.read()
-        #     file.close()
-        #     file = open('wisdom\\'+Length_data+'x2.txt', 'rb')
-        #     dd = file.read()
-        #     file.close()
-        #     file = open('wisdom\\'+Length_data+'x3.txt', 'rb')
-        #     ee = file.readline()
-        #     cc = (cc, dd, ee)
-        #     pyfftw.import_wisdom(cc)
-        # except:
-        #     pass
 
         # FFT planning
         bb, bf, fft_object_b, fft_object_c = functions_init.plan_fft3(nn, (rows1, cols1), prealloc)
-        # bb = pyfftw.zeros_aligned((nn, rows1, cols1), dtype='float32', n=8)
-        # if prealloc:
-        #     bf = pyfftw.zeros_aligned((nn, rows1, cols1//2+1), dtype='complex64', n=8)
-        # else:
-        #     bf = pyfftw.empty_aligned((nn, rows1, cols1//2+1), dtype='complex64', n=8)
-        # fft_object_b = pyfftw.FFTW(bb, bf, axes=(-2, -1), flags=('FFTW_MEASURE',), direction='FFTW_FORWARD', threads=mp.cpu_count())
-        # fft_object_c = pyfftw.FFTW(bf, bb, axes=(-2, -1), flags=('FFTW_MEASURE',), direction='FFTW_BACKWARD', threads=mp.cpu_count())
         end_plan = time.time()
         print('FFT planning: {} s'.format(end_plan - start_plan))
 
         # %% Initialization: Calculate the spatial filter and set variables.
-        # # gauss_filt_kernel = rows/2/math.pi/gauss_filt_size
-        # # mask1_row = signal.gaussian(rows1+1, gauss_filt_kernel)[:-1]
-        # # mask1_col = signal.gaussian(cols1+1, gauss_filt_kernel)[:-1]
-        # gauss_filt_kernel = rows/2/math.pi/gauss_filt_size
-        # mask1_row = signal.gaussian(rows1+1, gauss_filt_kernel)[:-1]
-        # gauss_filt_kernel = cols/2/math.pi/gauss_filt_size
-        # mask1_col = signal.gaussian(cols1+1, gauss_filt_kernel)[:-1]
-        # mask = np.outer(mask1_row, mask1_col)
-        # mask = np.fft.fftshift(mask)
-        # mask2 = (1-mask[:, :cols1//2+1]).astype('float32')
         mask2 = functions_init.plan_mask2((rows, cols), (rows1, cols1), gauss_filt_size)
     else:
         end_plan = time.time()
@@ -144,79 +114,25 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     print('data loading: {} s'.format(end_load - end_init))
 
     start = time.time() # The pipline starts after the video is loaded into memory
-    # %% Homomorphic spatial filtering based on FFT
-    if useSF:
-        spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2, display=True)
-        # par1.fastlog(bb)
-        # f1start = time.time()
-        # fft_object_b()
-        # maskstart = time.time()
-        # par1.fastmask(bf, mask2)
-        # f2start = time.time()
-        # fft_object_c()
-        # expstart = time.time()
-        # par1.fastexp(bb)
-        # endhomofilt = time.time()
-        # print('spatial filtering: {} s'.format(endhomofilt-start))
-        # print('    Log time:', f1start-start, 's')
-        # print('    FFT1 time:', maskstart-f1start, 's')
-        # print('    Mask time:', f2start-maskstart, 's')
-        # print('    FFT2 time:', expstart-f2start, 's')
-        # print('    Exp time:', endhomofilt-expstart, 's')
+    network_input, _ = functions_init.preprocess_init(bb, (rowspad,colspad), network_input, med_frame2, Poisson_filt, mask2, \
+        bf, fft_object_b, fft_object_c, median_decimate, useSF, useTF, useSNR, prealloc)
+    # if useSF: # Homomorphic spatial filtering based on FFT
+    #     spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2, display=True)
+    # if useSF and not prealloc:
+    #     del bf, fft_object_c, fft_object_b
+
+    # if useTF: # Temporal filtering
+    #     temporal_filtering(bb[:nframes, :rowspad, :colspad], network_input, Poisson_filt, display=True)
     # else:
-    # endhomofilt = time.time()
-    if useSF and not prealloc:
-        del bf, fft_object_c, fft_object_b
-
-    # %% Temporal filtering
-    if useTF:
-        temporal_filtering(bb[:nframes, :rowspad, :colspad], network_input[:, :rowspad, :colspad], Poisson_filt, display=True)
-        # par1.fastconv(bb[:nframes, :rowspad, :colspad], network_input[:, :rowspad, :colspad], Poisson_filt)
-    else:
-        network_input = bb[:nframes, :rowspad, :colspad]
-    if not prealloc:
-        del bb
-    # endtempfilt = time.time()
-    # if useTF:
-        # print('temporal filtering: {} s'.format(endtempfilt-endhomofilt))
-
-    # %% Median computation and SNR normalization
-    # result = np.copy(network_input[::median_decimate, :rows, :cols].transpose([1, 2, 0]))
-    if useSNR:
-        # par1.fastquant(result, np.array([0.5, 0.25], dtype='float32'), med_frame2)
-        # # med_frame2[:, :, 0] stores the median
-        # # Noise is estimated using median-based standard deviation calculated from 
-        # # the difference bwtween 0.5 quantile and 0.25 quantile
-        # temp_noise = (med_frame2[:, :, 0]-med_frame2[:, :, 1])/(math.sqrt(2)*special.erfinv(0.5))
-        # zeronoise = (temp_noise==0)
-        # # if the calculated temp_noise is 0 at some pixels, replace the median-based standard deviation 
-        # # with conventional stantard deviation
-        # if np.any(zeronoise):
-        #     [x0, y0] = zeronoise.nonzero()
-        #     for (x,y) in zip(x0, y0):
-        #         new_noise = np.std(network_input[:, x, y])
-        #         if new_noise>0:
-        #             temp_noise[x, y] = new_noise
-        #         else:
-        #             temp_noise[x, y] = np.inf
-
-        # # med_frame2[:, :, 1] stores the median-based standard deviation
-        # med_frame2[:, :, 1] = np.reciprocal(temp_noise).astype('float32')
-        # med_frame3 = np.copy(med_frame2.transpose([2,0,1])) # Using copy to avoid computer crashing
-        # # endmedtime = time.time()
-        # # print('median computation: {} s'.format(endmedtime - endtempfilt))
-        # par1.fastnormf(network_input[:, :rows, :cols], med_frame3)
-        SNR_normalization(network_input, med_frame2, (rowspad, colspad), median_decimate, display=True)
-    else:
-        # endmedtime = time.time()
-        # print('median computation: {} s'.format(endmedtime - endtempfilt))
-        # par1.fastquant(result, np.array([0.5], dtype='float32'), med_frame2[:,:,0:1])
-        # par1.fastnormback(network_input[:, :rows, :cols], med_frame2[:,:,0].mean())
-        median_normalization(network_input, med_frame2, (rowspad, colspad), median_decimate, display=True)
+    #     network_input = bb[:nframes, :rowspad, :colspad]
     # if not prealloc:
-    #     del result
-    # endnormtime = time.time()
-    # print('normalization: {} s'.format(endnormtime - endmedtime))
+    #     del bb
+
+    # # %% Median computation and SNR normalization
+    # if useSNR:
+    #     SNR_normalization(network_input, med_frame2, (rowspad, colspad), median_decimate, display=True)
+    # else:
+    #     median_normalization(network_input, med_frame2, (rowspad, colspad), median_decimate, display=True)
 
     end = time.time()
     print('total per frame: {} ms'.format((end - start) / nframes *1000))
@@ -403,10 +319,10 @@ def spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2, display=False):
     '''Apply spatial filtering to the input video.
 
     Inputs: 
-        bb: array storing the raw video.
-        bf: array to store the complex spectrum for FFT.
-        fft_object_b: Object for forward FFT.
-        fft_object_c: Object for inverse FFT.
+        bb(3D numpy.ndarray of float32): array storing the raw video.
+        bf(3D numpy.ndarray of complex64): array to store the complex spectrum for FFT.
+        fft_object_b(pyfftw.FFTW): Object for forward FFT.
+        fft_object_c(pyfftw.FFTW): Object for inverse FFT.
         mask2 (2D numpy.ndarray of float32): 2D mask for spatial filtering.
         display (bool, default to True): Indicator of whether display the timing information
 
@@ -447,7 +363,7 @@ def temporal_filtering(bb, network_input, Poisson_filt=np.array([1]), display=Fa
     '''Pre-process the initial part of a video into an SNR video.
 
     Inputs: 
-        bb: array storing the raw video.
+        bb(3D numpy.ndarray of float32): array storing the raw video.
         network_input (3D empty numpy.ndarray of float32): empty array to store the temporally filtered video.
         Poisson_filt (1D numpy.ndarray of float32, default to np.array([1])): The temporal filter kernel
         display (bool, default to True): Indicator of whether display the timing information

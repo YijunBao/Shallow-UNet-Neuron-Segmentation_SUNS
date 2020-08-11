@@ -260,7 +260,7 @@ def paremter_optimization_after(pmaps: np.ndarray, Params_set: dict, filename_GT
         Params_set (dict): Ranges of post-processing parameters to optimize over.
             Params_set['list_minArea']: (list) Range of minimum area of a valid neuron mask (unit: pixels).
             Params_set['list_avgArea']: (list) Range of  typical neuron area (unit: pixels).
-            Params_set['list_thresh_pmap']: (list) Range of  probablity threshold. 
+            Params_set['list_thresh_pmap']: (list) Range of probablity threshold. 
             Params_set['thresh_mask']: (float) Threashold to binarize the real-number mask.
             Params_set['thresh_COM0']: (float or int) Threshold of COM distance (unit: pixels) used for the first COM-based merging. 
             Params_set['list_thresh_COM']: (list) Range of threshold of COM distance (unit: pixels) used for the second COM-based merging. 

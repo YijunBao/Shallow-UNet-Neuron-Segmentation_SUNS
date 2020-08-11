@@ -8,8 +8,8 @@ import tensorflow as tf
 import h5py
 
 sys.path.insert(1, '..\\Network')
-# os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['KERAS_BACKEND'] = 'tensorflow'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 from data_gen import data_gen
 from shallow_unet import get_shallow_unet
@@ -56,7 +56,7 @@ if __name__ == '__main__':
         
 
     # %% start training
-    for CV in range(0,4):
+    for CV in range(3,4):
         # %% Load traiming images and masks from h5 files
         val_imgs = np.zeros((num_val_per, rows, cols), dtype='float32') # validation images
         val_masks = np.zeros((num_val_per, rows, cols), dtype='uint8') # temporal masks for validation images
@@ -93,7 +93,7 @@ if __name__ == '__main__':
             h5_mask.close()
 
         # generater for training and validation images and masks
-        train_gen = data_gen(train_imgs, train_masks, batch_size=BATCH_SIZE, flips=True, rotate=(cols==rows))
+        train_gen = data_gen(train_imgs, train_masks, batch_size=BATCH_SIZE, flips=True, rotate=True)
         val_gen = data_gen(val_imgs, val_masks, batch_size=BATCH_SIZE, flips=False, rotate=False)
 
 

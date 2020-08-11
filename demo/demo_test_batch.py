@@ -12,8 +12,8 @@ import multiprocessing as mp
 sys.path.insert(1, '..\\PreProcessing')
 sys.path.insert(1, '..\\Network')
 sys.path.insert(1, '..\\neuron_post')
-# os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['KERAS_BACKEND'] = 'tensorflow'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 import par1
 from preprocessing_functions import preprocess_video
@@ -29,12 +29,12 @@ if __name__ == '__main__':
     nframes = 3000 # number of frames for each video
     Mag = 6/8 # spatial magnification compared to ABO videos.
 
-    useSF=False # True if spatial filtering is used in pre-processing.
+    useSF=True # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
-    batch_size_eval = 100 # batch size in CNN inference
+    batch_size_eval = 200 # batch size in CNN inference
     useWT=False # True if using additional watershed
 
     # file names of the ".h5" files storing the raw videos. 

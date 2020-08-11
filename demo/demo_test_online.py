@@ -16,8 +16,8 @@ sys.path.insert(1, '..\\PreProcessing')
 sys.path.insert(0, '..\\Network')
 sys.path.insert(1, '..\\neuron_post')
 sys.path.insert(1, '..\\online')
-# os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ['KERAS_BACKEND'] = 'tensorflow'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 from shallow_unet import get_shallow_unet
 from evaluate_post import GetPerformance_Jaccard_2
@@ -36,7 +36,7 @@ if __name__ == '__main__':
     nframes = 3000 # number of frames for each video
     Mag = 6/8 # spatial magnification compared to ABO videos.
 
-    useSF=False # True if spatial filtering is used in pre-processing.
+    useSF=True # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
@@ -74,11 +74,15 @@ if __name__ == '__main__':
     colspad = math.ceil(Ly/8)*8
     dimspad = (rowspad, colspad)
 
-    h5f = h5py.File('YST_spike_tempolate.h5','r')
-    Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
-    Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+    if useTF:
+        h5f = h5py.File('YST_spike_tempolate.h5','r')
+        Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
+        Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+    else:
+        Poisson_filt=np.array([1])
     leng_tf = Poisson_filt.size
     leng_past = 2*leng_tf # number of past frames stored for temporal filtering
+
     # dictionary of pre-processing parameters
     Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
         'nn':nn, 'Poisson_filt': Poisson_filt}
@@ -185,13 +189,13 @@ if __name__ == '__main__':
             med_frame2 = np.ones((rowspad, colspad, 2), dtype='float32')
             video_input = np.ones((frames_initf, rowspad, colspad), dtype='float32')        
             pmaps_b_init = np.ones((frames_initf, Lx, Ly), dtype='uint8')        
-            frame_input = np.ones(dimspad, dtype='float32')
+            frame_SNR = np.ones(dimspad, dtype='float32')
             pmaps_b = np.ones(dims, dtype='uint8')
         else:
             med_frame2 = np.zeros((rowspad, colspad, 2), dtype='float32')
             video_input = np.zeros((frames_initf, rowspad, colspad), dtype='float32')        
             pmaps_b_init = np.zeros((frames_initf, Lx, Ly), dtype='uint8')        
-            frame_input = np.zeros(dimspad, dtype='float32')
+            frame_SNR = np.zeros(dimspad, dtype='float32')
             pmaps_b = np.zeros(dims, dtype='uint8')
 
         time_init = time.time()
@@ -229,136 +233,148 @@ if __name__ == '__main__':
 
 
         start_online = time.time()
-        # Spatial filtering preparation for online processing. 
-        # Attention: this part counts to the total time
-        if useSF:
-            if cc2:
-                pyfftw.import_wisdom(cc2)
-            (bb, bf, fft_object_b, fft_object_c) = functions_init.plan_fft2((rows1, cols1))
-        else:
-            (bf, fft_object_b, fft_object_c) = (None, None, None)
-            bb=np.zeros(dimspad, dtype='float32')
+        Masks_2, list_time_per = functions_online.online_processing_all(
+            video_raw, dimspad, med_frame3, frames_init, merge_every, fff, Params_post, \
+            segs_all, tuple_temp, mask2, cc2, frame_SNR, past_frames, Poisson_filt, pmaps_b, \
+            useSF, useTF, useSNR, useWT, show_intermediate, display=True)
 
-        print('Start frame by frame processing')
-        # %% Online processing for the following frames
-        current_frame = leng_tf
-        t_merge = frames_initf
-        for t in range(frames_initf,nframesf):
-            start_frame = time.time()
-            bb[:Lx, :Ly] = video_raw[t]
+        # # Spatial filtering preparation for online processing. 
+        # # Attention: this part counts to the total time
+        # if useSF:
+        #     if cc2:
+        #         pyfftw.import_wisdom(cc2)
+        #     (bb, bf, fft_object_b, fft_object_c) = functions_init.plan_fft2((rows1, cols1))
+        # else:
+        #     (bf, fft_object_b, fft_object_c) = (None, None, None)
+        #     bb=np.zeros(dimspad, dtype='float32')
+        
+        # print('Start frame by frame processing')
+        # # %% Online processing for the following frames
+        # current_frame = leng_tf
+        # t_merge = frames_initf
+        # for t in range(frames_initf,nframesf):
+        #     start_frame = time.time()
+        #     bb[:Lx, :Ly] = video_raw[t]
+            
+        #     # PreProcessing
+        #     frame_SNR = functions_online.preprocess_online(bb, dimspad, med_frame3, frame_SNR, \
+        #         past_frames[current_frame-leng_tf:current_frame], mask2, bf, fft_object_b, fft_object_c, \
+        #         Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR)
 
-            if useSF: # Spatial filtering
-                par_online.fastlog(bb)
-                fft_object_b()
-                par_online.fastmask(bf, mask2)
-                fft_object_c()
-                par_online.fastexp(bb)
+        #     # if useSF: # Spatial filtering
+        #     #     par_online.fastlog(bb)
+        #     #     fft_object_b()
+        #     #     par_online.fastmask(bf, mask2)
+        #     #     fft_object_c()
+        #     #     par_online.fastexp(bb)
 
-            if useTF: # Temporal filtering
-                past_frames[current_frame] = bb[:rowspad, :colspad]
-                par_online.fastconv(past_frames[current_frame-leng_tf:current_frame], frame_input, Poisson_filt)
-            else:
-                frame_input = bb[:rowspad, :colspad]
+        #     # if useTF: # Temporal filtering
+        #     #     past_frames[current_frame] = bb[:rowspad, :colspad]
+        #     #     par_online.fastconv(past_frames[current_frame-leng_tf:current_frame], frame_SNR, Poisson_filt)
+        #     # else:
+        #     #     frame_SNR = bb[:rowspad, :colspad]
 
-            if useSNR: # SNR normalization
-                par_online.fastnormf(frame_input, med_frame3)
-            else:
-                par_online.fastnormback(frame_input, 0, med_frame3[0,:,:].mean())
+        #     # if useSNR: # SNR normalization
+        #     #     par_online.fastnormf(frame_SNR, med_frame3)
+        #     # else:
+        #     #     par_online.fastnormback(frame_SNR, 0, med_frame3[0,:,:].mean())
 
-            # CNN inference
-            frame_input_exp = frame_input[np.newaxis,:,:,np.newaxis]
-            frame_prob = fff.predict(frame_input_exp, batch_size=1)
-            frame_prob = frame_prob.squeeze()[:dims[0], :dims[1]]
+        #     # CNN inference
+        #     frame_prob = functions_online.CNN_online(frame_SNR, fff, dims)
+        #     # frame_SNR_exp = frame_SNR[np.newaxis,:,:,np.newaxis]
+        #     # frame_prob = fff.predict(frame_SNR_exp, batch_size=1)
+        #     # frame_prob = frame_prob.squeeze()[:dims[0], :dims[1]]
 
-            # post-processing
-            # threshold the probability map to binary activity
-            par_online.fastthreshold(frame_prob, pmaps_b, thresh_pmap_float)
-            # spatial clustering each frame to form connected regions representing active neurons
-            segs = separateNeuron(pmaps_b, None, minArea, avgArea, useWT)
-            segs_all.append(segs)
+        #     # post-processing
+        #     segs = functions_online.postprocess_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT)
+        #     # # threshold the probability map to binary activity
+        #     # par_online.fastthreshold(frame_prob, pmaps_b, thresh_pmap_float)
+        #     # # spatial clustering each frame to form connected regions representing active neurons
+        #     # segs = separateNeuron(pmaps_b, None, minArea, avgArea, useWT)
+        #     segs_all.append(segs)
 
-            # temporal merging 1: combine neurons with COM distance smaller than thresh_COM0
-            if ((t + 1 - t_merge) == merge_every) or (t==nframesf-1):
-                # uniques, times_uniques = uniqueNeurons1_simp(segs_all[t_merge:(t+1)], thresh_COM0) # minArea,
-                totalmasks, neuronstate, COMs, areas, probmapID = segs_results(segs_all[t_merge:(t+1)])
-                uniques, times_uniques = uniqueNeurons2_simp(totalmasks, neuronstate, COMs, \
-                    areas, probmapID, minArea=0, thresh_COM0=thresh_COM0)
+        #     # temporal merging 1: combine neurons with COM distance smaller than thresh_COM0
+        #     if ((t + 1 - t_merge) == merge_every) or (t==nframesf-1):
+        #         # uniques, times_uniques = uniqueNeurons1_simp(segs_all[t_merge:(t+1)], thresh_COM0) # minArea,
+        #         totalmasks, neuronstate, COMs, areas, probmapID = segs_results(segs_all[t_merge:(t+1)])
+        #         uniques, times_uniques = uniqueNeurons2_simp(totalmasks, neuronstate, COMs, \
+        #             areas, probmapID, minArea=0, thresh_COM0=thresh_COM0)
 
-            # temporal merging 2: combine neurons with COM distance smaller than thresh_COM
-            if ((t + 0 - t_merge) == merge_every) or (t==nframesf-1):
-                if uniques.size:
-                    groupedneurons, times_groupedneurons = \
-                        group_neurons(uniques, thresh_COM, thresh_mask, dims, times_uniques)
+        #     # temporal merging 2: combine neurons with COM distance smaller than thresh_COM
+        #     if ((t + 0 - t_merge) == merge_every) or (t==nframesf-1):
+        #         if uniques.size:
+        #             groupedneurons, times_groupedneurons = \
+        #                 group_neurons(uniques, thresh_COM, thresh_mask, dims, times_uniques)
 
-            # temporal merging 3: combine neurons with IoU larger than thresh_IOU
-            if ((t - 1 - t_merge) == merge_every) or (t==nframesf-1):
-                if uniques.size:
-                    piecedneurons_1, times_piecedneurons_1 = \
-                        piece_neurons_IOU(groupedneurons, thresh_mask, thresh_IOU, times_groupedneurons)
+        #     # temporal merging 3: combine neurons with IoU larger than thresh_IOU
+        #     if ((t - 1 - t_merge) == merge_every) or (t==nframesf-1):
+        #         if uniques.size:
+        #             piecedneurons_1, times_piecedneurons_1 = \
+        #                 piece_neurons_IOU(groupedneurons, thresh_mask, thresh_IOU, times_groupedneurons)
 
-            # temporal merging 4: combine neurons with conumse ratio larger than thresh_consume
-            if ((t - 2 - t_merge) == merge_every) or (t==nframesf-1):
-                if uniques.size:
-                    piecedneurons, times_piecedneurons = \
-                        piece_neurons_consume(piecedneurons_1, avgArea, thresh_mask, thresh_consume, times_piecedneurons_1)
-                    # masks of new neurons
-                    masks_add = piecedneurons
-                    # indices of frames when the neurons are active
-                    times_add = [np.unique(x) + t_merge for x in times_piecedneurons]
+        #     # temporal merging 4: combine neurons with conumse ratio larger than thresh_consume
+        #     if ((t - 2 - t_merge) == merge_every) or (t==nframesf-1):
+        #         if uniques.size:
+        #             piecedneurons, times_piecedneurons = \
+        #                 piece_neurons_consume(piecedneurons_1, avgArea, thresh_mask, thresh_consume, times_piecedneurons_1)
+        #             # masks of new neurons
+        #             masks_add = piecedneurons
+        #             # indices of frames when the neurons are active
+        #             times_add = [np.unique(x) + t_merge for x in times_piecedneurons]
                         
-                    # Refine neurons using consecutive occurence
-                    if masks_add.size:
-                        # new real-number masks
-                        masks_add = [x for x in masks_add]
-                        # new binary masks
-                        Masksb_add = [(x >= x.max() * thresh_mask).astype('float') for x in masks_add]
-                        # areas of new masks
-                        area_add = np.array([x.nnz for x in Masksb_add])
-                        # indicators of whether the new masks satisfy consecutive frame requirement
-                        have_cons_add = functions_online.refine_seperate_cons(times_add, cons)
-                    else:
-                        Masksb_add = []
-                        area_add = np.array([])
-                        have_cons_add = np.array([])
+        #             # Refine neurons using consecutive occurence
+        #             if masks_add.size:
+        #                 # new real-number masks
+        #                 masks_add = [x for x in masks_add]
+        #                 # new binary masks
+        #                 Masksb_add = [(x >= x.max() * thresh_mask).astype('float') for x in masks_add]
+        #                 # areas of new masks
+        #                 area_add = np.array([x.nnz for x in Masksb_add])
+        #                 # indicators of whether the new masks satisfy consecutive frame requirement
+        #                 have_cons_add = functions_online.refine_seperate_cons(times_add, cons)
+        #             else:
+        #                 Masksb_add = []
+        #                 area_add = np.array([])
+        #                 have_cons_add = np.array([])
 
-                else: # does not find any active neuron
-                    Masksb_add = []
-                    masks_add = []
-                    times_add = times_uniques
-                    area_add = np.array([])
-                    have_cons_add = np.array([])
-                tuple_add = (Masksb_add, masks_add, times_add, area_add, have_cons_add)
+        #         else: # does not find any active neuron
+        #             Masksb_add = []
+        #             masks_add = []
+        #             times_add = times_uniques
+        #             area_add = np.array([])
+        #             have_cons_add = np.array([])
+        #         tuple_add = (Masksb_add, masks_add, times_add, area_add, have_cons_add)
 
-            # temporal merging 5: merge newly found neurons within the recent "merge_every" frames with existing neurons
-            if ((t - 3 - t_merge) == merge_every) or (t==nframesf-1):
-                # tuple_temp = merge_2_Jaccard(tuple_temp, tuple_add, dims, Params)
-                tuple_temp = functions_online.merge_2(tuple_temp, tuple_add, dims, Params_post)
-                t_merge = t+1
-                if show_intermediate:
-                    Masks_2 = functions_online.select_cons(tuple_temp)
+        #     # temporal merging 5: merge newly found neurons within the recent "merge_every" frames with existing neurons
+        #     if ((t - 3 - t_merge) == merge_every) or (t==nframesf-1):
+        #         # tuple_temp = merge_2_Jaccard(tuple_temp, tuple_add, dims, Params)
+        #         tuple_temp = functions_online.merge_2(tuple_temp, tuple_add, dims, Params_post)
+        #         t_merge = t+1
+        #         if show_intermediate:
+        #             Masks_2 = functions_online.select_cons(tuple_temp)
 
-            current_frame +=1
-            # Update the stored latest frames when it runs out: move them "leng_tf" ahead
-            if current_frame >= leng_past:
-                current_frame = leng_tf
-                past_frames[:leng_tf] = past_frames[-leng_tf:]
-            end_frame = time.time()
-            list_time_per[t] = end_frame - start_frame
-            if t % 1000 == 0:
-                print('{} frames has been processed'.format(t))
+        #     current_frame +=1
+        #     # Update the stored latest frames when it runs out: move them "leng_tf" ahead
+        #     if current_frame >= leng_past:
+        #         current_frame = leng_tf
+        #         past_frames[:leng_tf] = past_frames[-leng_tf:]
+        #     end_frame = time.time()
+        #     list_time_per[t] = end_frame - start_frame
+        #     if t % 1000 == 0:
+        #         print('{} frames has been processed'.format(t))
 
-        if not show_intermediate:
-            Masks_2 = functions_online.select_cons(tuple_temp)
+        # if not show_intermediate:
+        #     Masks_2 = functions_online.select_cons(tuple_temp)
         end_online = time.time()
         time_online = end_online-start_online
         time_frame_online = time_online/(nframesf-frames_initf)*1000
         print('Online time: {:6f} s, {:6f} ms/frame'.format(time_online, time_frame_online))
 
         # final result. Masks_2 is a 2D sparse matrix of the segmented neurons
-        if len(Masks_2):
-            Masks_2 = sparse.vstack(Masks_2)
-        else:
-            Masks_2 = sparse.csc_matrix((0,dims[0]*dims[1]))
+        # if len(Masks_2):
+        #     Masks_2 = sparse.vstack(Masks_2)
+        # else:
+        #     Masks_2 = sparse.csc_matrix((0,dims[0]*dims[1]))
         end_final = time.time()
 
         # %% Evaluation of the segmentation accuracy compared to manual ground truth

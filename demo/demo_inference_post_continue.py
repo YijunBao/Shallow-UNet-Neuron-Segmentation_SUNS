@@ -11,8 +11,9 @@ import multiprocessing as mp
 
 sys.path.insert(1, '..\\Network')
 sys.path.insert(1, '..\\neuron_post')
+os.environ['KERAS_BACKEND'] = 'tensorflow'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
-# from unet4_best import get_unet
 from shallow_unet import get_shallow_unet
 from par2 import fastuint, fastcopy
 from evaluate_post import GetPerformance_Jaccard_2

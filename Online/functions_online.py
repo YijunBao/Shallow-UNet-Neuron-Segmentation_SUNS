@@ -17,88 +17,175 @@ import multiprocessing as mp
 sys.path.insert(1, '..\\PreProcessing')
 sys.path.insert(1, '..\\Network')
 sys.path.insert(1, '..\\neuron_post')
-# os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
 import par_online
+import functions_init
+import preprocessing_functions
 from seperate_multi import separateNeuron
 from combine import segs_results, uniqueNeurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
 
 
+def spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2):
+    '''Apply spatial filtering to the input image.
 
-# %%
-def preprocess_online(bb, dimspad, med_frame3, frame_input=None, past_frames = None, \
-        mask2=None, bf=None, fft_object_b=None, fft_object_c=None, Poisson_filt=None, \
+    Inputs: 
+        bb(2D numpy.ndarray of float32): array storing the raw image.
+        bf(2D numpy.ndarray of complex64): array to store the complex spectrum for FFT.
+        fft_object_b(pyfftw.FFTW): Object for forward FFT.
+        fft_object_c(pyfftw.FFTW): Object for inverse FFT.
+        mask2 (2D numpy.ndarray of float32): 2D mask for spatial filtering.
+        display (bool, default to True): Indicator of whether display the timing information
+
+    Outputs:
+        No output, but "bb" is changed to the spatially filtered image during the function
+    '''
+    par_online.fastlog(bb)
+    fft_object_b()
+    par_online.fastmask(bf, mask2)
+    fft_object_c()
+    par_online.fastexp(bb)
+
+
+def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = None, \
+        mask2=None, bf=None, fft_object_b=None, fft_object_c=None, Poisson_filt=np.array([1]), \
         useSF=True, useTF=True, useSNR=True):
-    # start = time.time()
+    '''Pre-process the registered image into an SNR image using known median and median-based std.
+
+    Inputs: 
+        bb(3D numpy.ndarray of float32): array storing the raw image.
+        dimspad (tuplel of int, shape = (2,)): lateral dimension of the padded images.
+        frame_SNR (2D empty numpy.ndarray of float32): empty array to store the SNR image.
+        pmaps_b(3D empty numpy.ndarray of uint8): array to store the probablity map of the inital video.
+        med_frame3 (3D empty numpy.ndarray of float32): median and median-based standard deviation from initial frames.
+        recent_frames (3D numpy.ndarray of float32, shape=(Lt,Lx,Ly)): the images from the last "Lt" frames.
+            Theese images are after spatial fitering but before temporal filtering.
+        mask2 (2D numpy.ndarray of float32): 2D mask for spatial filtering.
+        bf(3D numpy.ndarray of complex64, default to None): array to store the complex spectrum for FFT.
+        fft_object_b(pyfftw.FFTW, default to None): Object for forward FFT.
+        fft_object_c(pyfftw.FFTW, default to None): Object for inverse FFT.
+        Poisson_filt (1D numpy.ndarray of float32, default to np.array([1])): The temporal filter kernel
+        useSF (bool, default to True): True if spatial filtering is used.
+        useTF (bool, default to True): True if temporal filtering is used.
+        useSNR (bool, default to True): True if pixel-by-pixel SNR normalization filtering is used.
+
+    Outputs:
+        frame_SNR (2D numpy.ndarray of float32, shape = (Lx,Ly)): the SNR image obtained after pre-processing. 
+    '''
     (rowspad, colspad) = dimspad
-    # bb[:rows, :cols] = frame_raw
     
     # %% Homomorphic spatial filtering
     if useSF:
-        par_online.fastlog(bb)
-        fft_object_b()
-        par_online.fastmask(bf, mask2)
-        fft_object_c()
-        par_online.fastexp(bb)
+        spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2)
+        # par_online.fastlog(bb)
+        # fft_object_b()
+        # par_online.fastmask(bf, mask2)
+        # fft_object_c()
+        # par_online.fastexp(bb)
 
     # %% Temporal filtering
     if useTF:
         past_frames[-1] = bb[:rowspad, :colspad]
-        par_online.fastconv(past_frames, frame_input, Poisson_filt)
+        par_online.fastconv(past_frames, frame_SNR, Poisson_filt)
     else:
-        frame_input = bb[:rowspad, :colspad]
+        frame_SNR = bb[:rowspad, :colspad]
 
     # %% Median computation and normalization
     if useSNR:
-        par_online.fastnormf(frame_input, med_frame3)
+        par_online.fastnormf(frame_SNR, med_frame3)
     else:
-        par_online.fastnormback(frame_input, med_frame3[0,:,:].mean())
+        par_online.fastnormback(frame_SNR, med_frame3[0,:,:].mean())
 
-    # end = time.time()
-    # time_frame = end-start
-    return frame_input#, time_frame
+    return frame_SNR
 
 
-# %%
-def CNN_online(frame_input, fff, dims):
-    # start = time.time()
-    frame_input = frame_input[np.newaxis,:,:,np.newaxis] # 
-    frame_prob = fff.predict(frame_input, batch_size=1)
-    frame_prob = frame_prob.squeeze()[:dims[0], :dims[1]] # 
-    # end = time.time()
-    # time_frame = end-start
-    return frame_prob#, time_frame
+def CNN_online(frame_SNR, fff, dims=None):
+    '''Use CNN to inference the probability of each pixel being active for each image.
+
+    Inputs: 
+        frame_SNR (2D empty numpy.ndarray of float32): SNR image.
+        fff(tf.keras.Model): CNN model.
+        dims (tuplel of int, shape = (2,), default to None): lateral dimension of the image.
+
+    Outputs:
+        frame_prob (2D empty numpy.ndarray of float32): probability map.
+    '''
+    if dims is None:
+        dims = frame_SNR.shape
+    frame_SNR = frame_SNR[np.newaxis,:,:,np.newaxis] 
+    frame_prob = fff.predict(frame_SNR, batch_size=1)
+    frame_prob = frame_prob.squeeze()[:dims[0], :dims[1]] 
+    return frame_prob
 
 
-# %%
 def postprocess_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT=False):
-    # start = time.time()
-    # pmaps_b = np.zeros(dims, dtype='uint8')
+    '''Post-process the probability map.
+
+    Inputs: 
+        frame_prob (2D empty numpy.ndarray of float32): probability map.
+        pmaps_b (2D empty numpy.ndarray of uint8): probability map.
+        thresh_pmap_float(float, range in 0 to 1): Threshold of probablity map.
+        minArea: Minimum area of a valid neuron mask (unit: pixels).
+        avgArea: The typical neuron area (unit: pixels).
+        useWT (bool, default to False): Indicator of whether watershed is used. 
+
+    Outputs:
+        segs (list): A list of outputs of "separateNeuron".
+    '''
+    # threshold the probability map to binary activity
     par_online.fastthreshold(frame_prob, pmaps_b, thresh_pmap_float)
+    # spatial clustering each frame to form connected regions representing active neurons
     segs = separateNeuron(pmaps_b, None, minArea, avgArea, useWT)
-    # end = time.time()
-    # time_frame = end-start
-    return segs#, time_frame
+    return segs
 
 
-def complete_segment_online(pmaps, Params, dims, frames_init, merge_every, display=True, track=False, useWT=False, p=None):
-    thresh_pmap = Params['thresh_pmap']
-    minArea = Params['minArea']
-    avgArea = Params['avgArea']
-    if p is None:
-        mp.Pool()
-    segs = p.starmap(separateNeuron, [(frame, thresh_pmap, minArea, avgArea, useWT) for frame in pmaps], chunksize=1) #, eng
-    # Masks_2, _, _, _ = functions_online.merge_complete(segs, dims, Params)
+# def complete_segment_online(pmaps, Params, dims, frames_init, merge_every, display=True, track=False, useWT=False, p=None):
+#     '''Complete online post-processing procedure. This can be run before or after probablity thresholding,
+#         depending on whether Params['thresh_pmap'] is None.
 
-    tuple_init = merge_complete(segs[:frames_init], dims, Params)
-    if track:
-        Masks_2 = merge_final_track(tuple_init, segs[frames_init:], dims, Params, frames_init, merge_every) #, show_intermediate=True
-    else:
-        Masks_2 = merge_final(tuple_init, segs[frames_init:], dims, Params, frames_init, merge_every) #, show_intermediate=True
-    return Masks_2
+#     Inputs: 
+#         pmaps (3D numpy.ndarray of uint8, shape = (nframes,Lx,Ly)): the probability map obtained after CNN inference.
+#             If Params['thresh_pmap']==None, pmaps must be previously thresholded.
+#         Params (dict): Parameters for post-processing.
+#             Params['minArea']: Minimum area of a valid neuron mask (unit: pixels).
+#             Params['avgArea']: The typical neuron area (unit: pixels).
+#             Params['thresh_pmap']: The probablity threshold. Values higher than thresh_pmap are active pixels. 
+#                 if Params['thresh_pmap']==None, then thresholding is not performed. 
+#                 This is used when thresholding is done before this function.
+#             Params['thresh_mask']: Threashold to binarize the real-number mask.
+#             Params['thresh_COM0']: Threshold of COM distance (unit: pixels) used for the first COM-based merging. 
+#             Params['thresh_COM']: Threshold of COM distance (unit: pixels) used for the second COM-based merging. 
+#             Params['thresh_IOU']: Threshold of IOU used for merging neurons.
+#             Params['thresh_consume']: Threshold of consume ratio used for merging neurons.
+#             Params['cons']: Minimum number of consecutive frames that a neuron should be active for.
+#         dims (tuple of int, shape = (2,)): the lateral shape of the region.
+#         frames_init (intrue): indicator of whether multiprocessing is used to speed up. 
+#         merge_every (int): Indicator of whether to show intermediate information
+#         display (bool, default to False): Indicator of whether to show intermediate information
+#         track (bool, default to False): Indicator of whether to show intermediate information
+#         useWT (bool, default to False): Indicator of whether watershed is used. 
+#         p (multiprocessing.Pool, default to None): 
+
+#     Outputs:
+#         Masks_2 (sparse.csr_matrix of bool): the final segmented binary neuron masks after consecutive refinement. 
+#     '''
+#     thresh_pmap = Params['thresh_pmap']
+#     minArea = Params['minArea']
+#     avgArea = Params['avgArea']
+#     if p is None:
+#         mp.Pool()
+#     segs = p.starmap(separateNeuron, [(frame, thresh_pmap, minArea, avgArea, useWT) for frame in pmaps], chunksize=1) #, eng
+#     # Masks_2, _, _, _ = functions_online.merge_complete(segs, dims, Params)
+
+#     tuple_init = merge_complete(segs[:frames_init], dims, Params)
+#     if track:
+#         Masks_2 = merge_final_track(tuple_init, segs[frames_init:], dims, Params, frames_init, merge_every) #, show_intermediate=True
+#     else:
+#         Masks_2 = merge_final(tuple_init, segs[frames_init:], dims, Params, frames_init, merge_every) #, show_intermediate=True
+#     return Masks_2
 
 
-def merge_complete(segs, dims, Params): # , select_cons=True
+def merge_complete(segs, dims, Params):
     # minArea = Params['minArea']
     avgArea = Params['avgArea']
     # thresh_pmap = Params['thresh_pmap']
@@ -599,5 +686,162 @@ def refine_seperate_cons_new(tuple_temp, cons=1):
     return Masks_2
 
 
+def online_processing_all(video_raw, dimspad, med_frame3, frames_init, merge_every, fff, Params_post, \
+        segs_all, tuple_temp, mask2=None, cc2=None, \
+        frame_SNR=None, past_frames = None, Poisson_filt=np.array([1]), pmaps_b=None, \
+        useSF=True, useTF=True, useSNR=True, useWT=False, show_intermediate=True, display=False):
+    # %% Online processing for the following frames
+    leng_tf = Poisson_filt.size
+    (nframes, Lx, Ly) = video_raw.shape
+    dims = (Lx, Ly)
+    nframesf = nframes - leng_tf + 1
+    frames_initf = frames_init - leng_tf + 1
+    current_frame = leng_tf
+    leng_past = 2*leng_tf
+    t_merge = frames_initf
+    list_time_per=np.zeros(nframesf)
 
+    minArea = Params_post['minArea']
+    avgArea = Params_post['avgArea']
+    # thresh_pmap = Params_post['thresh_pmap']
+    thresh_pmap_float = (Params_post['thresh_pmap']+1.5)/256
+    thresh_mask = Params_post['thresh_mask']
+    thresh_COM0 = Params_post['thresh_COM0']
+    thresh_COM = Params_post['thresh_COM']
+    thresh_IOU = Params_post['thresh_IOU']
+    thresh_consume = Params_post['thresh_consume']
+    cons = Params_post['cons']
 
+    # Spatial filtering preparation for online processing. 
+    # Attention: this part counts to the total time
+    if useSF:
+        if cc2:
+            pyfftw.import_wisdom(cc2)
+        (bb, bf, fft_object_b, fft_object_c) = functions_init.plan_fft2(dimspad)
+    else:
+        (bf, fft_object_b, fft_object_c) = (None, None, None)
+        bb=np.zeros(dimspad, dtype='float32')
+    
+    for t in range(frames_initf,nframesf):
+        if display:
+            start_frame = time.time()
+        bb[:Lx, :Ly] = video_raw[t]
+        
+        # PreProcessing
+        frame_SNR = preprocess_online(bb, dimspad, med_frame3, frame_SNR, \
+            past_frames[current_frame-leng_tf:current_frame], mask2, bf, fft_object_b, fft_object_c, \
+            Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR)
+
+        # if useSF: # Spatial filtering
+        #     par_online.fastlog(bb)
+        #     fft_object_b()
+        #     par_online.fastmask(bf, mask2)
+        #     fft_object_c()
+        #     par_online.fastexp(bb)
+
+        # if useTF: # Temporal filtering
+        #     past_frames[current_frame] = bb[:rowspad, :colspad]
+        #     par_online.fastconv(past_frames[current_frame-leng_tf:current_frame], frame_SNR, Poisson_filt)
+        # else:
+        #     frame_SNR = bb[:rowspad, :colspad]
+
+        # if useSNR: # SNR normalization
+        #     par_online.fastnormf(frame_SNR, med_frame3)
+        # else:
+        #     par_online.fastnormback(frame_SNR, 0, med_frame3[0,:,:].mean())
+
+        # CNN inference
+        frame_prob = CNN_online(frame_SNR, fff, dims)
+        # frame_SNR_exp = frame_SNR[np.newaxis,:,:,np.newaxis]
+        # frame_prob = fff.predict(frame_SNR_exp, batch_size=1)
+        # frame_prob = frame_prob.squeeze()[:dims[0], :dims[1]]
+
+        # post-processing
+        segs = postprocess_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT)
+        # # threshold the probability map to binary activity
+        # par_online.fastthreshold(frame_prob, pmaps_b, thresh_pmap_float)
+        # # spatial clustering each frame to form connected regions representing active neurons
+        # segs = separateNeuron(pmaps_b, None, minArea, avgArea, useWT)
+        segs_all.append(segs)
+
+        # temporal merging 1: combine neurons with COM distance smaller than thresh_COM0
+        if ((t + 1 - t_merge) == merge_every) or (t==nframesf-1):
+            # uniques, times_uniques = uniqueNeurons1_simp(segs_all[t_merge:(t+1)], thresh_COM0) # minArea,
+            totalmasks, neuronstate, COMs, areas, probmapID = segs_results(segs_all[t_merge:(t+1)])
+            uniques, times_uniques = uniqueNeurons2_simp(totalmasks, neuronstate, COMs, \
+                areas, probmapID, minArea=0, thresh_COM0=thresh_COM0)
+
+        # temporal merging 2: combine neurons with COM distance smaller than thresh_COM
+        if ((t + 0 - t_merge) == merge_every) or (t==nframesf-1):
+            if uniques.size:
+                groupedneurons, times_groupedneurons = \
+                    group_neurons(uniques, thresh_COM, thresh_mask, dims, times_uniques)
+
+        # temporal merging 3: combine neurons with IoU larger than thresh_IOU
+        if ((t - 1 - t_merge) == merge_every) or (t==nframesf-1):
+            if uniques.size:
+                piecedneurons_1, times_piecedneurons_1 = \
+                    piece_neurons_IOU(groupedneurons, thresh_mask, thresh_IOU, times_groupedneurons)
+
+        # temporal merging 4: combine neurons with conumse ratio larger than thresh_consume
+        if ((t - 2 - t_merge) == merge_every) or (t==nframesf-1):
+            if uniques.size:
+                piecedneurons, times_piecedneurons = \
+                    piece_neurons_consume(piecedneurons_1, avgArea, thresh_mask, thresh_consume, times_piecedneurons_1)
+                # masks of new neurons
+                masks_add = piecedneurons
+                # indices of frames when the neurons are active
+                times_add = [np.unique(x) + t_merge for x in times_piecedneurons]
+                    
+                # Refine neurons using consecutive occurence
+                if masks_add.size:
+                    # new real-number masks
+                    masks_add = [x for x in masks_add]
+                    # new binary masks
+                    Masksb_add = [(x >= x.max() * thresh_mask).astype('float') for x in masks_add]
+                    # areas of new masks
+                    area_add = np.array([x.nnz for x in Masksb_add])
+                    # indicators of whether the new masks satisfy consecutive frame requirement
+                    have_cons_add = refine_seperate_cons(times_add, cons)
+                else:
+                    Masksb_add = []
+                    area_add = np.array([])
+                    have_cons_add = np.array([])
+
+            else: # does not find any active neuron
+                Masksb_add = []
+                masks_add = []
+                times_add = times_uniques
+                area_add = np.array([])
+                have_cons_add = np.array([])
+            tuple_add = (Masksb_add, masks_add, times_add, area_add, have_cons_add)
+
+        # temporal merging 5: merge newly found neurons within the recent "merge_every" frames with existing neurons
+        if ((t - 3 - t_merge) == merge_every) or (t==nframesf-1):
+            # tuple_temp = merge_2_Jaccard(tuple_temp, tuple_add, dims, Params)
+            tuple_temp = merge_2(tuple_temp, tuple_add, dims, Params_post)
+            t_merge = t+1
+            if show_intermediate:
+                Masks_2 = select_cons(tuple_temp)
+
+        current_frame +=1
+        # Update the stored latest frames when it runs out: move them "leng_tf" ahead
+        if current_frame >= leng_past:
+            current_frame = leng_tf
+            past_frames[:leng_tf] = past_frames[-leng_tf:]
+        if display:
+            end_frame = time.time()
+            list_time_per[t] = end_frame - start_frame
+            if t % 1000 == 0:
+                print('{} frames has been processed'.format(t))
+
+    if not show_intermediate:
+        Masks_2 = select_cons(tuple_temp)
+
+    # final result. Masks_2 is a 2D sparse matrix of the segmented neurons
+    if len(Masks_2):
+        Masks_2 = sparse.vstack(Masks_2)
+    else:
+        Masks_2 = sparse.csc_matrix((0,dims[0]*dims[1]))
+
+    return Masks_2, list_time_per

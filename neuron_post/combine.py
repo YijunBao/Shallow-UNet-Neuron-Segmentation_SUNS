@@ -281,16 +281,17 @@ def piece_neurons_consume(neuronmasks: sparse.csr_matrix, avgArea, thresh_mask, 
             else:
                 belongs[xi] = throw
                 uniquetimes[xi] = np.array([], dtype='uint32')
-        else: # If both neurons are smaller than avgArea, add them
+        else: # If both neurons are is smaller than avgArea, add them
             xto = belongs[xi]
             yto = belongs[yi]
             if xto != yto: # merge xto and yto
                 addto = min(xto, yto)
                 addfrom = max(xto, yto)
-                move = (belongs == addfrom)
-                belongs[move] = addto # merge larger index to smaller index
-                uniquetimes[addto] = np.hstack([uniquetimes[addfrom], uniquetimes[addto]]) # merge active time
-                uniquetimes[addfrom] = np.array([], dtype='uint32')
+                if addfrom < throw: # if one of them is already thrown, do nothing
+                    move = (belongs == addfrom)
+                    belongs[move] = addto # merge larger index to smaller index
+                    uniquetimes[addto] = np.hstack([uniquetimes[addfrom], uniquetimes[addto]]) # merge active time
+                    uniquetimes[addfrom] = np.array([], dtype='uint32')
 
     keep = (belongs != throw).nonzero()[0] # indecis of unique neurons after merging
     comb = sparse.csr_matrix((np.ones(keep.size), (belongs[keep], np.arange(N)[keep])), (N, N))
