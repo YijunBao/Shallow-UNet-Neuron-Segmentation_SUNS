@@ -341,7 +341,6 @@ def main():
                 (Masksb_add, masks_add, times_add, area_add, have_cons_add) = tuple_add
                 times_add = [x + merge_every for x in times_add]
                 tuple_add = (Masksb_add, masks_add, times_add, area_add, have_cons_add)
-                # tuple_temp = merge_2_Jaccard(tuple_temp, tuple_add, dims, Params)
                 tuple_temp = functions_online.merge_2_nocons(tuple_temp, tuple_add, dims, Params_post)
 
                 (Masksb_temp, masks_temp, times_temp, area_temp, have_cons_temp) = tuple_temp
@@ -390,7 +389,6 @@ def main():
                     (Masksb_add, masks_add, times_add, area_add, have_cons_add) = tuple_add
                     times_add = [x + t + frames_initf for x in times_add]
                     tuple_add = (Masksb_add, masks_add, times_add, area_add, have_cons_add)
-                    # tuple_temp = merge_2_Jaccard(tuple_temp, tuple_add, dims, Params)
                     tuple_temp = functions_online.merge_2_nocons(tuple_temp, tuple_add, dims, Params_post)
                     # (Masksb_temp, masks_temp, times_temp, area_temp, have_cons_temp) = tuple_temp
 

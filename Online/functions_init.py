@@ -124,7 +124,7 @@ def plan_mask2(dims, dims1, gauss_filt_size):
 def init_online(bb, dims, network_input, pmaps_b, fff, thresh_pmap_float, Params_post, med_frame2=None, mask2=None, \
         bf=None, fft_object_b=None, fft_object_c=None, Poisson_filt=np.array([1]), \
         useSF=True, useTF=True, useSNR=True, useWT=False, batch_size_init=1, p=None):
-    '''Pre-process the initial part of a video into an SNR video.
+    '''Process the initial part of a video into a list of segmented masks for every frame with statistics.
 
     Inputs: 
         bb(3D numpy.ndarray of float32): array storing the raw video.
@@ -151,7 +151,7 @@ def init_online(bb, dims, network_input, pmaps_b, fff, thresh_pmap_float, Params
         p (multiprocessing.Pool, default to None): 
 
     Outputs:
-        segs (list): A list of outputs of "separateNeuron" for the initalization frames.
+        segs (list): a list of segmented masks for every frame with statistics for the initalization frames.
         med_frame3 (3D numpy.ndarray of float32): the median and median-based standard deviation.
         recent_frames (3D numpy.ndarray of float32, shape=(Lt,Lx,Ly)): the images from the last "Lt" frames.
             Theese images are after spatial fitering but before temporal filtering.
@@ -185,7 +185,7 @@ def init_online(bb, dims, network_input, pmaps_b, fff, thresh_pmap_float, Params
 
 
 def preprocess_init(bb, dimspad, network_input=None, med_frame2=None, Poisson_filt=np.array([1]), mask2=None, \
-        bf=None, fft_object_b=None, fft_object_c=None, median_decimate=1, useSF=False, useTF=True, useSNR=True, prealloc=True):
+        bf=None, fft_object_b=None, fft_object_c=None, median_decimate=1, useSF=False, useTF=True, useSNR=True, prealloc=True, display=False):
     '''Pre-process the initial part of a video into an SNR video.
 
     Inputs: 
@@ -213,20 +213,20 @@ def preprocess_init(bb, dimspad, network_input=None, med_frame2=None, Poisson_fi
     (rowspad, colspad) = dimspad
     
     if useSF: # Homomorphic spatial filtering based on FFT
-        preprocessing_functions.spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2, display=False)
+        preprocessing_functions.spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2, display=display)
 
     if useTF: # Temporal filtering
-        preprocessing_functions.temporal_filtering(bb[:, :rowspad, :colspad], network_input, Poisson_filt, display=False)
+        preprocessing_functions.temporal_filtering(bb[:, :rowspad, :colspad], network_input, Poisson_filt, display=display)
     else:
         network_input = bb[:, :rowspad, :colspad]
 
     # Median computation and normalization
     if useSNR:
         med_frame3 = preprocessing_functions.SNR_normalization(
-            network_input, med_frame2, (rowspad, colspad), median_decimate, display=True)
+            network_input, med_frame2, (rowspad, colspad), median_decimate, display=display)
     else:
         med_frame3 = preprocessing_functions.median_normalization(
-            network_input, med_frame2, (rowspad, colspad), median_decimate, display=True)
+            network_input, med_frame2, (rowspad, colspad), median_decimate, display=display)
 
     return network_input, med_frame3
 
@@ -246,7 +246,7 @@ def segment_init(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, p=Non
         p (multiprocessing.Pool, default to None): 
 
     Outputs:
-        segs (list): A list of outputs of "separateNeuron" for all frames.
+        segs (list): A list of segmented masks for every frame with statistics.
     '''
     minArea = Params['minArea']
     avgArea = Params['avgArea']

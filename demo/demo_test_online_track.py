@@ -14,7 +14,7 @@ sys.path.insert(1, '..\\neuron_post')
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 from evaluate_post import GetPerformance_Jaccard_2
-from suns_online import suns_online
+from suns_online_track import suns_online_track
 
 
 # %%
@@ -31,7 +31,6 @@ if __name__ == '__main__':
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     useWT=False # True if using additional watershed
-    show_intermediate=True # True if screen neurons with consecutive frame requirement after every merge
     display=True # True if display information about running time 
 
     # file names of the ".h5" files storing the raw videos. 
@@ -47,7 +46,7 @@ if __name__ == '__main__':
 
     dir_parent = dir_video + 'complete\\' # folder to save all the processed data
     dir_sub = ''
-    dir_output = dir_parent + dir_sub + 'output_masks online\\' # folder to save the segmented masks and the performance scores
+    dir_output = dir_parent + dir_sub + 'output_masks track\\' # folder to save the segmented masks and the performance scores
     dir_params = dir_parent + dir_sub + 'output_masks\\' # folder of the optimized hyper-parameters
     weights_path = dir_parent + dir_sub + 'Weights\\' # folder of the trained CNN
     if not os.path.exists(dir_output):
@@ -103,11 +102,11 @@ if __name__ == '__main__':
             'cons':Params_post_mat['cons'][0][0,0]}
 
         # The entire process of SUNS online
-        Masks, Masks_2, time_total, time_frame = suns_online(
+        Masks, Masks_2, time_total, time_frame = suns_online_track(
             filename_video, filename_CNN, Params_pre, Params_post, \
             dims, frames_init, merge_every, batch_size_init, \
             useSF=useSF, useTF=useTF, useSNR=useSNR, useWT=useWT, \
-            show_intermediate=show_intermediate, prealloc=prealloc, display=display, p=p)
+            prealloc=prealloc, display=display, p=p)
 
         # %% Evaluation of the segmentation accuracy compared to manual ground truth
         filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'

@@ -1,14 +1,12 @@
 # %%
 import sys
-import cv2
+import os
 import numpy as np
 import time
 import h5py
-import os
 
 sys.path.insert(1, '..\\PreProcessing')
 from preprocessing_functions import preprocess_video, generate_masks
-import par1
 
 
 # %%
@@ -31,8 +29,8 @@ if __name__ == '__main__':
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
     dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
-    dir_save = dir_video + 'complete\\' # folder to save all the processed data
-    dir_network_input = dir_save+"network_input\\" # folder to save the SNR videos
+    dir_parent = dir_video + 'complete\\' # folder to save all the processed data
+    dir_network_input = dir_parent+"network_input\\" # folder to save the SNR videos
     if not os.path.exists(dir_network_input):
         os.makedirs(dir_network_input) 
 
@@ -56,6 +54,6 @@ if __name__ == '__main__':
 
         # %% Determine active neurons in all frames using FISSA
         file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
-        generate_masks(video_input, file_mask, list_thred_ratio, dir_save, Exp_ID)
+        generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
         del video_input
         

@@ -127,12 +127,13 @@ def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, d
 
 # %%
 def optimize_combine(uniques: sparse.csr_matrix, times_uniques: list, dims: tuple, Params: dict, filename_GT: str):  
-    '''Optimize 1 post-processing parameters: "cons". 
+    '''Optimize 1 post-processing parameter: "cons". 
         Start after the first COM merging.
 
     Inputs: 
-        totalmasks (sparse.csr_matrix of float32, shape = (n,Lx*Ly)): the neuron masks to be merged.
-        neuronstate (1D numpy.array of bool, shape = (n,)): Indicators of whether a neuron is obtained without watershed.
+        uniques (sparse.csr_matrix of float32, shape = (n,Lx*Ly)): the neuron masks to be merged.
+        times_uniques (list of 1D numpy.array): indecis of frames when the neuron is active.
+        dims (tuple of int, shape = (2,)): the lateral shape of the image.
         Params (dict): Ranges of post-processing parameters to optimize over.
             Params['avgArea']: The typical neuron area (unit: pixels).
             Params['thresh_mask']: (float) Threashold to binarize the real-number mask.
@@ -142,32 +143,34 @@ def optimize_combine(uniques: sparse.csr_matrix, times_uniques: list, dims: tupl
         filename_GT (str): file name of the GT masks. 
 
     Outputs:
-        Recall_k (1D numpy.array of float): Recall for all paramter combinations. 
-        Precision_k (1D numpy.array of float): Precision for all paramter combinations. 
-        F1_k (1D numpy.array of float): F1 for all paramter combinations. 
-            For these outputs, the orders of the tunable parameters are:
-            "minArea", "avgArea", "thresh_pmap", "thresh_COM", "thresh_IOU", "cons"
+        Recall_k (1D numpy.array of float): Recall for all cons. 
+        Precision_k (1D numpy.array of float): Precision for all cons. 
+        F1_k (1D numpy.array of float): F1 for all cons. 
     '''
     avgArea = Params['avgArea']
     thresh_mask = Params['thresh_mask']
     thresh_COM = Params['thresh_COM']
     thresh_IOU = Params['thresh_IOU']
     thresh_consume = (1+thresh_IOU)/2
-    list_cons = Params['list_cons'] #= list(range(1, 13))
+    list_cons = Params['list_cons']
 
     # second merge neurons with close COM.
-    groupedneurons, times_groupedneurons = group_neurons(uniques, thresh_COM, thresh_mask, (dims[1], dims[2]), times_uniques)
+    groupedneurons, times_groupedneurons = group_neurons(uniques, \
+        thresh_COM, thresh_mask, (dims[1], dims[2]), times_uniques)
     # Merge neurons with high IoU.
-    piecedneurons_1, times_piecedneurons_1 = piece_neurons_IOU(groupedneurons, thresh_mask, thresh_IOU, times_groupedneurons)
+    piecedneurons_1, times_piecedneurons_1 = piece_neurons_IOU(groupedneurons, \
+        thresh_mask, thresh_IOU, times_groupedneurons)
     # Merge neurons with high consume ratio.
-    piecedneurons, times_piecedneurons = piece_neurons_consume(piecedneurons_1, avgArea, thresh_mask, thresh_consume, times_piecedneurons_1)
+    piecedneurons, times_piecedneurons = piece_neurons_consume(piecedneurons_1, \
+        avgArea, thresh_mask, thresh_consume, times_piecedneurons_1)
     masks_final_2 = piecedneurons
     times_final = [np.unique(x) for x in times_piecedneurons]
 
     data_GT=loadmat(filename_GT)
     GTMasks_2 = data_GT['GTMasks_2'].transpose()
     # Search for optimal "cons" used to refine segmented neurons.
-    Recall_k, Precision_k, F1_k = refine_seperate_multi(GTMasks_2, masks_final_2, times_final, list_cons, thresh_mask, display=False)
+    Recall_k, Precision_k, F1_k = refine_seperate_multi(GTMasks_2, \
+        masks_final_2, times_final, list_cons, thresh_mask, display=False)
     return Recall_k, Precision_k, F1_k
 
 
@@ -200,7 +203,7 @@ def optimize_combine_minArea(totalmasks, neuronstate, COMs, areas, probmapID, di
         list_Precision_inter (3D numpy.array of float): Precision for all paramter combinations. 
         list_F1_inter (3D numpy.array of float): F1 for all paramter combinations. 
             For these outputs, the orders of the tunable parameters are:
-            "minArea", "avgArea", "thresh_pmap", "thresh_COM", "thresh_IOU", "cons"
+            "thresh_COM", "thresh_IOU", "cons"
     '''
     thresh_mask = Params_set['thresh_mask']
     thresh_COM0 = Params_set['thresh_COM0']
@@ -250,7 +253,8 @@ def optimize_combine_minArea(totalmasks, neuronstate, COMs, areas, probmapID, di
 
     
 # %%
-def paremter_optimization_after(pmaps: np.ndarray, Params_set: dict, filename_GT: str, useMP=True, useWT=False, p=None): 
+def paremter_optimization_after(pmaps: np.ndarray, Params_set: dict, \
+        filename_GT: str, useMP=True, useWT=False, p=None): 
     '''Optimize 6 post-processing parameters: 
         "minArea", "avgArea", "thresh_pmap", "thresh_COM", "thresh_IOU", "cons". 
 
@@ -288,7 +292,6 @@ def paremter_optimization_after(pmaps: np.ndarray, Params_set: dict, filename_GT
     # thresh_COM0 = Params_set['thresh_COM0']
     list_thresh_COM = Params_set['list_thresh_COM']
     list_thresh_IOU = Params_set['list_thresh_IOU']
-    # list_thresh_consume = Params_set['list_thresh_consume']
     list_cons = Params_set['list_cons']
 
     L_minArea=len(list_minArea)
@@ -330,15 +333,10 @@ def paremter_optimization_after(pmaps: np.ndarray, Params_set: dict, filename_GT
                 else:
                     segs2 = [watershed_neurons((Lx, Ly), frame_seg, minArea, avgArea) for frame_seg in segs]
                 print('Used {} s'.format(time.time() - start))
-            else:
+            else: # for no watershed
                 segs2 = segs
 
             totalmasks, neuronstate, COMs, areas, probmapID = segs_results(segs2)
-            # totalmasks = sparse.vstack([x[0] for x in segs2])
-            # neuronstate = np.hstack([x[1] for x in segs2])
-            # COMs = np.vstack([x[2] for x in segs2])
-            # areas = np.hstack([x[3] for x in segs2])
-            # probmapID = np.hstack([ind * np.ones(x[1].size, dtype='uint32') for (ind, x) in enumerate(segs2)])
 
             num_neurons = neuronstate.size
             if num_neurons==0 or totalmasks.nnz/pmaps.size>0.1:

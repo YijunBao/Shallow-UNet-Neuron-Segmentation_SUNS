@@ -18,7 +18,7 @@ import functions_init
 
 
 def preprocess_video(dir_video:str, Exp_ID:str, Params:dict, 
-        dir_network_input:str = None, useSF=False, useTF=True, useSNR=True, prealloc=True):
+        dir_network_input:str = None, useSF=False, useTF=True, useSNR=True, prealloc=True, display=True):
     '''Pre-process the registered video into an SNR video.
 
     Inputs: 
@@ -68,9 +68,10 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
         # lateral dimensions slightly larger than the raw video but faster for FFT
         rows1 = cv2.getOptimalDFTSize(rows)
         cols1 = cv2.getOptimalDFTSize(cols)
-        print(rows, cols, nn, '->', rows1, cols1, nn)
 
-        start_plan = time.time()
+        if display:
+            print(rows, cols, nn, '->', rows1, cols1, nn)
+            start_plan = time.time()
         # if the learned wisdom files have been saved, load them. Otherwise, learn wisdom later
         Length_data=str((nn, rows1, cols1))
         cc = functions_init.load_wisdom_txt('wisdom\\'+Length_data)
@@ -79,8 +80,9 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
 
         # FFT planning
         bb, bf, fft_object_b, fft_object_c = functions_init.plan_fft3(nn, (rows1, cols1), prealloc)
-        end_plan = time.time()
-        print('FFT planning: {} s'.format(end_plan - start_plan))
+        if display:
+            end_plan = time.time()
+            print('FFT planning: {} s'.format(end_plan - start_plan))
 
         # %% Initialization: Calculate the spatial filter and set variables.
         mask2 = functions_init.plan_mask2((rows, cols), (rows1, cols1), gauss_filt_size)
@@ -103,19 +105,21 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     else:
         med_frame2 = np.zeros((rows, cols, 2), dtype='float32')
     median_decimate = max(1,nframes//num_median_approx)
-    end_init = time.time()
-    print('Initialization: {} s'.format(end_init - end_plan))
+    if display:
+        end_init = time.time()
+        print('Initialization: {} s'.format(end_init - end_plan))
     
     # %% Load the raw video into "bb"
     for t in range(nframes): # use this one to save memory
         bb[t, :rows, :cols] = np.array(h5_file['mov'][t])
     h5_file.close()
-    end_load = time.time()
-    print('data loading: {} s'.format(end_load - end_init))
+    if display:
+        end_load = time.time()
+        print('data loading: {} s'.format(end_load - end_init))
 
     start = time.time() # The pipline starts after the video is loaded into memory
     network_input, _ = functions_init.preprocess_init(bb, (rowspad,colspad), network_input, med_frame2, Poisson_filt, mask2, \
-        bf, fft_object_b, fft_object_c, median_decimate, useSF, useTF, useSNR, prealloc)
+        bf, fft_object_b, fft_object_c, median_decimate, useSF, useTF, useSNR, prealloc, display)
     # if useSF: # Homomorphic spatial filtering based on FFT
     #     spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2, display=True)
     # if useSF and not prealloc:
@@ -134,16 +138,18 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     # else:
     #     median_normalization(network_input, med_frame2, (rowspad, colspad), median_decimate, display=True)
 
-    end = time.time()
-    print('total per frame: {} ms'.format((end - start) / nframes *1000))
+    if display:
+        end = time.time()
+        print('total per frame: {} ms'.format((end - start) / nframes *1000))
 
     # if "dir_network_input" is not None, save network_input to an ".h5" file
     if dir_network_input:
         f = h5py.File(dir_network_input+Exp_ID+".h5", "w")
         f.create_dataset("network_input", data = network_input)
         f.close()
-        end_saving = time.time()
-        print('Network_input saving: {} s'.format(end_saving - end))
+        if display:
+            end_saving = time.time()
+            print('Network_input saving: {} s'.format(end_saving - end))
         
     return network_input, start
 
