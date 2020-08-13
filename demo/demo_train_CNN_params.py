@@ -80,7 +80,7 @@ if __name__ == '__main__':
     nn = nframes
     gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
     num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
-    list_thred_ratio = [thred_ratio] # A list of SNR threshold used to determine when neurons are active.
+    list_thred_ratio = [thred_std] # A list of SNR threshold used to determine when neurons are active.
     h5f = h5py.File('YST_spike_tempolate.h5','r')
     Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
     Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
