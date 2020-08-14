@@ -1,29 +1,23 @@
 # %%
 import os
+import sys
 import math
 import numpy as np
 import time
 import h5py
-import sys
 import pyfftw
 from scipy import sparse
 from scipy import signal
 from scipy import special
 from scipy.optimize import linear_sum_assignment
-
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
 
-sys.path.insert(1, '..\\PreProcessing')
-sys.path.insert(1, '..\\Network')
-sys.path.insert(1, '..\\neuron_post')
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
-import par_online
-import functions_init
-import preprocessing_functions
-from seperate_multi import separateNeuron
-from combine import segs_results, uniqueNeurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
+from suns.Online.par_online import fastlog_2, fastmask_2, fastexp_2, \
+    fastconv_2, fastnormf_2, fastnormback_2, fastthreshold_2
+from suns.PostProcessing.seperate_neurons import separate_neuron
+from suns.PostProcessing.combine import segs_results, unique_neurons2_simp, \
+    group_neurons, piece_neurons_IOU, piece_neurons_consume
 
 
 def spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2):
@@ -40,11 +34,11 @@ def spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2):
     Outputs:
         No output, but "bb" is changed to the spatially filtered image during the function
     '''
-    par_online.fastlog(bb)
+    fastlog_2(bb)
     fft_object_b()
-    par_online.fastmask(bf, mask2)
+    fastmask_2(bf, mask2)
     fft_object_c()
-    par_online.fastexp(bb)
+    fastexp_2(bb)
 
 
 def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = None, \
@@ -79,15 +73,15 @@ def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = Non
 
     if useTF: # Temporal filtering
         past_frames[-1] = bb[:rowspad, :colspad]
-        par_online.fastconv(past_frames, frame_SNR, Poisson_filt)
+        fastconv_2(past_frames, frame_SNR, Poisson_filt)
     else:
         frame_SNR = bb[:rowspad, :colspad]
 
     # Median computation and normalization
     if useSNR:
-        par_online.fastnormf(frame_SNR, med_frame3)
+        fastnormf_2(frame_SNR, med_frame3)
     else:
-        par_online.fastnormback(frame_SNR, med_frame3[0,:,:].mean())
+        fastnormback_2(frame_SNR, med_frame3[0,:,:].mean())
 
     return frame_SNR
 
@@ -111,7 +105,7 @@ def CNN_online(frame_SNR, fff, dims=None):
     return frame_prob
 
 
-def postprocess_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT=False):
+def separate_neuron_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT=False):
     '''Post-process the probability map.
 
     Inputs: 
@@ -126,13 +120,13 @@ def postprocess_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea,
         segs (list): A list of segmented masks for every frame with statistics.
     '''
     # threshold the probability map to binary activity
-    par_online.fastthreshold(frame_prob, pmaps_b, thresh_pmap_float)
+    fastthreshold_2(frame_prob, pmaps_b, thresh_pmap_float)
     # spatial clustering each frame to form connected regions representing active neurons
-    segs = separateNeuron(pmaps_b, None, minArea, avgArea, useWT)
+    segs = separate_neuron(pmaps_b, None, minArea, avgArea, useWT)
     return segs
 
 
-def refine_seperate_cons(times_temp, cons=1, have_cons=None):
+def refine_seperate_cons_online(times_temp, cons=1, have_cons=None):
     '''Select the segmented masks that satisfy consecutive frame requirement.
 
     Inputs: 
@@ -213,7 +207,7 @@ def merge_complete(segs, dims, Params):
 
     totalmasks, neuronstate, COMs, areas, probmapID = segs_results(segs)
     # Initally merge neurons with close COM.
-    uniques, times_uniques = uniqueNeurons2_simp(totalmasks, neuronstate, COMs, \
+    uniques, times_uniques = unique_neurons2_simp(totalmasks, neuronstate, COMs, \
         areas, probmapID, minArea=0, thresh_COM0=thresh_COM0)
     if uniques.size:
         # Further merge neurons with close COM.
@@ -234,7 +228,7 @@ def merge_complete(segs, dims, Params):
             masks_final_2 = [x for x in masks_final_2]
             Masks_2 = [(x >= x.max() * thresh_mask).astype('float') for x in masks_final_2]
             area = np.array([x.nnz for x in Masks_2])
-            have_cons = refine_seperate_cons(times_final, cons)
+            have_cons = refine_seperate_cons_online(times_final, cons)
         else:
             Masks_2 = []
             area = np.array([])
@@ -344,7 +338,7 @@ def merge_2(tuple1, tuple2, dims, Params):
         area1[xi] = Maskb_update.nnz
         if have_cons2[yi]:
             have_cons1[xi]=True
-    have_cons1 = refine_seperate_cons(times1, cons, have_cons1)
+    have_cons1 = refine_seperate_cons_online(times1, cons, have_cons1)
 
     if np.all(merged): # If all new masks are merged to old masks, the mask list does not change
         return (Masksb1, masks1, times1, area1, have_cons1)
@@ -474,7 +468,7 @@ def merge_2_nocons(tuple1, tuple2, dims, Params):
         area1[xi0] = Maskb_update.nnz
         if have_cons2[yi]:
             have_cons1[xi0]=True
-    have_cons1 = refine_seperate_cons(times1, cons, have_cons1)
+    have_cons1 = refine_seperate_cons_online(times1, cons, have_cons1)
 
     if np.all(merged): # If all new masks are merged to old masks, the mask list does not change
         return (Masksb1, masks1, times1, area1, have_cons1)

@@ -1,13 +1,6 @@
-REM REM Training pipeline
-REM REM Prepare for FFT-based spatial filtering
-REM python demo_learn_wisdom.py
-REM python demo_learn_wisdom_2d.py
-REM REM Pre-processing and generate temporal labels
-REM python demo_PreProcessing_masks.py
-REM REM Train CNN
-REM python demo_train.py
-REM REM Search optimal post-processing parameters
-REM python demo_inference_post_continue.py
+REM Prepare for FFT-based spatial filtering
+python demo_learn_wisdom.py
+python demo_learn_wisdom_2d.py
 
 REM Training pipeline
 python demo_train_CNN_params.py

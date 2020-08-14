@@ -19,7 +19,7 @@ The how-to guides are available on [the Wiki][wiki-link].
 ```bat
 cd SUNS_python_root_path
 cd installation
-conda env create -f environment_suns_2.yml -n suns
+conda env create -f environment_suns.yml -n suns
 ```
 * Go to the Anaconda environment foler, (such as `C:/ProgramData/Anaconda3/envs` or `C:/Users/(username)/.conda/envs`), and then go to folder `suns/Lib/site-packages/fissa`, overwrite `core.py` and `neuropil.py` with the files provided in the `installation` folder. If the dataset you used is less than 4 GB after the data type is converted to float32 and you don't mind a lot of text output from FISSA, you can skip this step. 
 
@@ -37,7 +37,9 @@ cd demo
 conda activate suns
 demo_pipeline.bat
 ```
-The demo contains three parts: training CNN and hyper-parameters, testing SUNS batch, and testing SUNS online. The output masks of SUNS batch will be in `demo/complete/output_masks`, and the output masks of SUNS batch will be in `demo/complete/output_masks online`. The average F1 score of the training videos should be ~0.8, and the average F1 of the test videos should be ~0.75 for SUNS batch and ~0.67 for SUNS online. The processing time depends on the hardware. When executing on a laptop (Intel Core i5-6200U dual-core CPU, NVIDIA 940MX GPU), the training takes ~5.2 hours in total, testing SUNS batch takes ~6 seconds per video, and testing SUNS online takes ~27 seconds per video. When executing on a desktop computer (AMD 1920X 12-core CPU, NVIDIA Titan RTX GPU), the training takes ~50 minutes in total, testing SUNS batch takes ~1.5 seconds per video, and testing SUNS online takes ~20 seconds per video. When executing on another desktop computer (Intel i7-6800K 6-core CPU, NVIDIA GTX 1080 GPU), the training takes ~90 minutes in total, testing SUNS batch takes ~2 seconds per video, and testing SUNS online takes ~18 seconds per video.
+The demo contains three parts: training CNN and hyper-parameters, testing SUNS batch, and testing SUNS online. The output masks of SUNS batch will be in `demo/complete/output_masks`, the output masks of SUNS online will be in `demo/complete/output_masks online`, and the output masks of SUNS online with tracking will be in `demo/complete/output_masks track`. The average F1 score of the training videos should be ~0.8, and the average F1 of the test videos should be ~0.75 for SUNS batch and ~0.67 for SUNS online. The processing time depends on the hardware. When executing on a laptop (Intel Core i5-6200U dual-core CPU, NVIDIA 940MX GPU), the training takes ~5.2 hours in total, testing SUNS batch takes ~6 seconds per video, and testing SUNS online takes ~27 seconds per video. When executing on a desktop computer (AMD 1920X 12-core CPU, NVIDIA Titan RTX GPU), the training takes ~50 minutes in total, testing SUNS batch takes ~1.5 seconds per video, and testing SUNS online takes ~20 seconds per video. When executing on another desktop computer (Intel i7-6800K 6-core CPU, NVIDIA GTX 1080 GPU), the training takes ~90 minutes in total, testing SUNS batch takes ~2 seconds per video, and testing SUNS online takes ~18 seconds per video.
+
+Alternatively, you can also run `demo_pipeline_1to3.bat` instead of `demo_pipeline.bat`. The pipeline `demo_pipeline.bat` does standard leave-one-out cross validation on the four example videos. The pipeline `demo_pipeline_1to3.bat` trains the CNN model and post-processing parameters on one video, and tests on the remaining videos. 
 
 
 ### Links to Datasets and Manual Markings:

@@ -38,7 +38,7 @@ if __name__ == '__main__':
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
     dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
-    dir_parent = dir_video + 'complete\\' # folder to save all the processed data
+    dir_parent = dir_video + 'complete 1to3\\' # folder to save all the processed data
     dir_output = dir_parent + 'output_masks\\' # folder to save the segmented masks and the performance scores
     dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
     weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
@@ -63,16 +63,14 @@ if __name__ == '__main__':
     list_CV = list(range(0,4))
     num_CV = len(list_CV)
     # arrays to save the recall, precision, F1, total processing time, and average processing time per frame
-    list_Recall = np.zeros((num_CV, 1))
-    list_Precision = np.zeros((num_CV, 1))
-    list_F1 = np.zeros((num_CV, 1))
-    list_time = np.zeros((num_CV, 4))
-    list_time_frame = np.zeros((num_CV, 4))
+    list_Recall = np.zeros((num_CV, num_CV, 1))
+    list_Precision = np.zeros((num_CV, num_CV, 1))
+    list_F1 = np.zeros((num_CV, num_CV, 1))
+    list_time = np.zeros((num_CV, num_CV, 4))
+    list_time_frame = np.zeros((num_CV, num_CV, 4))
 
 
     for CV in list_CV:
-        Exp_ID = list_Exp_ID[CV]
-        print('Video ', Exp_ID)
         filename_CNN = weights_path+'Model_CV{}.h5'.format(CV) # The path of the CNN model.
 
         # load optimal post-processing parameters
@@ -99,25 +97,30 @@ if __name__ == '__main__':
             # minimum consecutive number of frames of active neurons
             'cons':Params_post_mat['cons'][0][0,0]}
 
-        # The entire process of SUNS batch
-        Masks, Masks_2, time_total, time_frame = suns_batch(
-            dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, batch_size_eval, \
-            useSF=useSF, useTF=useTF, useSNR=useSNR, useWT=useWT, prealloc=prealloc, display=display, p=p)
+        for (eid, Exp_ID) in enumerate(list_Exp_ID):
+            if eid == CV:
+                continue
+            print('CV ', CV, ', Video ', Exp_ID)
 
-        # %% Evaluation of the segmentation accuracy compared to manual ground truth
-        filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
-        data_GT=loadmat(filename_GT)
-        GTMasks_2 = data_GT['GTMasks_2'].transpose()
-        (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
-        print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks':Masks})
+            # The entire process of SUNS batch
+            Masks, Masks_2, time_total, time_frame = suns_batch(
+                dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, batch_size_eval, \
+                useSF=useSF, useTF=useTF, useSNR=useSNR, useWT=useWT, prealloc=prealloc, display=display, p=p)
 
-        # %% Save recall, precision, F1, total processing time, and average processing time per frame
-        list_Recall[CV] = Recall
-        list_Precision[CV] = Precision
-        list_F1[CV] = F1
-        list_time[CV] = time_total
-        list_time_frame[CV] = time_frame
+            # %% Evaluation of the segmentation accuracy compared to manual ground truth
+            filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
+            data_GT=loadmat(filename_GT)
+            GTMasks_2 = data_GT['GTMasks_2'].transpose()
+            (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
+            print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
+            savemat(dir_output+'Output_Masks_CV{}_{}.mat'.format(CV, Exp_ID), {'Masks':Masks})
+
+            # %% Save recall, precision, F1, total processing time, and average processing time per frame
+            list_Recall[CV, eid] = Recall
+            list_Precision[CV, eid] = Precision
+            list_F1[CV, eid] = F1
+            list_time[CV, eid] = time_total
+            list_time_frame[CV, eid] = time_frame
 
         Info_dict = {'list_Recall':list_Recall, 'list_Precision':list_Precision, 'list_F1':list_F1, 
             'list_time':list_time, 'list_time_frame':list_time_frame}

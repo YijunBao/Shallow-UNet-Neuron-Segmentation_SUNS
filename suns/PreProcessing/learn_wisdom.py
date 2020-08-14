@@ -4,7 +4,6 @@ import numpy as np
 import time
 import multiprocessing as mp
 import pyfftw
-from numba import njit, prange
 
 
 dir_wisdom = 'wisdom\\'

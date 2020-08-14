@@ -2,6 +2,7 @@ import tensorflow as tf
 from keras import backend as K
 from tensorflow.python.keras import losses
 
+
 def dice_coeff(y_true, y_pred):
     '''Dice coefficient between two arrays.
 

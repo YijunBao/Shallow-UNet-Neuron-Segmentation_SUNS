@@ -41,7 +41,7 @@ if __name__ == '__main__':
     useWT=False # True if using additional watershed
     load_exist=False # True if using temp files already saved in the folders
     # Cross-validation strategy. Can be "leave_one_out" or "train_1_test_rest"
-    cross_validation = "leave_one_out"
+    cross_validation = "train_1_test_rest"
 
     # %% set folders
     # file names of the ".h5" files storing the raw videos. 
@@ -50,7 +50,7 @@ if __name__ == '__main__':
     dir_video = 'data\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
     dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
-    dir_parent = dir_video + 'complete\\' # folder to save all the processed data
+    dir_parent = dir_video + 'complete 1to3\\' # folder to save all the processed data
     dir_network_input = dir_parent + 'network_input\\' # folder of the SNR videos
     dir_mask = dir_parent + 'temporal_masks({})\\'.format(thred_std) # foldr to save the temporal masks
     weights_path = dir_parent + 'Weights\\' # folder to save the trained CNN

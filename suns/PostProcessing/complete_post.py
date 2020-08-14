@@ -6,9 +6,9 @@ from scipy.io import savemat, loadmat
 import time
 import multiprocessing as mp
 
-from seperate_multi import watershed_neurons, separateNeuron
-from combine import segs_results, uniqueNeurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
-from evaluate_post import refine_seperate, refine_seperate_multi
+from suns.PostProcessing.seperate_neurons import watershed_neurons, separate_neuron
+from suns.PostProcessing.combine import segs_results, unique_neurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
+from suns.PostProcessing.refine_cons import refine_seperate, refine_seperate_multi
 
 
 # %%
@@ -55,9 +55,9 @@ def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, d
     # Segment neuron masks from each frame of probability map 
     start = time.time()
     if useMP:
-        segs = p.starmap(separateNeuron, [(frame, thresh_pmap, minArea, avgArea, useWT) for frame in pmaps], chunksize=1)
+        segs = p.starmap(separate_neuron, [(frame, thresh_pmap, minArea, avgArea, useWT) for frame in pmaps], chunksize=1)
     else:
-        segs =[separateNeuron(frame, thresh_pmap, minArea, avgArea, useWT) for frame in pmaps]
+        segs =[separate_neuron(frame, thresh_pmap, minArea, avgArea, useWT) for frame in pmaps]
     end = time.time()
     num_neurons = sum([x[1].size for x in segs])
     if display:
@@ -72,12 +72,12 @@ def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, d
         start = time.time()
         # Initally merge neurons with close COM.
         totalmasks, neuronstate, COMs, areas, probmapID = segs_results(segs)
-        uniques, times_uniques = uniqueNeurons2_simp(totalmasks, neuronstate, COMs, \
+        uniques, times_uniques = unique_neurons2_simp(totalmasks, neuronstate, COMs, \
             areas, probmapID, minArea=0, thresh_COM0=thresh_COM0)
         end_unique = time.time()
         if display:
             print('{:25s}: Used {:9.6f} s, {:9.6f} ms/frame, '\
-                .format('uniqueNeurons1', end_unique - start, (end_unique - start) / nframes * 1000),\
+                .format('unique_neurons1', end_unique - start, (end_unique - start) / nframes * 1000),\
                     '{:6d} segmented neurons.'.format(len(times_uniques)))
 
         # Further merge neurons with close COM.
@@ -126,7 +126,7 @@ def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, d
 
 
 # %%
-def optimize_combine(uniques: sparse.csr_matrix, times_uniques: list, dims: tuple, Params: dict, filename_GT: str):  
+def optimize_combine_1(uniques: sparse.csr_matrix, times_uniques: list, dims: tuple, Params: dict, filename_GT: str):  
     '''Optimize 1 post-processing parameter: "cons". 
         Start after the first COM merging.
 
@@ -174,7 +174,7 @@ def optimize_combine(uniques: sparse.csr_matrix, times_uniques: list, dims: tupl
     return Recall_k, Precision_k, F1_k
 
 
-def optimize_combine_minArea(totalmasks, neuronstate, COMs, areas, probmapID, dims, minArea, avgArea, Params_set: dict, filename_GT: str, useMP=True):
+def optimize_combine_3(totalmasks, neuronstate, COMs, areas, probmapID, dims, minArea, avgArea, Params_set: dict, filename_GT: str, useMP=True):
     '''Optimize 3 post-processing parameters: "thresh_COM", "thresh_IOU", "cons". 
         Start before the first COM merging, which will involve minArea
 
@@ -217,7 +217,7 @@ def optimize_combine_minArea(totalmasks, neuronstate, COMs, areas, probmapID, di
     size_inter = (L_thresh_COM, L_thresh_IOU, L_cons)
 
     # Initally merge neurons with close COM.
-    uniques, times_uniques = uniqueNeurons2_simp(totalmasks, neuronstate, COMs, areas, probmapID, minArea, thresh_COM0)
+    uniques, times_uniques = unique_neurons2_simp(totalmasks, neuronstate, COMs, areas, probmapID, minArea, thresh_COM0)
 
     if not times_uniques:
         list_Recall_inter = np.zeros(size_inter)
@@ -227,7 +227,7 @@ def optimize_combine_minArea(totalmasks, neuronstate, COMs, areas, probmapID, di
         # Calculate accuracy scores for various "thresh_COM", "thresh_IOU", and "cons".
         if useMP:
             p3 = mp.Pool()
-            list_temp = p3.starmap(optimize_combine, [(uniques, times_uniques, dims, 
+            list_temp = p3.starmap(optimize_combine_1, [(uniques, times_uniques, dims, 
                 {'avgArea': avgArea, 'thresh_mask': thresh_mask, 'thresh_COM': thresh_COM,
                 'thresh_IOU': thresh_IOU, 'list_cons':list_cons}, filename_GT) \
                     for thresh_COM in list_thresh_COM for thresh_IOU in list_thresh_IOU], chunksize=1)
@@ -242,7 +242,7 @@ def optimize_combine_minArea(totalmasks, neuronstate, COMs, areas, probmapID, di
             list_F1_inter = np.zeros(size_inter)
             for (j1,thresh_COM) in enumerate(list_thresh_COM):
                 for (j2,thresh_IOU) in enumerate(list_thresh_IOU):
-                    (Recal_k, Precision_k, F1_k) = optimize_combine(uniques, times_uniques, dims, 
+                    (Recal_k, Precision_k, F1_k) = optimize_combine_1(uniques, times_uniques, dims, 
                         {'avgArea': avgArea, 'thresh_mask': thresh_mask, 'thresh_COM': thresh_COM,
                             'thresh_IOU': thresh_IOU, 'list_cons':list_cons}, filename_GT)                                 
                     list_Recall_inter[j1,j2,:]=Recal_k
@@ -253,7 +253,7 @@ def optimize_combine_minArea(totalmasks, neuronstate, COMs, areas, probmapID, di
 
     
 # %%
-def paremter_optimization_after(pmaps: np.ndarray, Params_set: dict, \
+def parameter_optimization(pmaps: np.ndarray, Params_set: dict, \
         filename_GT: str, useMP=True, useWT=False, p=None): 
     '''Optimize 6 post-processing parameters: 
         "minArea", "avgArea", "thresh_pmap", "thresh_COM", "thresh_IOU", "cons". 
@@ -320,9 +320,9 @@ def paremter_optimization_after(pmaps: np.ndarray, Params_set: dict, \
         # Segment neuron masks from each frame of probability map 
         # without watershed using the smallest minArea
         if useMP:
-            segs = p.starmap(separateNeuron, [(frame, thresh_pmap, minArea, 0, False) for frame in pmaps], chunksize=1)
+            segs = p.starmap(separate_neuron, [(frame, thresh_pmap, minArea, 0, False) for frame in pmaps], chunksize=1)
         else:
-            segs = [separateNeuron(frame, thresh_pmap, minArea, 0, False) for frame in pmaps]
+            segs = [separate_neuron(frame, thresh_pmap, minArea, 0, False) for frame in pmaps]
         print('Used {} s'.format(time.time() - start))
 
         for (i2,avgArea) in enumerate(list_avgArea):
@@ -349,7 +349,7 @@ def paremter_optimization_after(pmaps: np.ndarray, Params_set: dict, \
                 # "avgArea" and "thresh_pmap" are fixed at this step, because they are searched in outer loops.
                 if useMP:
                     try: 
-                        list_result = p.starmap(optimize_combine_minArea, [(totalmasks, neuronstate, COMs, areas, \
+                        list_result = p.starmap(optimize_combine_3, [(totalmasks, neuronstate, COMs, areas, \
                             probmapID, dims, minArea, avgArea, Params_set, filename_GT, False) for minArea in list_minArea])
                         for i1 in range(L_minArea):
                             list_Recall[i1,i2,i3,:,:,:]=list_result[i1][0]
@@ -370,7 +370,7 @@ def paremter_optimization_after(pmaps: np.ndarray, Params_set: dict, \
                 else:
                     for (i1,minArea) in enumerate(list_minArea):
                         print('Using minArea={}, avgArea={}, thresh_pmap={}'.format(minArea, avgArea, thresh_pmap))
-                        list_Recall_inter, list_Precision_inter, list_F1_inter = optimize_combine_minArea(
+                        list_Recall_inter, list_Precision_inter, list_F1_inter = optimize_combine_3(
                             totalmasks, neuronstate, COMs, areas, probmapID, dims, minArea, avgArea, Params_set, filename_GT, useMP=False)
                         list_Recall[i1,i2,i3,:,:,:]=list_Recall_inter
                         list_Precision[i1,i2,i3,:,:,:]=list_Precision_inter

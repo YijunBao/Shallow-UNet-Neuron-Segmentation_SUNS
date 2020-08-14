@@ -9,12 +9,12 @@ from scipy import sparse
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
 
-sys.path.insert(1, '..\\suns')
-sys.path.insert(1, '..\\neuron_post')
+sys.path.insert(1, '..') # the path containing "suns" folder
 os.environ['KERAS_BACKEND'] = 'tensorflow'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
-from evaluate_post import GetPerformance_Jaccard_2
-from suns_online import suns_online
+from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
+from suns.run_suns import suns_online
 
 
 # %%
@@ -46,10 +46,9 @@ if __name__ == '__main__':
     batch_size_init = 100 # batch size in CNN inference during initalization
 
     dir_parent = dir_video + 'complete\\' # folder to save all the processed data
-    dir_sub = ''
-    dir_output = dir_parent + dir_sub + 'output_masks online\\' # folder to save the segmented masks and the performance scores
-    dir_params = dir_parent + dir_sub + 'output_masks\\' # folder of the optimized hyper-parameters
-    weights_path = dir_parent + dir_sub + 'Weights\\' # folder of the trained CNN
+    dir_output = dir_parent + 'output_masks online\\' # folder to save the segmented masks and the performance scores
+    dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
+    weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
     if not os.path.exists(dir_output):
         os.makedirs(dir_output) 
 

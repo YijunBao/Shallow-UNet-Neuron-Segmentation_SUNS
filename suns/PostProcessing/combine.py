@@ -1,38 +1,15 @@
 import numpy as np
 from scipy import sparse
 from sklearn.metrics import pairwise_distances
-from par3 import fastCOMdistance
 
-
-# def uniqueNeurons1_simp(segs: list, thresh_COM0=0, useMP=True):
-#     '''Initally merge neurons with close COM.
-
-#     Inputs: 
-#         segs (list): A list of outputs of "separateNeuron" for all frames.
-#         thresh_COM0 (float or int, default to 0): Threshold of COM distance. 
-#             Masks have COM distance smaller than "thresh_COM0" are considered the same neuron and will be merged.
-#         useMP (bool, defaut to True): indicator of whether numba is used to speed up. 
-
-#     Outputs:
-#         uniques (sparse.csr_matrix): the neuron masks after merging. 
-#         times (list of 1D numpy.array): indecis of frames when the neuron is active.
-#     '''
-#     totalmasks = sparse.vstack([x[0] for x in segs])
-#     neuronstate = np.hstack([x[1] for x in segs])
-#     COMs = np.vstack([x[2] for x in segs])
-#     areas = np.hstack([x[3] for x in segs])
-#     probmapID = np.hstack([ind * np.ones(x[1].size, dtype='uint32') for (ind, x) in enumerate(segs)])
-
-#     uniques, times = uniqueNeurons2_simp(totalmasks, neuronstate, COMs, areas, probmapID, \
-#         minArea=0, thresh_COM0=thresh_COM0, useMP=useMP)
-#     return uniques, times
+from suns.PostProcessing.par3 import fastCOMdistance
 
 
 def segs_results(segs: list):
     '''Convert a list of segmentation results from each frame to another list of segmented masks and properties.
 
     Inputs: 
-        segs (list): A list of outputs of "separateNeuron" for all frames.
+        segs (list): A list of outputs of "separate_neuron" for all frames.
 
     Outputs:
         totalmasks (sparse.csr_matrix of float32, shape = (n,Lx*Ly)): the neuron masks to be merged.
@@ -49,7 +26,7 @@ def segs_results(segs: list):
     return totalmasks, neuronstate, COMs, areas, probmapID
 
 
-def uniqueNeurons2_simp(totalmasks:sparse.csr_matrix, neuronstate:np.array, COMs:np.array, \
+def unique_neurons2_simp(totalmasks:sparse.csr_matrix, neuronstate:np.array, COMs:np.array, \
         areas:np.array, probmapID:np.array, minArea=0, thresh_COM0=0, useMP=True):
     '''Initally merge neurons with close COM.
 

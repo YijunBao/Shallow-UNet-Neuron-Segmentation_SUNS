@@ -232,7 +232,7 @@ def watershed_neurons(dims, frame_seg, minArea, avgArea):
     return masks, neuronstate, cents, areas
     
 
-def separateNeuron(img: np.array, thresh_pmap=None, minArea=0, avgArea=0, useWT=False):
+def separate_neuron(img: np.array, thresh_pmap=None, minArea=0, avgArea=0, useWT=False):
     '''Segment a frame of image (probablity map) into active neuron masks.
 
     Inputs: 

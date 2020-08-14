@@ -1,11 +1,11 @@
 import numpy as np
 import numba
-from numba import jit, prange
+from numba import jit, prange, f4, c8, u1
 import math
 
 
 @jit("void(f4[:,:])",nopython=True,parallel=True,cache=True,fastmath=True)
-def fastlog(f):
+def fastlog_2(f):
     '''Step 1 of FFT-based spatial filtering: computing the log of the input video.
 
     Inputs: 
@@ -20,7 +20,7 @@ def fastlog(f):
 
 
 @jit("void(c8[:,:],f4[:,:])",nopython=True,parallel=True,cache=True,fastmath=True)
-def fastmask(f, mask):
+def fastmask_2(f, mask):
     '''Step 3 of FFT-based spatial filtering: 
         multiplying the input video with a 2D mask, which is a 2D Gaussian function.
 
@@ -37,7 +37,7 @@ def fastmask(f, mask):
 
 
 @jit("void(f4[:,:])",nopython=True,parallel=True,cache=True,fastmath=True)
-def fastexp(f):
+def fastexp_2(f):
     '''Step 5 of FFT-based spatial filtering: computing the exp of the input video.
 
     Inputs: 
@@ -52,7 +52,7 @@ def fastexp(f):
 
 
 @jit("void(f4[:,:,:],f4[:,:],f4[:])",nopython=True,parallel=True,cache=True,fastmath=True,locals={'temp': numba.float32})
-def fastconv(a,b,f):
+def fastconv_2(a,b,f):
     '''Online temporal filtering.
 
     Inputs: 
@@ -71,7 +71,7 @@ def fastconv(a,b,f):
 
 
 @jit("void(f4[:,:],f4[:,:,:])",nopython=True,parallel=True,cache=True,fastmath=True)
-def fastnormf(f, meds):
+def fastnormf_2(f, meds):
     '''Normalize the input video pixel-by-pixel into SNR video.
 
     Inputs: 
@@ -89,7 +89,7 @@ def fastnormf(f, meds):
 
 
 @jit("void(f4[:,:],f4)",nopython=True,parallel=True,cache=True,fastmath=True)
-def fastnormback(f, mu):
+def fastnormback_2(f, mu):
     '''Normalize the input video into SNR video.
         This function is used when SNR normalization is not used.
 
@@ -107,7 +107,7 @@ def fastnormback(f, mu):
 
 
 @jit("void(f4[:,:],u1[:,:],f4)",nopython=True,parallel=True,cache=True,fastmath=True)
-def fastthreshold(f, g, th):
+def fastthreshold_2(f, g, th):
     '''Binarize the input video using a threshold.
         When a value is larger than the threshold, it is set as 255;
         When a value is smaller than or equal to the threshold, it is set as 0.

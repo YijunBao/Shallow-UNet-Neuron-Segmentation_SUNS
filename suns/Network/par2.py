@@ -1,5 +1,5 @@
 import numba
-from numba import jit, prange
+from numba import jit, prange, f4, u1
 import math
 
 

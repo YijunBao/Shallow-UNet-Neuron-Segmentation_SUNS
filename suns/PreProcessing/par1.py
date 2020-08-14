@@ -1,8 +1,7 @@
 import numpy as np
 import numba
-from numba import jit, prange
+from numba import jit, prange, f4, u1, c8
 import math
-# numba.config.NUMBA_NUM_THREADS=12
 
 
 @jit("void(f4[:,:,:],f4[:],f4[:,:,:])",nopython=True,parallel=True,cache=True)
