@@ -64,9 +64,9 @@ Expected average F1 score
 Example running time
 |CPU	|GPU	|Train 3 to 1<br>(total)	|Train 1 to 3<br>(total)	|Batch<br>(average)	|Online<br>average)	|Track<br>(average)|
 |:------:|:------:|:------:|:------:|:------:|:------:|:------:|
-|AMD 1920X 12-core	|NVIDIA Titan RTX|	|	|1.5 s	|20 s	|	|
-|Intel i7-6800K 6-core	|NVIDIA GTX 1080|	|	|2.0 s	|18 s	|	|
-|Intel i5-6200U dual-core	|NVIDIA 940MX	|5.4 h	|1.9 h	|6.0 s	|35 s	|36 s|
+|AMD 1920X<br>12-core	|NVIDIA Titan RTX|	|	|1.5 s	|20 s	|	|
+|Intel i7-6800K<br>6-core	|NVIDIA GTX 1080|	|	|2.0 s	|18 s	|	|
+|Intel i5-6200U<br>dual-core	|NVIDIA 940MX	|5.4 h	|1.9 h	|6.0 s	|35 s	|36 s|
 
 
 # Links to Datasets and Manual Markings
@@ -78,7 +78,7 @@ If you use any part of this software in your work, please cite Bao et al. 2020:
 
 
 # Licensing and Copyright
-SUNS is released under [the GNU License, Version 2.0](https://github.com/soltanianzadeh/STNeuroNet/LICENSE).
+SUNS is released under [the GNU License, Version 2.0](LICENSE).
 
 
 # Sponsors
