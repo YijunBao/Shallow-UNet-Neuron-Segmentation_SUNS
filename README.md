@@ -1,20 +1,35 @@
-# SUNS
+![NeuroToolbox logo](readme/neurotoolbox-logo.svg)
 
+# SUNS
 Shallow UNet Neuron Segmentation (SUNS) is an automatic algorithm to segment active neurons from two-photon calcium imaging videos. It used temporal filtering and whitening schemes to extract temporal features associated with active neurons, and used a compact shallow U-Net to extract spatial features of neurons.
 
+Copyright (C) 2020 Duke NeuroToolbox
 
-### Documentation
-The how-to guides are available on [the Wiki][wiki-link].
+![Example video](readme/Masks%202%20raw.gif)
 
-[wiki-link]: https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/wiki
+- [SUNS](#suns)
+- [Documentation](#documentation)
+- [System requirement](#system-requirement)
+- [Installation on Windows](#installation-on-windows)
+- [Demo](#demo)
+- [Links to Datasets and Manual Markings](#links-to-datasets-and-manual-markings)
+- [Citing](#citing)
+- [Licensing and Copyright](#licensing-and-copyright)
+- [Sponsors](#sponsors)
 
-### System requirement
+
+# Documentation
+The how-to guides are available on [the Wiki](https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/wiki).
+
+
+# System requirement
 * Operation system: Windows 10.
 * Memory: ~6x file size of the raw video if the the raw video is in uint16 format. ~3x file size of the raw video if the the raw video is in float32 format. 
 * A CUDA compatible GPU is preferred.
 
-### Installation on Windows
-* Install [Anaconda][Anaconda] with Python 3.7
+
+# Installation on Windows
+* Install [Anaconda](https://www.anaconda.com/) with Python 3.7
 * Launch Anaconda prompt and type the following in order (SUNS_python_root_path is the directory to which the provided files were downloaded to, such as `C:/Users/(username)/Documents/GitHub/Shallow-UNet-Neuron-Segmentation_SUNS`):
 ```bat
 cd SUNS_python_root_path
@@ -25,9 +40,8 @@ conda env create -f environment_suns.yml -n suns
 
 The installation should take less than half an hour in total. The first run of the software may take some additional time (up to 20 minutes on a laptop) to add the GPU, but this extra time will not occur in later runs.
 
-[Anaconda]: https://www.anaconda.com/
 
-### Demo
+# Demo
 We provided a demo for all users to get familiar with our software. We provided four two-photon imaging videos as well as their manually marked neurons in `demo/data`. The demo will perform a cross validation over the four videos: train the CNN and search for optimal hyper-parameters using three videos, and test SUNS with the training output on the remaining video. 
 
 To run the demo, launch Anaconda prompt and type the following script 
@@ -41,23 +55,33 @@ The demo contains three parts: training CNN and hyper-parameters, testing SUNS b
 
 Alternatively, you can also run `demo_pipeline_1to3.bat` instead of `demo_pipeline.bat`. The pipeline `demo_pipeline.bat` does standard leave-one-out cross validation on the four example videos. The pipeline `demo_pipeline_1to3.bat` trains the CNN model and post-processing parameters on one video, and tests on the remaining videos. 
 
+Expected average F1 score
+|	|Train	|Batch	|Online	|Track|
+|:------:|:------:|:------:|:------:|:------:|
+|train 3 test 1	|0.77	|0.73	|0.66	|0.68|
+|train 1 test 3	|0.79	|0.73	|0.64	|0.66|
 
-### Links to Datasets and Manual Markings:
+Example running time
+|CPU	|GPU	|Train 3 to 1<br>(total)	|Train 1 to 3<br>(total)	|Batch<br>(average)	|Online<br>average)	|Track<br>(average)|
+|:------:|:------:|:------:|:------:|:------:|:------:|:------:|
+|AMD 1920X 12-core	|NVIDIA Titan RTX|	|	|1.5 s	|20 s	|	|
+|Intel i7-6800K 6-core	|NVIDIA GTX 1080|	|	|2.0 s	|18 s	|	|
+|Intel i5-6200U dual-core	|NVIDIA 940MX	|5.4 h	|1.9 h	|6.0 s	|35 s	|36 s|
 
-In our paper, we used two-photon imaging videos from [Allen Brain Observatory dataset][Allen-github], [Neurofinder Challenge website][Neurofinder-website], and [CaImAn dataset][CaImAn-github]. We used the manual markings of Allen Brain Observatory and Neurofinder from [STNeuroNet][STNeuroNet-github], and used the manual markings of CaImAn dataset from [CaImAn dataset][CaImAn-github].
 
-[Allen-github]: https://github.com/AllenInstitute/AllenSDK/wiki/Use-the-Allen-Brain-Observatory-%E2%80%93-Visual-Coding-on-AWS
-[CaImAn-github]: https://github.com/flatironinstitute/CaImAn
-[Neurofinder-website]: https://github.com/codeneuro/neurofinder
-[STNeuroNet-github]: https://github.com/soltanianzadeh/STNeuroNet
+# Links to Datasets and Manual Markings
+In our paper, we used two-photon imaging videos from [Allen Brain Observatory dataset](https://github.com/AllenInstitute/AllenSDK/wiki/Use-the-Allen-Brain-Observatory-%E2%80%93-Visual-Coding-on-AWS), [Neurofinder Challenge website](https://github.com/codeneuro/neurofinder), and [CaImAn dataset](https://github.com/flatironinstitute/CaImAn). We used the manual markings of Allen Brain Observatory and Neurofinder from [STNeuroNet](https://github.com/soltanianzadeh/STNeuroNet), and used the manual markings of CaImAn dataset from [CaImAn dataset](https://github.com/flatironinstitute/CaImAn). A more detailed instruction is given under the folder `paper reproduction`. 
 
-### Citing 
 
+# Citing 
 If you use any part of this software in your work, please cite Bao et al. 2020:
 
 
-### Licensing and Copyright
-
+# Licensing and Copyright
 SUNS is released under [the GNU License, Version 2.0](https://github.com/soltanianzadeh/STNeuroNet/LICENSE).
 
 
+# Sponsors
+<img src="readme/NSFBRAIN.png" height="100"/><img src="readme/BRF.png" height="100"/><img src="readme/Beckmanlogo.png" height="100"/>
+<br>
+<img src="readme/valleelogo.png" height="100"/><img src="readme/dibslogo.png" height="100"/><img src="readme/sloan_logo_new.jpg" height="100"/>

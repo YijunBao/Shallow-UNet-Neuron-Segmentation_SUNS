@@ -5,3 +5,4 @@ demo/wisdom
 .vscode
 __pycache__
 demo/FISSA
+*.html
