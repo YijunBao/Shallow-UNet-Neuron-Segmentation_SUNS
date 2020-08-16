@@ -463,7 +463,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
 def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         frames_init, merge_every, batch_size_init=1, useSF=True, useTF=True, useSNR=True, \
         useWT=False, prealloc=True, display=True, useMP=True, p=None):
-    '''The complete SUNS online procedure.
+    '''The complete SUNS online procedure with tracking.
 
     Inputs: 
         filename_video (str): The path of the file of the input video.

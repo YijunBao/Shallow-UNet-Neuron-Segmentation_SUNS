@@ -158,7 +158,9 @@ def refineNeuron_WT_keep(seg: bool, minArea, avgArea):
     
 
 def watershed_neurons(dims, frame_seg, minArea, avgArea):
-    '''Try to further segment large masks using watershed.
+    '''Try to further segment large masks using watershed. 
+        When a neuron area is larger than "avgArea", the function tries to further segment it using watershed. 
+        The segmented pieces whose areas are smaller than "minArea" are still disgarded. 
 
     Inputs: 
         dims (tuple of int, shape = (2,)): the lateral shape of the region.
@@ -234,6 +236,9 @@ def watershed_neurons(dims, frame_seg, minArea, avgArea):
 
 def separate_neuron(img: np.array, thresh_pmap=None, minArea=0, avgArea=0, useWT=False):
     '''Segment a frame of image (probablity map) into active neuron masks.
+        It seperates the active pixels in a frame into connected regions,
+        and disgards the regions whose areas are smaller than "minArea".
+        When useWT=True, it further tries to segment neurons whose areas are larger than "avgArea" using watershed. 
 
     Inputs: 
         img (2D numpy.ndarray of bool, uint8, uint16, int16, float32, or float64): the probablity map to be segmented.

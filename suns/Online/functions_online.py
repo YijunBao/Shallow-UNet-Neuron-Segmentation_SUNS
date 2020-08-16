@@ -21,7 +21,8 @@ from suns.PostProcessing.combine import segs_results, unique_neurons2_simp, \
 
 
 def spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2):
-    '''Apply spatial filtering to the input image.
+    '''Apply spatial homomorphic filtering to the input image.
+        Output = exp(IFFT(mask2*FFT(log(Input+1)))).
 
     Inputs: 
         bb(2D numpy.ndarray of float32): array storing the raw image.
@@ -45,6 +46,7 @@ def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = Non
         mask2=None, bf=None, fft_object_b=None, fft_object_c=None, Poisson_filt=np.array([1]), \
         useSF=True, useTF=True, useSNR=True):
     '''Pre-process the registered image into an SNR image using known median and median-based std.
+        It includes spatial filter, temporal filter, and SNR normalization. Each step is optional.
 
     Inputs: 
         bb(3D numpy.ndarray of float32): array storing the raw image.
@@ -106,7 +108,7 @@ def CNN_online(frame_SNR, fff, dims=None):
 
 
 def separate_neuron_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT=False):
-    '''Post-process the probability map.
+    '''Segment the probability map into connected regions representing neurons.
 
     Inputs: 
         frame_prob (2D empty numpy.ndarray of float32): probability map.
@@ -128,6 +130,7 @@ def separate_neuron_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgA
 
 def refine_seperate_cons_online(times_temp, cons=1, have_cons=None):
     '''Select the segmented masks that satisfy consecutive frame requirement.
+        Export the indicators of whether each neuron satisfies the requirement.
 
     Inputs: 
         times_temp (list of 1D numpy.ndarray of int): indecis of frames when each neuron is active.
@@ -155,6 +158,7 @@ def refine_seperate_cons_online(times_temp, cons=1, have_cons=None):
 
 def select_cons(tuple_final):
     '''Select the segmented masks that satisfy consecutive frame requirement.
+        Export the binary masks of the neurons that satisfy the requirement.
 
     Inputs: 
         tuple_final (tuple, shape = (5,)):  Segmented masks with statistics.
@@ -171,7 +175,8 @@ def select_cons(tuple_final):
 
 
 def merge_complete(segs, dims, Params):
-    '''Merge segmented masks in a few frames.
+    '''Temporally merge segmented masks in a few frames.
+        The output are the merged neuron masks and their statistics.
 
     Inputs: 
         segs (list): A list of segmented masks for every frame with statistics.
@@ -245,7 +250,7 @@ def merge_complete(segs, dims, Params):
 
 
 def merge_2(tuple1, tuple2, dims, Params):
-    '''Merge newly segmented masks to previously segmented masks.
+    '''Merge newly segmented masks to previously segmented masks, together with their statistics.
 
     Inputs: 
         tuple1 (tuple, shape = (5,)): Segmented masks with statistics for the previous frames.

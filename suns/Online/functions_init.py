@@ -43,6 +43,8 @@ def init_online(bb, dims, network_input, pmaps_b, fff, thresh_pmap_float, Params
         bf=None, fft_object_b=None, fft_object_c=None, Poisson_filt=np.array([1]), \
         useSF=True, useTF=True, useSNR=True, useWT=False, batch_size_init=1, p=None):
     '''Process the initial part of a video into a list of segmented masks for every frame with statistics.
+        It includes complete pre-processing, CNN inference, and a half of post-processing.
+        The postprocessing includes the steps for each individual frame, but does not include temporal merging.
 
     Inputs: 
         bb(3D numpy.ndarray of float32): array storing the raw video.
@@ -96,38 +98,15 @@ def init_online(bb, dims, network_input, pmaps_b, fff, thresh_pmap_float, Params
     # Threshold the probablity map to binary
     fastthreshold(prob_map, pmaps_b, thresh_pmap_float)
 
-    # PostProcessing
-    segs_init = segment_init(pmaps_b, Params_post, p=p, useWT=useWT)
-
-    return med_frame3, segs_init, recent_frames
-
-
-def segment_init(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, p=None):
-    '''Complete post-processing procedure. This can be run before or after probablity thresholding,
-        depending on whether Params['thresh_pmap'] is None.
-
-    Inputs: 
-        pmaps (3D numpy.ndarray of uint8, shape = (nframes,Lx,Ly)): the probability map obtained after CNN inference.
-            pmaps must be previously thresholded.
-        Params (dict): Parameters for post-processing.
-            Params['minArea']: Minimum area of a valid neuron mask (unit: pixels).
-            Params['avgArea']: The typical neuron area (unit: pixels).
-        useMP (bool, defaut to True): indicator of whether multiprocessing is used to speed up. 
-        useWT (bool, default to False): Indicator of whether watershed is used. 
-        p (multiprocessing.Pool, default to None): 
-
-    Outputs:
-        segs (list): A list of segmented masks for every frame with statistics.
-    '''
-    minArea = Params['minArea']
-    avgArea = Params['avgArea']
-
+    # PostProcessing for every frame
+    minArea = Params_post['minArea']
+    avgArea = Params_post['avgArea']
     if useMP:
         if p is None:
-            mp.Pool()
-        segs = p.starmap(separate_neuron, [(frame, None, minArea, avgArea, useWT) for frame in pmaps], chunksize=1) #, eng
+            p = mp.Pool()
+        segs_init = p.starmap(separate_neuron, [(frame, None, minArea, avgArea, useWT) for frame in pmaps_b], chunksize=1)
     else:
-        segs =[separate_neuron(frame, None, minArea, avgArea, useWT) for frame in pmaps]
+        segs_init =[separate_neuron(frame, None, minArea, avgArea, useWT) for frame in pmaps_b]
 
-    return segs
+    return med_frame3, segs_init, recent_frames
 
