@@ -2,7 +2,7 @@ clear;
 % folder of the raw video
 dir_video='F:\CaImAn data\WEBSITE\divided_data\';
 % name of the videos
-list_Exp_ID={'J115', 'J123', 'K53', 'YST'};
+list_Exp_ID={'J115', 'J123', 'K53', 'YST'}; 
 
 for vid= 1:length(list_Exp_ID)
     Exp_ID = list_Exp_ID{vid};

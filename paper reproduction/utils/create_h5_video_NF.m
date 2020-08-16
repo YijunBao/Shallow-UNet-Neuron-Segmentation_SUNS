@@ -5,10 +5,10 @@
 %% 
 opt.type = 'test'; %{'train','test'}
 
-name = {'100', '101','200', '201','400', '401'};
-name_long = {'01.00', '01.01','02.00', '02.01','04.00', '04.01'};
-DirData = ['E:\NeuroFinder\',opt.type,' videos\']; % folder of the original videos
-DirData_full = ['E:\NeuroFinder\',opt.type,' videos\']; % folder of the cropped videos
+name = {'100', '101', '200', '201', '400', '401'}; %
+name_long = {'01.00', '01.01', '02.00', '02.01', '04.00', '04.01'};
+DirData_full = ['E:\NeuroFinder\',opt.type,' videos\']; % folder of the original videos
+DirData = ['E:\NeuroFinder\',opt.type,' videos\']; % folder of the cropped videos
 
 if strcmp(opt.type, 'train')
     apd = '';
@@ -17,10 +17,10 @@ elseif strcmp(opt.type, 'test')
 end
 
 %%
-for i = 1:6
+for i = 1:length(name)
     opt.ID = name{i};
     disp(opt.ID);
-    dataFile = [DirData,name_long{i},apd,'.h5'];
+    dataFile = fullfile(DirData,[name_long{i},apd,'.h5']);
     if ~exist(dataFile)
         disp('Create cropped raw video');
         tic;

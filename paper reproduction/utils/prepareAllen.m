@@ -13,7 +13,7 @@ function [video] = prepareAllen(opt,DirData,DirSave)
 if exist(DirData)
     % read dimension of data
     fname = ['ophys_experiment_',opt.ID,'.h5'];
-    infoVid = h5info([DirData,fname]);
+    infoVid = h5info(fullfile(DirData,fname));
     Nx = infoVid.Datasets.Dataspace.Size(1); 
     Ny = infoVid.Datasets.Dataspace.Size(2);
     Nframes = infoVid.Datasets.Dataspace.Size(3);
@@ -23,7 +23,7 @@ if exist(DirData)
     
     for ii = 1:1
         startS = [1,1,startT(ii)];
-        video = h5read([DirData,fname],...
+        video = h5read(fullfile(DirData,fname),...
             '/data',startS,[Nx,Ny,floor(Nframes/5)],[1,1,1]); 
         %Crop border
         pixSize = 0.78; %um
@@ -35,8 +35,8 @@ if exist(DirData)
             mkdir(DirSave);
         end
         
-        h5create([DirSave,opt.ID,'.h5'],'/mov',size(video),'Datatype','uint16');
-        h5write([DirSave,opt.ID,'.h5'],'/mov',video);
+        h5create(fullfile(DirSave,[opt.ID,'.h5']),'/mov',size(video),'Datatype','uint16');
+        h5write(fullfile(DirSave,[opt.ID,'.h5']),'/mov',video);
     end    
 else
     error('Data Unavailable')

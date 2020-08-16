@@ -16,7 +16,7 @@ for tid = 1:2
         end
         % Load video
         tic;
-        fname=[dir_video,Exp_ID,'.h5'];
+        fname=fullfile(dir_video,[Exp_ID,'.h5']);
         video_raw=h5read(fname, '/mov');
         toc;
 

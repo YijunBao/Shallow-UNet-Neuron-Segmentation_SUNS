@@ -11,7 +11,7 @@ for id = 1:length(list_Exp_ID)
     Exp_ID = list_Exp_ID{id};
     % Load video
     tic;
-    fname=[dir_video,Exp_ID,'.h5'];
+    fname=fullfile(dir_video,[Exp_ID,'.h5']);
     video_raw=h5read(fname, '/mov');
     toc;
 

@@ -21,12 +21,15 @@ xyrange = [ 1, 224, 240, 463, 1, 224, 249, 472;
 for ind=1:4
     %% find tiff files and order them
     data_name = list_caiman{ind};
-    dir_data = [dir_data_file, 'images_',data_name];
+    dir_data = fullfile(dir_data_file, ['images_',data_name]);
     zip_filename = fullfile(dir_data,'*.tif');
     xlsfiles = dir(zip_filename);
     xlsfiles = {xlsfiles.name};
     xlsfiles = sort(xlsfiles);
     numframes = numel(xlsfiles);
+    if ~exist(fullfile(dir_data_file,data_name,'GT Masks'),'dir')
+        mkdir(fullfile(dir_data_file,data_name,'GT Masks'))
+    end
 
     %% load movies in the mov h5 file
     img = imread(fullfile(dir_data,xlsfiles{1}));
@@ -49,7 +52,7 @@ for ind=1:4
                 end
             end
             fprintf('\n')
-            h5_name = fullfile(dir_data_file,sprintf('%s_part%d%d.h5',data_name,xpart,ypart));
+            h5_name = fullfile(dir_data_file,data_name,sprintf('%s_part%d%d.h5',data_name,xpart,ypart));
             if exist(h5_name,'file')
                 delete(h5_name)
             end
@@ -59,7 +62,8 @@ for ind=1:4
     end
     
     %% load the regions (training data only)
-    regions = jsondecode(fileread(fullfile(data_name,'regions','consensus_regions.json')));
+    regions = jsondecode(fileread(fullfile(dir_data_file,...
+        'WEBSITE_basic',data_name,'regions','consensus_regions.json')));
     num_masks = length(regions);
     mask = zeros(w, h, 'logical');
     masks = zeros(w, h, num_masks, 'logical');
@@ -84,7 +88,7 @@ for ind=1:4
             areas_cut = squeeze(sum(sum(FinalMasks,1),2));
             areas_ratio = areas_cut./areas;
             FinalMasks(:,:,areas_ratio<1/3)=[];
-            mask_name = fullfile(dir_data_file,'GT Masks',sprintf('FinalMasks_%s_part%d%d.mat',data_name,xpart,ypart));
+            mask_name = fullfile(dir_data_file,data_name,'GT Masks',sprintf('FinalMasks_%s_part%d%d.mat',data_name,xpart,ypart));
             save(mask_name,'FinalMasks','-v7.3');
         end
     end
