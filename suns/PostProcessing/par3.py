@@ -5,7 +5,7 @@ import math
 
 @jit("void(f8[:,:],f8[:],f8[:])",nopython=True,parallel=True,cache=True,fastmath=True)
 def fastCOMdistance(a,b,d):
-    '''Calculate the COM distances between a point and a series of points
+    '''Calculate the COM distances between a point "b" and a series of points "a"
 
     Inputs: 
         a(numpy.ndarray of float64, shape = (L,2)): The COMs of a a series point

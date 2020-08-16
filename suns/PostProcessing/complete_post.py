@@ -13,8 +13,13 @@ from suns.PostProcessing.refine_cons import refine_seperate, refine_seperate_mul
 
 # %%
 def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, display=False, p=None):
-    '''Complete post-processing procedure. This can be run before or after probablity thresholding,
-        depending on whether Params['thresh_pmap'] is None.
+    '''Complete post-processing procedure. 
+        This can be run after or before probablity thresholding, depending on whether Params['thresh_pmap'] is None.
+        It first thresholds the "pmaps" (if Params['thresh_pmap'] is not None) into binary array, 
+        then seperates the active pixels into connected regions, disgards regions smaller than Params['minArea'], 
+        uses optional watershed (if useWT=True) to further segment regions larger than Params['avgArea'],
+        merge the regions from different frames with close COM, large IoU, or large consume ratio,
+        and finally selects masks that are active for at least Params['cons'] frames. 
 
     Inputs: 
         pmaps (3D numpy.ndarray of uint8, shape = (nframes,Lx,Ly)): the probability map obtained after CNN inference.
@@ -129,6 +134,7 @@ def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, d
 def optimize_combine_1(uniques: sparse.csr_matrix, times_uniques: list, dims: tuple, Params: dict, filename_GT: str):  
     '''Optimize 1 post-processing parameter: "cons". 
         Start after the first COM merging.
+        Calculate the recall, precisoin, and F1 of all parameter combinations.
 
     Inputs: 
         uniques (sparse.csr_matrix of float32, shape = (n,Lx*Ly)): the neuron masks to be merged.
@@ -177,6 +183,7 @@ def optimize_combine_1(uniques: sparse.csr_matrix, times_uniques: list, dims: tu
 def optimize_combine_3(totalmasks, neuronstate, COMs, areas, probmapID, dims, minArea, avgArea, Params_set: dict, filename_GT: str, useMP=True):
     '''Optimize 3 post-processing parameters: "thresh_COM", "thresh_IOU", "cons". 
         Start before the first COM merging, which will involve minArea
+        Calculate the recall, precisoin, and F1 of all parameter combinations.
 
     Inputs: 
         totalmasks (sparse.csr_matrix of float32, shape = (n,Lx*Ly)): the neuron masks to be merged.
@@ -257,6 +264,7 @@ def parameter_optimization(pmaps: np.ndarray, Params_set: dict, \
         filename_GT: str, useMP=True, useWT=False, p=None): 
     '''Optimize 6 post-processing parameters: 
         "minArea", "avgArea", "thresh_pmap", "thresh_COM", "thresh_IOU", "cons". 
+        Calculate the recall, precisoin, and F1 of all parameter combinations.
 
     Inputs: 
         pmaps (3D numpy.ndarray of uint8, shape = (nframes,Lx,Ly)): the probability map obtained after CNN inference.

@@ -1,7 +1,7 @@
 % folder of the GT Masks
 dir_GTMasks = 'F:\CaImAn data\WEBSITE\divided_data\';
 % name of the videos
-list_Exp_ID={'J115', 'J123', 'K53', 'YST'};
+list_Exp_ID={'J115', 'J123', 'K53', 'YST'}; 
 rate_hz = [30, 30, 30, 10]; % frame rate of each video
          
 before=15; % number of frames before spike peak

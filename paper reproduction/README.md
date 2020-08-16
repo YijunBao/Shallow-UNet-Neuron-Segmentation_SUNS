@@ -21,7 +21,7 @@ The Neurofinder dataset is available in [Neurofinder](https://github.com/codeneu
 ## CaImAn dataset
 In the following procedures, we use MATLAB to convert the raw video from series of ".tif" or ".tiff" images to ".h5" files and convert the ground truth labels (GT masks) from ".json" files to ".mat" files. The code requires a MATLAB package [JSONLab](https://www.mathworks.com/matlabcentral/fileexchange/33381-jsonlab-a-toolbox-to-encode-decode-json-files), so download it first and put it in a path that MATLAB can access. 
 
-The video and manual labels of the CaImAn dataset is available [here](https://zenodo.org/record/1659149). We used the videos J115, J123, K53, and YST. Download the four ".zip" files and put them in the same folder, then unzip them. Run [utils/video_masks_CaImAn.m](utils/video_masks_CaImAn.m) to generate the ".h5" files for raw videos and the ".mat" files for GT masks. Each video is divided into a set of 4 quarter-sized sub-videos with equal size and similar numbers of neurons. 
+The video and manual labels of the CaImAn dataset is available [here](https://zenodo.org/record/1659149). We used the videos J115, J123, K53, and YST. The GT labels are provided in `WEBSITE_basic`. Download the five ".zip" files and put them in the same folder, then unzip them. Run [utils/video_masks_CaImAn.m](utils/video_masks_CaImAn.m) to generate the ".h5" files for raw videos and the ".mat" files for GT masks. Each video is divided into a set of 4 quarter-sized sub-videos with equal size and similar numbers of neurons. 
 
 
 # Convert manual labels into sparse matrices

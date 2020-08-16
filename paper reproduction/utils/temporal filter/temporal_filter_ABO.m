@@ -15,7 +15,7 @@ spikes_avg_all=zeros(length(list_Exp_ID), before+after+1);
 list_spikes_all=cell(10,num_dff);
 
 %%
-for id=1:10
+for id=1:length(list_Exp_ID)
     %% Load traces and ROIs of all four sub-videos
     Exp_ID = list_Exp_ID{id};
     load(['raw and bg traces ',Exp_ID,'.mat'],'traces_raw','traces_bg_exclude');

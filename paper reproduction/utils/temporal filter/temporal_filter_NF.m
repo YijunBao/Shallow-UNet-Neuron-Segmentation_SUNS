@@ -1,6 +1,4 @@
 %%
-% folder of the GT Masks
-dir_GTMasks=['E:\NeuroFinder\',task,' videos\'];
 % name of the videos. Only use 04.01 and 04.01.test. 
 list_Exp_ID='04.01';
 rate_hz = 3; % frame rate
@@ -22,8 +20,10 @@ hold on;
 %%
 tasks = {'train','test'};
 for vid=1:length(tasks)
-    %% Load traces and ROIs of all four sub-videos
     task = tasks{vid};
+    % folder of the GT Masks
+    dir_GTMasks=['E:\NeuroFinder\',task,' videos\'];
+    %% Load traces and ROIs of all four sub-videos
     Exp_ID = list_Exp_ID;
     if strcmp(task,'test')
         Exp_ID = [Exp_ID,'.test'];

@@ -21,7 +21,7 @@ from suns.PostProcessing.complete_post import parameter_optimization
 
 def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
     BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, dims):
-    '''Train a CNN model.
+    '''Train a CNN model using SNR images and the corresponding temporal masks.
 
     Inputs: 
         dir_img (str): The folder containing the network_input.
@@ -114,6 +114,8 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
 def parameter_optimization_pipeline(file_CNN, network_input, dims, \
         Params_set, filename_GT, batch_size_eval=1, useWT=False, useMP=True, p=None):
     '''The complete parameter optimization pipeline for one video and one CNN model.
+        It first infers the probablity map of every frame using the trained CNN model, 
+        then calculates the recall, precision, and F1 over all parameter combinations from "Params_set". 
 
     Inputs: 
         file_CNN (str): The path to save the trained CNN model.
@@ -169,6 +171,9 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         dims, dims1, dir_img, weights_path, dir_GTMasks, dir_temp, dir_output, \
             batch_size_eval=1, useWT=False, useMP=True, load_exist=False):
     '''The parameter optimization for a complete cross validation.
+        For each cross validation, it uses "parameter_optimization_pipeline" to calculate 
+        the recall, precision, and F1 of each training video over all parameter combinations from "Params_set",
+        and search the parameter combination that yields the highest average F1 over all the training videos. 
 
     Inputs: 
         cross_validation (str, can be "leave-one-out" or "train_1_test_rest"): 

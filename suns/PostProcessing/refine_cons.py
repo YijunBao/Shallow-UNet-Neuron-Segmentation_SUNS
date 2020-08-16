@@ -44,7 +44,8 @@ def refine_seperate(masks_final_2, times_final, cons=1, thresh_mask=0.5, ThreshJ
 
 def refine_seperate_multi(GTMasks_2, masks_final_2, times_final, list_cons, thresh_mask=0.5, ThreshJ = 0.5, display=False):
     '''Refine segmented neurons by requiring them to be active for "cons" consecutive frames.
-        Used to search the optimal number of consecutive frames.
+        Used to search the optimal number of consecutive frames 
+        by calculating the recall, precision, and F1 of all values in "list_cons".
 
     Inputs: 
         GTMasks_2 (sparse.csr_matrix): Ground truth masks.

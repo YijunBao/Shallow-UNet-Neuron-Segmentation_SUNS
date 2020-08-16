@@ -57,7 +57,7 @@ def binary_focal_loss(y_true, y_pred, gamma=2., alpha=0.25):
     return loss
 
 def total_loss(y_true, y_pred, DL=1, BCE=20, FL=0, gamma=1, alpha=0.25):
-    '''Total loss between two arrays.
+    '''Total loss between two arrays. Can be linear superposition of multiple loss functions. 
 
     Inputs: 
         y_true (tf.TensorArray): GT array
@@ -125,7 +125,9 @@ def get_shallow_unet(size=None):
 
 
 def get_shallow_unet_more(size=None, n_depth=3, n_channel=4, skip=[1], activation='elu'):
-    '''Get a shallow U-Net model. This function has some options to vary the model.
+    '''Get a shallow U-Net model. This function has some options to vary the model, 
+        including the number of resolution depth, number of channels per featrue map, 
+        number of skip connections, and choice of activation function.
 
     Inputs: 
         size (int, default to None): Lateral size of each dimension of the input layer.

@@ -6,20 +6,18 @@ import multiprocessing as mp
 import pyfftw
 
 
+'''Learn wisdom of a 3D array, used for fast FFT planning'''
 dir_wisdom = 'wisdom\\'
 if not os.path.exists(dir_wisdom):
     os.makedirs(dir_wisdom) 
-Dimens = [(224,224),(216,152), (248,248),(120,88)]
-Nframes = [90000, 41000, 116043, 3000]
+Dimens = (120,88)
+Nframes = 3000
 
-ind_video = 3
 start = time.time()
-rows, cols = Dimens[ind_video] # 487, 487, #img1.shape
+rows, cols = Dimens
 x = cv2.getOptimalDFTSize(rows)
 y = cv2.getOptimalDFTSize(cols)
-nn = Nframes[ind_video] # 900
-#m, n = 512, 512
-# nn = 20000
+nn = Nframes
 
 start1 = time.time()
 bb = pyfftw.zeros_aligned((nn, x, y), dtype='float32', n=8)

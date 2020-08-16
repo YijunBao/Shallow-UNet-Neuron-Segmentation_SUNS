@@ -20,13 +20,13 @@ else
     name = ['neurofinder.',ID];
 end
     
-if exist([DirData,name])
+if exist(fullfile(DirData,name))
 
-    files = dir([DirData,name,filesep,'images',filesep,'*.tiff']);
+    files = dir(fullfile(DirData,name,'images','*.tiff'));
     imgs = zeros(512, 512, length(files),'uint16');
 
     for i = 1:length(files)
-        fname = strcat([DirData,name,filesep,'images',filesep, files(i).name]);
+        fname = strcat(fullfile(DirData,name,'images',files(i).name));
         imgs(:,:,i) = imread(fname);
     end
 
@@ -43,8 +43,8 @@ if exist([DirData,name])
         mkdir(DirSave)
     end
 
-    h5create([DirSave,ID,'.h5'],'/mov',size(imgs),'Datatype','uint16');
-    h5write([DirSave,ID,'.h5'],'/mov',imgs);
+    h5create(fullfile(DirSave,[ID,'.h5']),'/mov',size(imgs),'Datatype','uint16');
+    h5write(fullfile(DirSave,[ID,'.h5']),'/mov',imgs);
 else
     error('Data not available.');
 end

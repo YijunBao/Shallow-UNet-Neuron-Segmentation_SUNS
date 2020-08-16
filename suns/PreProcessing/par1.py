@@ -4,22 +4,6 @@ from numba import jit, prange, f4, u1, c8
 import math
 
 
-@jit("void(f4[:,:,:],f4[:],f4[:,:,:])",nopython=True,parallel=True,cache=True)
-def fastquant(A,q,b):
-    '''Calculate the quantiles of the temporal traces of each pixel
-
-    Inputs: 
-        A(numpy.ndarray of float32, shape = (Lx,Ly,T)): the input video
-        q(numpy.ndarray of float32, shape = (n,)): 1D array of quantile ratios
-
-    Outputs:
-        b(numpy.ndarray of float32, shape = (Lx,Ly,n)): the quantiles of each pixel
-    '''
-    for i in prange(A.shape[0]):
-        for j in prange(A.shape[1]):
-            b[i,j] = np.quantile(A[i,j,:],q)
-
-
 @jit("void(f4[:,:,:])",nopython=True,parallel=True,cache=True,fastmath=True)
 def fastlog(f):
     '''Step 1 of FFT-based spatial filtering: computing the log of the input video.
@@ -72,7 +56,7 @@ def fastexp(f):
 
 @jit("void(f4[:,:,:],f4[:,:,:],f4[:])",nopython=True,parallel=True,cache=True,fastmath=True,locals={'temp': numba.float32})
 def fastconv(a,b,f):
-    '''Temporal filtering.
+    '''Temporal filtering. Convolve "a" with flipped viersion of "b"
 
     Inputs: 
         a(numpy.ndarray of float32, shape = (T,Lx,Ly)): the input video
@@ -89,6 +73,22 @@ def fastconv(a,b,f):
                 for l in prange(lf):
                     temp += a[i+l,j,k]*f[l]
                 b[i,j,k]=temp
+
+
+@jit("void(f4[:,:,:],f4[:],f4[:,:,:])",nopython=True,parallel=True,cache=True)
+def fastquant(A,q,b):
+    '''Calculate the quantiles of the temporal traces of each pixel
+
+    Inputs: 
+        A(numpy.ndarray of float32, shape = (Lx,Ly,T)): the input video
+        q(numpy.ndarray of float32, shape = (n,)): 1D array of quantile ratios
+
+    Outputs:
+        b(numpy.ndarray of float32, shape = (Lx,Ly,n)): the quantiles of each pixel
+    '''
+    for i in prange(A.shape[0]):
+        for j in prange(A.shape[1]):
+            b[i,j] = np.quantile(A[i,j,:],q)
 
 
 @jit("void(f4[:,:,:],f4[:,:,:])",nopython=True,parallel=True,cache=True,fastmath=True)
@@ -112,7 +112,7 @@ def fastnormf(f, meds):
 
 @jit("void(f4[:,:,:],f4)",nopython=True,parallel=True,cache=True,fastmath=True,locals={'temp': numba.float32})
 def fastnormback(f, mu):
-    '''Normalize the input video into SNR video.
+    '''Normalize the input video by the mean of the median of every pixel.
         This function is used when SNR normalization is not used.
 
     Inputs: 

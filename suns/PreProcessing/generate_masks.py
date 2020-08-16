@@ -11,6 +11,11 @@ from scipy.io import loadmat
 
 def generate_masks(network_input:np.array, file_mask:str, list_thred_ratio:list, dir_save:str, Exp_ID:str):
     '''Generate temporal masks showing active neurons for each SNR frame.
+        It calculates the traces of each GT neuron, and uses FISSA to decontaminate the traces. 
+        Then it normalizes the decontaminated traces to SNR traces. 
+        For each "thred_ratio" in "list_thred_ratio", when the SNR is larger than "thred_ratio", 
+        the neuron is considered active at this frame.
+        For each frame, it addes all the active neurons to generate the binary temporal masks. 
 
     Inputs: 
         network_input (3D numpy.ndarray of float32, shape = (T,Lx,Ly)): the SNR video obtained after pre-processing.
@@ -108,8 +113,8 @@ def generate_masks(network_input:np.array, file_mask:str, list_thred_ratio:list,
 
 def generate_masks_from_traces(file_mask:str, list_thred_ratio:list, dir_save:str, Exp_ID:str):
     '''Generate temporal masks showing active neurons for each SNR frame.
-        This version generate temporal masks from the traces saved in "generate_masks", 
-        so it does not redo FISSA and does not need input video.
+        Similar to "generate_masks", but this version uses the traces saved in "generate_masks", 
+        a previous output of "generate_masks", so it does not redo FISSA and does not need input video.
 
     Inputs: 
         file_mask (str): The file path to store the GT masks.
