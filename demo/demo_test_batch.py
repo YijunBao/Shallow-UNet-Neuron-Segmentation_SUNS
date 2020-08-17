@@ -84,7 +84,7 @@ if __name__ == '__main__':
             'minArea': Params_post_mat['minArea'][0][0,0], 
             # average area of a typical neuron (unit: pixels) 
             'avgArea': Params_post_mat['avgArea'][0][0,0],
-            # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1.5)
+            # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
             'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
             # values higher than "thresh_mask" times the maximum value of the mask are set to one.
             'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 

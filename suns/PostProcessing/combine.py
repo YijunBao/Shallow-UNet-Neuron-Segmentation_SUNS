@@ -7,6 +7,8 @@ from suns.PostProcessing.par3 import fastCOMdistance
 
 def segs_results(segs: list):
     '''Pull segmented masks and their properties together from a list of segmentation results from each frame.
+        The outputs are the segmented masks and some statistics 
+        (areas, centers, whether they are from watershed, and the frames they are from)
 
     Inputs: 
         segs (list): A list of segmented masks with statistics from each frame.
@@ -28,7 +30,8 @@ def segs_results(segs: list):
 
 def unique_neurons2_simp(totalmasks:sparse.csr_matrix, neuronstate:np.array, COMs:np.array, \
         areas:np.array, probmapID:np.array, minArea=0, thresh_COM0=0, useMP=True):
-    '''Initally merge neurons with close COM by adding them together.
+    '''Initally merge neurons with close COM (COM distance smaller than "thresh_COM0") by adding them together.
+        The outputs are the merged masks "uniques" and the indecis of frames when they are active "times".
 
     Inputs: 
         totalmasks (sparse.csr_matrix of float32, shape = (n,Lx*Ly)): the neuron masks to be merged.
@@ -97,8 +100,9 @@ def unique_neurons2_simp(totalmasks:sparse.csr_matrix, neuronstate:np.array, COM
 
 
 def group_neurons(uniques: sparse.csr_matrix, thresh_COM, thresh_mask, dims: tuple, times: list, useMP=True):
-    '''Further merge neurons with close COM by adding them together. 
+    '''Further merge neurons with close COM (COM distance smaller than "thresh_COM") by adding them together. 
         The COM threshold is larger than that used in "unique_neurons2_simp". 
+        The outputs are the merged masks "uniqueout" and the indecis of frames when they are active "uniquetimes".
 
     Inputs: 
         uniques (sparse.csr_matrix of float): the neuron masks to be merged.
@@ -171,7 +175,8 @@ def group_neurons(uniques: sparse.csr_matrix, thresh_COM, thresh_mask, dims: tup
 
 
 def piece_neurons_IOU(neuronmasks: sparse.csr_matrix, thresh_mask, thresh_IOU, times: list):
-    '''Merge neurons with high IoU by adding them together.
+    '''Merge neurons with high IoU (IoU > thresh_IOU) by adding them together.
+        The outputs are the merged masks "neuronmasks" and the indecis of frames when they are active "uniquetimes".
 
     Inputs: 
         neuronmasks (sparse.csr_matrix of float): the neuron masks to be merged.
@@ -220,8 +225,9 @@ def piece_neurons_IOU(neuronmasks: sparse.csr_matrix, thresh_mask, thresh_IOU, t
 
 
 def piece_neurons_consume(neuronmasks: sparse.csr_matrix, avgArea, thresh_mask, thresh_consume, times: list):
-    '''Merge neurons with high consume ratio. 
+    '''Merge neurons with high consume (consume > thresh_consume) ratio. 
         If the larger neuron is larger than "avgArea", disgard it. Otherwise, add them together.
+        The outputs are the merged masks "neuronmasks" and the indecis of frames when they are active "uniquetimes".
 
     Inputs: 
         neuronmasks (sparse.csr_matrix of float): the neuron masks to be merged.

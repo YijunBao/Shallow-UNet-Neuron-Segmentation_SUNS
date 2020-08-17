@@ -7,10 +7,11 @@ import pyfftw
 
 
 '''Learn wisdom of a 2D array, used for fast FFT planning'''
+Dimens = (120,88) # The lateral dimension of the target 2D array
 dir_wisdom = 'wisdom\\'
 if not os.path.exists(dir_wisdom):
     os.makedirs(dir_wisdom) 
-Dimens = (120,88)
+
 start = time.time()
 rows, cols = Dimens
 x = cv2.getOptimalDFTSize(rows)

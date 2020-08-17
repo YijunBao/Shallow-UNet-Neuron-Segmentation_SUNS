@@ -18,6 +18,6 @@ dependencies:
   - tensorflow-gpu==1.15
   - keras
   - pip:
-    - fissa==0.6.1
+    - fissa==0.7.2
     - pyfftw
     - tensorflow-estimator==1.15.1

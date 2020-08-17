@@ -20,6 +20,7 @@ def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, d
         uses optional watershed (if useWT=True) to further segment regions larger than Params['avgArea'],
         merge the regions from different frames with close COM, large IoU, or large consume ratio,
         and finally selects masks that are active for at least Params['cons'] frames. 
+        The output is "Masks_2", a 2D sparse matrix of the final segmented neurons.
 
     Inputs: 
         pmaps (3D numpy.ndarray of uint8, shape = (nframes,Lx,Ly)): the probability map obtained after CNN inference.
@@ -134,7 +135,7 @@ def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, d
 def optimize_combine_1(uniques: sparse.csr_matrix, times_uniques: list, dims: tuple, Params: dict, filename_GT: str):  
     '''Optimize 1 post-processing parameter: "cons". 
         Start after the first COM merging.
-        Calculate the recall, precisoin, and F1 of all parameter combinations.
+        The outputs are the recall, precision, and F1 calculated using all values in "list_cons".
 
     Inputs: 
         uniques (sparse.csr_matrix of float32, shape = (n,Lx*Ly)): the neuron masks to be merged.
@@ -147,6 +148,8 @@ def optimize_combine_1(uniques: sparse.csr_matrix, times_uniques: list, dims: tu
             Params['thresh_IOU']: (float) Threshold of IoU used for merging neurons.
             Params['list_cons']: (list) Range of minimum number of consecutive frames that a neuron should be active for.
         filename_GT (str): file name of the GT masks. 
+            The GT masks are stored in a ".mat" file, and dataset "GTMasks_2" is the GT masks
+            (shape = (Ly0*Lx0,n) when saved in MATLAB).
 
     Outputs:
         Recall_k (1D numpy.array of float): Recall for all cons. 
@@ -182,8 +185,8 @@ def optimize_combine_1(uniques: sparse.csr_matrix, times_uniques: list, dims: tu
 
 def optimize_combine_3(totalmasks, neuronstate, COMs, areas, probmapID, dims, minArea, avgArea, Params_set: dict, filename_GT: str, useMP=True):
     '''Optimize 3 post-processing parameters: "thresh_COM", "thresh_IOU", "cons". 
-        Start before the first COM merging, which will involve minArea
-        Calculate the recall, precisoin, and F1 of all parameter combinations.
+        Start before the first COM merging, which can include disgarding masks smaller than "minArea".
+        The outputs are the recall, precisoin, and F1 calculated from all parameter combinations.
 
     Inputs: 
         totalmasks (sparse.csr_matrix of float32, shape = (n,Lx*Ly)): the neuron masks to be merged.
@@ -197,12 +200,14 @@ def optimize_combine_3(totalmasks, neuronstate, COMs, areas, probmapID, dims, mi
             Neuron masks with areas larger than avgArea will be further segmented by watershed.
         Params_set (dict): Ranges of post-processing parameters to optimize over.
             Params_set['thresh_mask']: (float) Threashold to binarize the real-number mask.
-            Params_set['thresh_COM0']: (float or int) Threshold of COM distance (unit: pixels) used for the first COM-based merging. 
+            Params_set['thresh_COM0']: (float) Threshold of COM distance (unit: pixels) used for the first COM-based merging. 
             Params_set['list_thresh_COM']: (list) Range of threshold of COM distance (unit: pixels) used for the second COM-based merging. 
             Params_set['list_thresh_IOU']: (list) Range of threshold of IOU used for merging neurons.
             Params_set['thresh_consume']: (float) Threshold of consume ratio used for merging neurons.
             Params_set['list_cons']: (list) Range of minimum number of consecutive frames that a neuron should be active for.
         filename_GT (str): file name of the GT masks. 
+            The GT masks are stored in a ".mat" file, and dataset "GTMasks_2" is the GT masks
+            (shape = (Ly0*Lx0,n) when saved in MATLAB).
         useMP (bool, defaut to True): indicator of whether multiprocessing is used to speed up. 
 
     Outputs:
@@ -262,9 +267,9 @@ def optimize_combine_3(totalmasks, neuronstate, COMs, areas, probmapID, dims, mi
 # %%
 def parameter_optimization(pmaps: np.ndarray, Params_set: dict, \
         filename_GT: str, useMP=True, useWT=False, p=None): 
-    '''Optimize 6 post-processing parameters: 
+    '''Optimize 6 post-processing parameters over the entire post-processing procedure: 
         "minArea", "avgArea", "thresh_pmap", "thresh_COM", "thresh_IOU", "cons". 
-        Calculate the recall, precisoin, and F1 of all parameter combinations.
+        The outputs are the recall, precisoin, and F1 calculated from all parameter combinations.
 
     Inputs: 
         pmaps (3D numpy.ndarray of uint8, shape = (nframes,Lx,Ly)): the probability map obtained after CNN inference.
@@ -274,12 +279,14 @@ def parameter_optimization(pmaps: np.ndarray, Params_set: dict, \
             Params_set['list_avgArea']: (list) Range of  typical neuron area (unit: pixels).
             Params_set['list_thresh_pmap']: (list) Range of probablity threshold. 
             Params_set['thresh_mask']: (float) Threashold to binarize the real-number mask.
-            Params_set['thresh_COM0']: (float or int) Threshold of COM distance (unit: pixels) used for the first COM-based merging. 
+            Params_set['thresh_COM0']: (float) Threshold of COM distance (unit: pixels) used for the first COM-based merging. 
             Params_set['list_thresh_COM']: (list) Range of threshold of COM distance (unit: pixels) used for the second COM-based merging. 
             Params_set['list_thresh_IOU']: (list) Range of threshold of IOU used for merging neurons.
             Params_set['thresh_consume']: (float) Threshold of consume ratio used for merging neurons.
             Params_set['list_cons']: (list) Range of minimum number of consecutive frames that a neuron should be active for.
         filename_GT (str): file name of the GT masks. 
+            The GT masks are stored in a ".mat" file, and dataset "GTMasks_2" is the GT masks
+            (shape = (Ly0*Lx0,n) when saved in MATLAB).
         useMP (bool, defaut to True): indicator of whether multiprocessing is used to speed up. 
         useWT (bool, default to False): Indicator of whether watershed is used. 
         p (multiprocessing.Pool, default to None): 

@@ -7,11 +7,12 @@ import pyfftw
 
 
 '''Learn wisdom of a 3D array, used for fast FFT planning'''
+Dimens = (120,88) # The lateral dimension of the target 3D array
+Nframes = 3000 # The number of frames of the target 3D array. Can be slightly larger
+
 dir_wisdom = 'wisdom\\'
 if not os.path.exists(dir_wisdom):
     os.makedirs(dir_wisdom) 
-Dimens = (120,88)
-Nframes = 3000
 
 start = time.time()
 rows, cols = Dimens

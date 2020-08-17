@@ -57,7 +57,8 @@ def binary_focal_loss(y_true, y_pred, gamma=2., alpha=0.25):
     return loss
 
 def total_loss(y_true, y_pred, DL=1, BCE=20, FL=0, gamma=1, alpha=0.25):
-    '''Total loss between two arrays. Can be linear superposition of multiple loss functions. 
+    '''Total loss between two arrays. Can be linear superposition of multiple loss functions,
+        including dice_loss, binary_corss_entropy, and focal_loss. 
 
     Inputs: 
         y_true (tf.TensorArray): GT array
@@ -80,12 +81,19 @@ def total_loss(y_true, y_pred, DL=1, BCE=20, FL=0, gamma=1, alpha=0.25):
     return loss
 
 
-def get_shallow_unet(size=None):
+def get_shallow_unet(size=None, Params_loss=None):
     '''Get a shallow U-Net model. This is the optimal shallow U-Net after our test.
+        In training, "Params_loss" specifies the loss function.
 
     Inputs: 
         size (int, default to None): Lateral size of each dimension of the input layer.
             Usually use None is sufficient, and using None can only cover rectangular input.  
+        Params_loss(dict, default to None): parameters of the loss function "total_loss". Only used in training.
+            Params_loss['DL'](float): Coefficient of dice loss in the total loss
+            Params_loss['BCE'](float): Coefficient of binary cross entropy in the total loss
+            Params_loss['FL'](float): Coefficient of focal loss in the total loss
+            Params_loss['gamma'] (float): first parameter of focal loss
+            Params_loss['alpha'] (float): second parameter of focal loss
 
     Outputs:
         model: the CNN model. 
@@ -119,15 +127,22 @@ def get_shallow_unet(size=None):
 
     outputs = tf.keras.layers.Conv2D(1, (1, 1), activation='sigmoid')(do1)
 
+    def loss_func(y_true, y_pred):
+        if Params_loss is None:
+            return total_loss(y_true, y_pred)
+        else:
+            return total_loss(y_true, y_pred, DL=Params_loss['DL'], BCE=Params_loss['BCE'], \
+                FL=Params_loss['FL'], gamma=Params_loss['gamma'], alpha=Params_loss['alpha'])
+
     model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
-    model.compile(optimizer='adam', loss=total_loss, metrics=[dice_loss])
+    model.compile(optimizer='adam', loss=loss_func, metrics=[dice_loss])
     return model
 
 
-def get_shallow_unet_more(size=None, n_depth=3, n_channel=4, skip=[1], activation='elu'):
+def get_shallow_unet_more(size=None, n_depth=3, n_channel=4, skip=[1], activation='elu', Params_loss=None):
     '''Get a shallow U-Net model. This function has some options to vary the model, 
-        including the number of resolution depth, number of channels per featrue map, 
-        number of skip connections, and choice of activation function.
+        including the number of resolution depth ("n_depth"), number of channels per featrue map ("n_channel"), 
+        number of skip connections ("skip"), and choice of activation function ("activation").
 
     Inputs: 
         size (int, default to None): Lateral size of each dimension of the input layer.
@@ -138,6 +153,12 @@ def get_shallow_unet_more(size=None, n_depth=3, n_channel=4, skip=[1], activatio
         skip (list of int, default to [1]]): Indeces of resolution depths that use skip connections.
             The shallowest depth is 1, and 1 should usually be in "skip".
         activation (str, default to 'elu): activation function. Can be 'elu' or 'relu'.
+        Params_loss(dict, default to None): parameters of the loss function "total_loss". Only used in training.
+            Params_loss['DL'](float): Coefficient of dice loss in the total loss
+            Params_loss['BCE'](float): Coefficient of binary cross entropy in the total loss
+            Params_loss['FL'](float): Coefficient of focal loss in the total loss
+            Params_loss['gamma'] (float): first parameter of focal loss
+            Params_loss['alpha'] (float): second parameter of focal loss
 
     Outputs:
         model: the CNN model. 
@@ -197,8 +218,15 @@ def get_shallow_unet_more(size=None, n_depth=3, n_channel=4, skip=[1], activatio
 
     outputs = tf.keras.layers.Conv2D(1, (1, 1), activation='sigmoid')(do1)
 
+    def loss_func(y_true, y_pred):
+        if Params_loss is None:
+            return total_loss(y_true, y_pred)
+        else:
+            return total_loss(y_true, y_pred, DL=Params_loss['DL'], BCE=Params_loss['BCE'], \
+                FL=Params_loss['FL'], gamma=Params_loss['gamma'], alpha=Params_loss['alpha'])
+
     model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
-    model.compile(optimizer='adam', loss=total_loss, metrics=[dice_loss])
+    model.compile(optimizer='adam', loss=loss_func, metrics=[dice_loss])
     return model
 
 

@@ -20,64 +20,65 @@ from suns.PostProcessing.complete_post import parameter_optimization
 
 
 def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
-    BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, dims):
-    '''Train a CNN model using SNR images and the corresponding temporal masks.
+    BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, dims, Params_loss=None):
+    '''Train a CNN model using SNR images in "dir_img" and the corresponding temporal masks in "dir_mask" 
+        identified for each video in "list_Exp_ID_train" using tensorflow generater formalism.
+        The output are the trained CNN model saved in "file_CNN" and "results" containing loss. 
 
     Inputs: 
-        dir_img (str): The folder containing the network_input.
-        dir_mask (str): The folder containing the temporal masks.
+        dir_img (str): The folder containing the network_input (SNR images). 
+            Each file must be a ".h5" file, with dataset "network_input" being the SNR video (shape = (T,Lx,Ly)).
+        dir_mask (str): The folder containing the temporal masks. 
+            Each file must be a ".h5" file, with dataset "temporal_masks" being the temporal masks (shape = (T,Lx,Ly)).
         file_CNN (str): The path to save the trained CNN model.
         list_Exp_ID_train (list of str): The list of file names of the training video(s). 
-        list_Exp_ID_train (list of str): The list of file names of the validation video(s). 
+        list_Exp_ID_val (list of str, default to None): The list of file names of the validation video(s). 
+            if list_Exp_ID_val is None, then no validation set is used
         BATCH_SIZE (int): batch size for CNN training.
         NO_OF_EPOCHS (int): number of epochs for CNN training.
         num_train_per (int): number of training images per video.
         num_total (int): total number of frames of a video (can be smaller than acutal number).
         dims (tuplel of int, shape = (2,)): lateral dimension of the video.
+        Params_loss(dict, default to None): parameters of the loss function "total_loss"
+            Params_loss['DL'](float): Coefficient of dice loss in the total loss
+            Params_loss['BCE'](float): Coefficient of binary cross entropy in the total loss
+            Params_loss['FL'](float): Coefficient of focal loss in the total loss
+            Params_loss['gamma'] (float): first parameter of focal loss
+            Params_loss['alpha'] (float): second parameter of focal loss
 
     Outputs:
         results: the training results containing the loss information.
-        In addition, the trained CNN model is saved in "file_CNN".
+        In addition, the trained CNN model is saved in "file_CNN" as ".h5" files.
     '''
-    nvideo_train = len(list_Exp_ID_train) # Number of training videos
-    nvideo_val = len(list_Exp_ID_val) # Number of validation videos
     (rows, cols) = dims
-
+    nvideo_train = len(list_Exp_ID_train) # Number of training videos
     # set how to choose training images
     train_every = num_total//num_train_per
     start_frame_train = random.randint(0,train_every-1)
     NO_OF_TRAINING_IMAGES = num_train_per * nvideo_train
-    # set how to choose validation images
-    # the total number of validation images is about 1/9 of the traning images
-    num_val_per = int((num_train_per * nvideo_train / nvideo_val) // 9) 
-    num_val_per = min(num_val_per, num_total)
-    val_every = num_total//num_val_per
-    start_frame_val = random.randint(0,val_every-1)
-    NO_OF_VAL_IMAGES = num_val_per * nvideo_val
+    
+    if list_Exp_ID_val is not None:
+        # set how to choose validation images
+        nvideo_val = len(list_Exp_ID_val) # Number of validation videos
+        # the total number of validation images is about 1/9 of the traning images
+        num_val_per = int((num_train_per * nvideo_train / nvideo_val) // 9) 
+        num_val_per = min(num_val_per, num_total)
+        val_every = num_total//num_val_per
+        start_frame_val = random.randint(0,val_every-1)
+        NO_OF_VAL_IMAGES = num_val_per * nvideo_val
 
     # %% Load traiming images and masks from h5 files
-    # validation images
-    val_imgs = np.zeros((num_val_per * nvideo_val, rows, cols), dtype='float32') 
-    # temporal masks for validation images
-    val_masks = np.zeros((num_val_per * nvideo_val, rows, cols), dtype='uint8') 
     # training images
     train_imgs = np.zeros((num_train_per * nvideo_train, rows, cols), dtype='float32') 
     # temporal masks for training images
     train_masks = np.zeros((num_train_per * nvideo_train, rows, cols), dtype='uint8') 
+    if list_Exp_ID_val is not None:
+        # validation images
+        val_imgs = np.zeros((num_val_per * nvideo_val, rows, cols), dtype='float32') 
+        # temporal masks for validation images
+        val_masks = np.zeros((num_val_per * nvideo_val, rows, cols), dtype='uint8') 
 
     print('Loading training images and masks.')
-    # Select validation images: for each video, start from frame "start_frame", 
-    # select a frame every "val_every" frames, totally "num_val_per" frames  
-    for cnt, Exp_ID in enumerate(list_Exp_ID_val):
-        h5_img = h5py.File(dir_img+Exp_ID+'.h5', 'r')
-        val_imgs[cnt*num_val_per:(cnt+1)*num_val_per,:,:] \
-            = np.array(h5_img['network_input'][start_frame_val:val_every*num_val_per:val_every])
-        h5_img.close()
-        h5_mask = h5py.File(dir_mask+Exp_ID+'.h5', 'r')
-        val_masks[cnt*num_val_per:(cnt+1)*num_val_per,:,:] \
-            = np.array(h5_mask['temporal_masks'][start_frame_val:val_every*num_val_per:val_every])
-        h5_mask.close()
-
     # Select training images: for each video, start from frame "start_frame", 
     # select a frame every "train_every" frames, totally "train_val_per" frames  
     for cnt, Exp_ID in enumerate(list_Exp_ID_train):
@@ -90,14 +91,32 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
             = np.array(h5_mask['temporal_masks'][start_frame_train:train_every*num_train_per:train_every])
         h5_mask.close()
 
+    if list_Exp_ID_val is not None:
+        # Select validation images: for each video, start from frame "start_frame", 
+        # select a frame every "val_every" frames, totally "num_val_per" frames  
+        for cnt, Exp_ID in enumerate(list_Exp_ID_val):
+            h5_img = h5py.File(dir_img+Exp_ID+'.h5', 'r')
+            val_imgs[cnt*num_val_per:(cnt+1)*num_val_per,:,:] \
+                = np.array(h5_img['network_input'][start_frame_val:val_every*num_val_per:val_every])
+            h5_img.close()
+            h5_mask = h5py.File(dir_mask+Exp_ID+'.h5', 'r')
+            val_masks[cnt*num_val_per:(cnt+1)*num_val_per,:,:] \
+                = np.array(h5_mask['temporal_masks'][start_frame_val:val_every*num_val_per:val_every])
+            h5_mask.close()
+
     # generater for training and validation images and masks
     train_gen = data_gen(train_imgs, train_masks, batch_size=BATCH_SIZE, flips=True, rotate=True)
-    val_gen = data_gen(val_imgs, val_masks, batch_size=BATCH_SIZE, flips=False, rotate=False)
+    if list_Exp_ID_val is not None:
+        val_gen = data_gen(val_imgs, val_masks, batch_size=BATCH_SIZE, flips=False, rotate=False)
+    
+    if list_Exp_ID_val is None:
+        val_gen = None
+        NO_OF_VAL_IMAGES = 0
 
 
-    fff = get_shallow_unet()
+    fff = get_shallow_unet(size=None, Params_loss=Params_loss)
     # The alternative line has more options to choose
-    # fff = get_shallow_unet_more(size=None, n_depth=3, n_channel=4, skip=[1], activation='elu')
+    # fff = get_shallow_unet_more(size=None, n_depth=3, n_channel=4, skip=[1], activation='elu', Params_loss=Params_loss)
 
     class LossAndErrorPrintingCallback(tf.keras.callbacks.Callback):
         def on_epoch_end(self, epoch, logs=None):
@@ -114,24 +133,28 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
 def parameter_optimization_pipeline(file_CNN, network_input, dims, \
         Params_set, filename_GT, batch_size_eval=1, useWT=False, useMP=True, p=None):
     '''The complete parameter optimization pipeline for one video and one CNN model.
-        It first infers the probablity map of every frame using the trained CNN model, 
-        then calculates the recall, precision, and F1 over all parameter combinations from "Params_set". 
+        It first infers the probablity map of every frame in "network_input" using the trained CNN model in "file_CNN", 
+        then calculates the recall, precision, and F1 over all parameter combinations from "Params_set"
+        by compairing with the GT labels in "filename_GT". 
 
     Inputs: 
-        file_CNN (str): The path to save the trained CNN model.
-        network_input (3D numpy.ndarray of float32): the SNR video obtained after pre-processing.
+        file_CNN (str): The path of the trained CNN model. Must be a ".h5" file. 
+        network_input (3D numpy.ndarray of float32, shape = (T,Lx,Ly)): 
+            the SNR video obtained after pre-processing.
         dims (tuplel of int, shape = (2,)): lateral dimension of the raw video.
         Params_set (dict): Ranges of post-processing parameters to optimize over.
             Params_set['list_minArea']: (list) Range of minimum area of a valid neuron mask (unit: pixels).
             Params_set['list_avgArea']: (list) Range of  typical neuron area (unit: pixels).
             Params_set['list_thresh_pmap']: (list) Range of probablity threshold. 
             Params_set['thresh_mask']: (float) Threashold to binarize the real-number mask.
-            Params_set['thresh_COM0']: (float or int) Threshold of COM distance (unit: pixels) used for the first COM-based merging. 
+            Params_set['thresh_COM0']: (float) Threshold of COM distance (unit: pixels) used for the first COM-based merging. 
             Params_set['list_thresh_COM']: (list) Range of threshold of COM distance (unit: pixels) used for the second COM-based merging. 
             Params_set['list_thresh_IOU']: (list) Range of threshold of IOU used for merging neurons.
             Params_set['thresh_consume']: (float) Threshold of consume ratio used for merging neurons.
             Params_set['list_cons']: (list) Range of minimum number of consecutive frames that a neuron should be active for.
         filename_GT (str): file name of the GT masks. 
+            The file must be a ".mat" file, with dataset "GTMasks" being the 2D sparse matrix 
+            (shape = (Ly0,Lx0,n) when saved in MATLAB).
         batch_size_eval (int, default to 1): batch size of CNN inference.
         useWT (bool, default to False): Indicator of whether watershed is used. 
         useMP (bool, defaut to True): indicator of whether multiprocessing is used to speed up. 
@@ -174,6 +197,7 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         For each cross validation, it uses "parameter_optimization_pipeline" to calculate 
         the recall, precision, and F1 of each training video over all parameter combinations from "Params_set",
         and search the parameter combination that yields the highest average F1 over all the training videos. 
+        The results are saved in "dir_temp" and "dir_output". 
 
     Inputs: 
         cross_validation (str, can be "leave-one-out" or "train_1_test_rest"): 
@@ -184,7 +208,7 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
             Params_set['list_avgArea']: (list) Range of  typical neuron area (unit: pixels).
             Params_set['list_thresh_pmap']: (list) Range of probablity threshold. 
             Params_set['thresh_mask']: (float) Threashold to binarize the real-number mask.
-            Params_set['thresh_COM0']: (float or int) Threshold of COM distance (unit: pixels) used for the first COM-based merging. 
+            Params_set['thresh_COM0']: (float) Threshold of COM distance (unit: pixels) used for the first COM-based merging. 
             Params_set['list_thresh_COM']: (list) Range of threshold of COM distance (unit: pixels) used for the second COM-based merging. 
             Params_set['list_thresh_IOU']: (list) Range of threshold of IOU used for merging neurons.
             Params_set['thresh_consume']: (float) Threshold of consume ratio used for merging neurons.
@@ -192,8 +216,11 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         dims (tuplel of int, shape = (2,)): lateral dimension of the raw video.
         dims1 (tuplel of int, shape = (2,)): lateral dimension of the padded video.
         dir_img (str): The path containing the SNR video after pre-processing.
-        weights_path (str): The path containing the trained CNN model.
+            Each file must be a ".h5" file, with dataset "network_input" being the SNR video (shape = (T,Lx,Ly)).
+        weights_path (str): The path containing the trained CNN model, saved as ".h5" files.
         dir_GTMasks (str): The path containing the GT masks.
+            Each file must be a ".mat" file, with dataset "GTMasks" being the 2D sparse matrix
+            (shape = (Ly0,Lx0,n) when saved in MATLAB).
         dir_temp (str): The path to save the recall, precision, and F1 of various parameters.
         dir_output (str): The path to save the optimal parameters.
         batch_size_eval (int, default to 1): batch size of CNN inference.
@@ -202,8 +229,9 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         load_exist (bool, default to False): Indicator of whether previous F1 of various parameters are loaded. 
 
     Outputs:
-        No output variable, but the recall, precision, and F1 of various parameters are saved in folder "dir_temp"
-            and the optimal parameters are saved in folder "dir_output"
+        No output variable, but the recall, precision, and F1 of various parameters 
+            are saved in folder "dir_temp" as "Parameter Optimization CV() Exp().mat"
+            and the optimal parameters are saved in folder "dir_output" as "Optimization_Info_().mat"
     '''
     nvideo = len(list_Exp_ID) # number of videos used for cross validation
     if cross_validation == "leave_one_out":

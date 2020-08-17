@@ -7,6 +7,7 @@ from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
 
 def refine_seperate(masks_final_2, times_final, cons=1, thresh_mask=0.5, ThreshJ=0.5):
     '''Refine segmented neurons by requiring them to be active for "cons" consecutive frames.
+        The output is "Masks_2", a 2D sparse matrix of the final segmented neurons.
 
     Inputs: 
         masks_final_2 (sparse.csr_matrix of float32): the segmented neuron masks. 
@@ -14,7 +15,7 @@ def refine_seperate(masks_final_2, times_final, cons=1, thresh_mask=0.5, ThreshJ
         cons (int, default to 1): Minimum number of consecutive frames that a neuron should be active for.
         thresh_mask (float between 0 and 1, default to 0.5): Threashold to binarize the real-number mask.
             values higher than "thresh_mask" times the maximum value are set to be True.
-        ThreshJ (float, default to 0.5): Threshold Jaccard distance for two neurons to match.
+        ThreshJ (float between 0 and 1, default to 0.5): Threshold Jaccard distance for two neurons to match.
 
     Outputs:
         Masks_2 (sparse.csr_matrix of bool): the final segmented binary neuron masks after consecutive refinement. 
@@ -44,8 +45,8 @@ def refine_seperate(masks_final_2, times_final, cons=1, thresh_mask=0.5, ThreshJ
 
 def refine_seperate_multi(GTMasks_2, masks_final_2, times_final, list_cons, thresh_mask=0.5, ThreshJ = 0.5, display=False):
     '''Refine segmented neurons by requiring them to be active for "cons" consecutive frames.
-        Used to search the optimal number of consecutive frames 
-        by calculating the recall, precision, and F1 of all values in "list_cons".
+        The outputs are the recall, precision, and F1 calculated using all values in "list_cons".
+        Used to search the optimal "cons".
 
     Inputs: 
         GTMasks_2 (sparse.csr_matrix): Ground truth masks.

@@ -12,8 +12,10 @@ from suns.PostProcessing.refine_cons import refine_seperate, refine_seperate_mul
 
 
 def merge_complete_nocons(uniques, times_uniques, dims, Params):
-    '''Merge segmented masks in a few frames. Used for parameter optimization.
+    '''Temporally merge segmented masks in a few frames. Used for parameter optimization.
         Ignore consecutive frame requirement in this function.
+        The output are the merged neuron masks and their statistics 
+        (acitve frame indices, areas, whether satisfy consecutive activation).
 
     Inputs: 
         uniques (sparse.csr_matrix): the neuron masks after the first COM merging. 
@@ -86,6 +88,7 @@ def merge_complete_nocons(uniques, times_uniques, dims, Params):
 def optimize_combine_1_online(list_uniques: list, list_times_uniques: list, dims: tuple, Params: dict, filename_GT: str):
     '''Optimize 1 online post-processing parameter: "cons". 
         Start after the first COM merging.
+        The outputs are the recall, precision, and F1 calculated using all values in "list_cons".
 
     Inputs: 
         list_uniques (list of sparse.csr_matrix of float32, shape = (merge_every,Lx*Ly)): the neuron masks to be merged.
@@ -99,6 +102,8 @@ def optimize_combine_1_online(list_uniques: list, list_times_uniques: list, dims
             Params['thresh_consume']: Threshold of consume ratio used for merging neurons.
             Params['list_cons']: (list) Range of minimum number of consecutive frames that a neuron should be active for.
         filename_GT (str): file name of the GT masks. 
+            The GT masks are stored in a ".mat" file, and dataset "GTMasks_2" is the GT masks
+            (shape = (Ly0*Lx0,n) when saved in MATLAB).
 
     Outputs:
         Recall_k (1D numpy.array of float): Recall for all cons. 
@@ -129,7 +134,8 @@ def optimize_combine_1_online(list_uniques: list, list_times_uniques: list, dims
 def optimize_combine_3_online(list_totalmasks, list_neuronstate, list_COMs, list_areas, \
         list_probmapID, dims, minArea, avgArea, Params_set: dict, filename_GT: str, useMP=True):
     '''Optimize 3 online post-processing parameters: "thresh_COM", "thresh_IOU", "cons". 
-        Start before the first COM merging, which will involve minArea
+        Start before the first COM merging, which can include disgarding masks smaller than "minArea".
+        The outputs are the recall, precisoin, and F1 calculated from all parameter combinations.
 
     Inputs: 
         list_totalmasks (list of sparse.csr_matrix of float32, shape = (merge_every,Lx*Ly)): the neuron masks to be merged.
@@ -149,6 +155,8 @@ def optimize_combine_3_online(list_totalmasks, list_neuronstate, list_COMs, list
             Params_set['thresh_consume']: (float) Threshold of consume ratio used for merging neurons.
             Params_set['list_cons']: (list) Range of minimum number of consecutive frames that a neuron should be active for.
         filename_GT (str): file name of the GT masks. 
+            The GT masks are stored in a ".mat" file, and dataset "GTMasks_2" is the GT masks
+            (shape = (Ly0*Lx0,n) when saved in MATLAB).
         useMP (bool, defaut to True): indicator of whether multiprocessing is used to speed up. 
 
     Outputs:
@@ -216,6 +224,7 @@ def parameter_optimization_online(pmaps: np.ndarray, frames_initf, merge_every, 
         Params_set: dict, filename_GT: str, useMP=True, useWT=False, p=None):
     '''Optimize 6 online post-processing parameters: 
         "minArea", "avgArea", "thresh_pmap", "thresh_COM", "thresh_IOU", "cons". 
+        The outputs are the recall, precisoin, and F1 calculated from all parameter combinations.
 
     Inputs: 
         pmaps (3D numpy.ndarray of uint8, shape = (nframes,Lx,Ly)): the probability map obtained after CNN inference.
@@ -233,6 +242,8 @@ def parameter_optimization_online(pmaps: np.ndarray, frames_initf, merge_every, 
             Params_set['thresh_consume']: (float) Threshold of consume ratio used for merging neurons.
             Params_set['list_cons']: (list) Range of minimum number of consecutive frames that a neuron should be active for.
         filename_GT (str): file name of the GT masks. 
+            The GT masks are stored in a ".mat" file, and dataset "GTMasks_2" is the GT masks
+            (shape = (Ly0*Lx0,n) when saved in MATLAB).
         useMP (bool, defaut to True): indicator of whether multiprocessing is used to speed up. 
         useWT (bool, default to False): Indicator of whether watershed is used. 
         p (multiprocessing.Pool, default to None): 

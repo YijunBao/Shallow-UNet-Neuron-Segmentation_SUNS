@@ -53,7 +53,7 @@ def fastexp_2(f):
 
 @jit("void(f4[:,:,:],f4[:,:],f4[:])",nopython=True,parallel=True,cache=True,fastmath=True,locals={'temp': numba.float32})
 def fastconv_2(a,b,f):
-    '''Online temporal filtering.
+    '''Online temporal filtering. Convolve "a" with flipped viersion of "b"
 
     Inputs: 
         a(numpy.ndarray of float32, shape = (nt,Lx,Ly)): the input video
@@ -73,6 +73,7 @@ def fastconv_2(a,b,f):
 @jit("void(f4[:,:],f4[:,:,:])",nopython=True,parallel=True,cache=True,fastmath=True)
 def fastnormf_2(f, meds):
     '''Normalize the input video pixel-by-pixel into SNR video.
+        f(x,y) = (f(x,y) - median(x,y))/median_based_std(x,y)
 
     Inputs: 
         f(numpy.ndarray of float32, shape = (Lx,Ly)): the input video
@@ -91,6 +92,7 @@ def fastnormf_2(f, meds):
 @jit("void(f4[:,:],f4)",nopython=True,parallel=True,cache=True,fastmath=True)
 def fastnormback_2(f, mu):
     '''Normalize the input video into SNR video.
+        f(x,y) = f(x,y)/mu.
         This function is used when SNR normalization is not used.
 
     Inputs: 

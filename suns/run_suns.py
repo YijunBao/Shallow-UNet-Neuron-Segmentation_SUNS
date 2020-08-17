@@ -30,12 +30,14 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
         batch_size_eval=1, useSF=True, useTF=True, useSNR=True, \
         useWT=False, prealloc=True, display=True, useMP=True, p=None):
     '''The complete SUNS batch procedure.
+        It uses the trained CNN model from "filename_CNN" and the optimized hyper-parameters in "Params_post"
+        to process the video "Exp_ID" in "dir_video"
 
     Inputs: 
         dir_video (str): The folder containing the input video.
-        Exp_ID (str): The filer name of the input video. 
-            The file must be a ".h5" file, with dataset "mov" being the input video (shape = (T0,Lx0,Ly0)).
-        filename_CNN (str): The path of the CNN model. 
+            Each file must be a ".h5" file, with dataset "mov" being the input video (shape = (T0,Lx0,Ly0)).
+        Exp_ID (str): The filer name of the input raw video. 
+        filename_CNN (str): The path of the trained CNN model. 
         Params_pre (dict): Parameters for pre-processing.
             Params_pre['gauss_filt_size'] (float): The standard deviation of the spatial Gaussian filter in pixels
             Params_pre['Poisson_filt'] (1D numpy.ndarray of float32): The temporal filter kernel
@@ -67,8 +69,8 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
         p (multiprocessing.Pool, default to None): 
 
     Outputs:
-        Masks (3D numpy.ndarray of bool, shape = (n,Lx,Ly)): the final segmented masks. 
-        Masks_2 (scipy.csr_matrix of bool, shape = (n,Lx*Ly)): the final segmented masks in the form of sparse matrix. 
+        Masks (3D numpy.ndarray of bool, shape = (n,Lx0,Ly0)): the final segmented masks. 
+        Masks_2 (scipy.csr_matrix of bool, shape = (n,Lx0*Ly0)): the final segmented masks in the form of sparse matrix. 
         time_total (list of float, shape = (4,)): the total time spent 
             for pre-processing, CNN inference, post-processing, and total processing
         time_frame (list of float, shape = (4,)): the average time spent on every frame
@@ -86,8 +88,8 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
     fff.evaluate(init_imgs, init_masks, batch_size=batch_size_eval)
     del init_imgs, init_masks
 
-    thresh_pmap_float = (Params_post['thresh_pmap']+1.5)/256
-    # thresh_pmap_float = (Params_post['thresh_pmap']+1)/256 # for published version
+    # thresh_pmap_float = (Params_post['thresh_pmap']+1.5)/256
+    thresh_pmap_float = (Params_post['thresh_pmap']+1)/256 # for published version
     if display:
         time_init = time.time()
         print('Initialization time: {} s'.format(time_init-start))
@@ -151,11 +153,13 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         frames_init, merge_every, batch_size_init=1, useSF=True, useTF=True, useSNR=True, \
         useWT=False, show_intermediate=True, prealloc=True, display=True, useMP=True, p=None):
     '''The complete SUNS online procedure.
+        It uses the trained CNN model from "filename_CNN" and the optimized hyper-parameters in "Params_post"
+        to process the video "Exp_ID" in "dir_video"
 
     Inputs: 
-        filename_video (str): The path of the file of the input video.
+        filename_video (str): The path of the file of the input raw video.
             The file must be a ".h5" file, with dataset "mov" being the input video (shape = (T0,Lx0,Ly0)).
-        filename_CNN (str): The path of the CNN model. 
+        filename_CNN (str): The path of the trained CNN model. 
         Params_pre (dict): Parameters for pre-processing.
             Params_pre['gauss_filt_size'] (float): The standard deviation of the spatial Gaussian filter in pixels
             Params_pre['Poisson_filt'] (1D numpy.ndarray of float32): The temporal filter kernel
@@ -191,8 +195,8 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         p (multiprocessing.Pool, default to None): 
 
     Outputs:
-        Masks (3D numpy.ndarray of bool, shape = (n,Lx,Ly)): the final segmented masks. 
-        Masks_2 (scipy.csr_matrix of bool, shape = (n,Lx*Ly)): the final segmented masks in the form of sparse matrix. 
+        Masks (3D numpy.ndarray of bool, shape = (n,Lx0,Ly0)): the final segmented masks. 
+        Masks_2 (scipy.csr_matrix of bool, shape = (n,Lx0*Ly0)): the final segmented masks in the form of sparse matrix. 
         time_total (list of float, shape = (3,)): the total time spent 
             for initalization, online processing, and total processing
         time_frame (list of float, shape = (3,)): the average time spent on every frame
@@ -232,8 +236,8 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
     thresh_IOU = Params_post['thresh_IOU']
     thresh_consume = Params_post['thresh_consume']
     cons = Params_post['cons']
-    thresh_pmap_float = (Params_post['thresh_pmap']+1.5)/256
-    # thresh_pmap_float = (Params_post['thresh_pmap']+1)/256 # for published version
+    # thresh_pmap_float = (Params_post['thresh_pmap']+1.5)/256
+    thresh_pmap_float = (Params_post['thresh_pmap']+1)/256 # for published version
 
 
     # Spatial filtering preparation
@@ -464,11 +468,13 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
         frames_init, merge_every, batch_size_init=1, useSF=True, useTF=True, useSNR=True, \
         useWT=False, prealloc=True, display=True, useMP=True, p=None):
     '''The complete SUNS online procedure with tracking.
+        It uses the trained CNN model from "filename_CNN" and the optimized hyper-parameters in "Params_post"
+        to process the video "Exp_ID" in "dir_video"
 
     Inputs: 
-        filename_video (str): The path of the file of the input video.
+        filename_video (str): The path of the file of the input raw video.
             The file must be a ".h5" file, with dataset "mov" being the input video (shape = (T0,Lx0,Ly0)).
-        filename_CNN (str): The path of the CNN model. 
+        filename_CNN (str): The path of the trained CNN model. 
         Params_pre (dict): Parameters for pre-processing.
             Params_pre['gauss_filt_size'] (float): The standard deviation of the spatial Gaussian filter in pixels
             Params_pre['Poisson_filt'] (1D numpy.ndarray of float32): The temporal filter kernel
@@ -502,8 +508,8 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
         p (multiprocessing.Pool, default to None): 
 
     Outputs:
-        Masks (3D numpy.ndarray of bool, shape = (n,Lx,Ly)): the final segmented masks. 
-        Masks_2 (scipy.csr_matrix of bool, shape = (n,Lx*Ly)): the final segmented masks in the form of sparse matrix. 
+        Masks (3D numpy.ndarray of bool, shape = (n,Lx0,Ly0)): the final segmented masks. 
+        Masks_2 (scipy.csr_matrix of bool, shape = (n,Lx0*Ly0)): the final segmented masks in the form of sparse matrix. 
         time_total (list of float, shape = (3,)): the total time spent 
             for initalization, online processing, and total processing
         time_frame (list of float, shape = (3,)): the average time spent on every frame
@@ -543,8 +549,8 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
     thresh_IOU = Params_post['thresh_IOU']
     thresh_consume = Params_post['thresh_consume']
     # cons = Params_post['cons']
-    thresh_pmap_float = (Params_post['thresh_pmap']+1.5)/256
-    # thresh_pmap_float = (Params_post['thresh_pmap']+1)/256 # for published version
+    # thresh_pmap_float = (Params_post['thresh_pmap']+1.5)/256
+    thresh_pmap_float = (Params_post['thresh_pmap']+1)/256 # for published version
 
 
     # Spatial filtering preparation

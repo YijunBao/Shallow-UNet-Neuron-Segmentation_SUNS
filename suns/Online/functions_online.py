@@ -22,7 +22,7 @@ from suns.PostProcessing.combine import segs_results, unique_neurons2_simp, \
 
 def spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2):
     '''Apply spatial homomorphic filtering to the input image.
-        Output = exp(IFFT(mask2*FFT(log(Input+1)))).
+        bb = exp(IFFT(mask2*FFT(log(bb+1)))).
 
     Inputs: 
         bb(2D numpy.ndarray of float32): array storing the raw image.
@@ -45,8 +45,10 @@ def spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2):
 def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = None, \
         mask2=None, bf=None, fft_object_b=None, fft_object_c=None, Poisson_filt=np.array([1]), \
         useSF=True, useTF=True, useSNR=True):
-    '''Pre-process the registered image into an SNR image using known median and median-based std.
-        It includes spatial filter, temporal filter, and SNR normalization. Each step is optional.
+    '''Pre-process the registered image in "bb" into an SNR image "frame_SNR" 
+        using known median and median-based std in "med_frame3".
+        It includes spatial filter, temporal filter, and SNR normalization. 
+        Each step is optional.
 
     Inputs: 
         bb(3D numpy.ndarray of float32): array storing the raw image.
@@ -89,7 +91,7 @@ def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = Non
 
 
 def CNN_online(frame_SNR, fff, dims=None):
-    '''Use CNN to inference the probability of each pixel being active for each image.
+    '''Use CNN model "fff" to infer the probability of each pixel being active for image "frame_SNR".
 
     Inputs: 
         frame_SNR (2D empty numpy.ndarray of float32): SNR image.
@@ -108,7 +110,10 @@ def CNN_online(frame_SNR, fff, dims=None):
 
 
 def separate_neuron_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT=False):
-    '''Segment the probability map into connected regions representing neurons.
+    '''Segment the probability map "frame_prob" into connected regions representing neurons.
+        It disgards the regions whose areas are smaller than "minArea".
+        When useWT=True, it further tries to segment neurons whose areas are larger than "avgArea" using watershed. 
+        The outputs are the segmented masks and some statistics (areas, centers, and whether they are from watershed)
 
     Inputs: 
         frame_prob (2D empty numpy.ndarray of float32): probability map.
@@ -130,7 +135,7 @@ def separate_neuron_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgA
 
 def refine_seperate_cons_online(times_temp, cons=1, have_cons=None):
     '''Select the segmented masks that satisfy consecutive frame requirement.
-        Export the indicators of whether each neuron satisfies the requirement.
+        The output is the indicators of whether each neuron satisfies the requirement.
 
     Inputs: 
         times_temp (list of 1D numpy.ndarray of int): indecis of frames when each neuron is active.
@@ -158,7 +163,7 @@ def refine_seperate_cons_online(times_temp, cons=1, have_cons=None):
 
 def select_cons(tuple_final):
     '''Select the segmented masks that satisfy consecutive frame requirement.
-        Export the binary masks of the neurons that satisfy the requirement.
+        The output is the binary masks of the neurons that satisfy the requirement.
 
     Inputs: 
         tuple_final (tuple, shape = (5,)):  Segmented masks with statistics.
@@ -176,7 +181,8 @@ def select_cons(tuple_final):
 
 def merge_complete(segs, dims, Params):
     '''Temporally merge segmented masks in a few frames.
-        The output are the merged neuron masks and their statistics.
+        The output are the merged neuron masks and their statistics 
+        (acitve frame indices, areas, whether satisfy consecutive activation).
 
     Inputs: 
         segs (list): A list of segmented masks for every frame with statistics.
@@ -250,7 +256,8 @@ def merge_complete(segs, dims, Params):
 
 
 def merge_2(tuple1, tuple2, dims, Params):
-    '''Merge newly segmented masks to previously segmented masks, together with their statistics.
+    '''Merge newly segmented masks to previously segmented masks, together with their statistics
+        (acitve frame indices, areas, whether satisfy consecutive activation).
 
     Inputs: 
         tuple1 (tuple, shape = (5,)): Segmented masks with statistics for the previous frames.
@@ -366,6 +373,8 @@ def merge_2(tuple1, tuple2, dims, Params):
 def merge_2_nocons(tuple1, tuple2, dims, Params):
     '''Merge newly segmented masks to previously segmented masks
         that do not satisfy consecutive frame requirement.
+        The output are the merged neuron masks and their statistics 
+        (acitve frame indices, areas, whether satisfy consecutive activation).
 
     Inputs: 
         tuple1 (tuple, shape = (5,)): Segmented masks with statistics for the previous frames.

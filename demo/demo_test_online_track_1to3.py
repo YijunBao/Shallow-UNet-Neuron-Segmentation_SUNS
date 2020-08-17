@@ -87,14 +87,24 @@ if __name__ == '__main__':
         filename_params_post = dir_params+'Optimization_Info_{}.mat'.format(CV)
         Optimization_Info = loadmat(filename_params_post)
         Params_post_mat = Optimization_Info['Params'][0]
-        Params_post={'minArea': Params_post_mat['minArea'][0][0,0], 
+        Params_post={
+            # minimum area of a neuron (unit: pixels).
+            'minArea': Params_post_mat['minArea'][0][0,0], 
+            # average area of a typical neuron (unit: pixels) 
             'avgArea': Params_post_mat['avgArea'][0][0,0],
+            # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
             'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
+            # values higher than "thresh_mask" times the maximum value of the mask are set to one.
             'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
+            # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels)
             'thresh_COM0': Params_post_mat['thresh_COM0'][0][0,0], 
+            # maximum COM distance of two masks to be considered the same neuron (unit: pixels)
             'thresh_COM': Params_post_mat['thresh_COM'][0][0,0], 
+            # minimum IoU of two masks to be considered the same neuron
             'thresh_IOU': Params_post_mat['thresh_IOU'][0][0,0], 
+            # minimum consume ratio of two masks to be considered the same neuron
             'thresh_consume': Params_post_mat['thresh_consume'][0][0,0], 
+            # minimum consecutive number of frames of active neurons
             'cons':Params_post_mat['cons'][0][0,0]}
 
         for (eid, Exp_ID) in enumerate(list_Exp_ID):

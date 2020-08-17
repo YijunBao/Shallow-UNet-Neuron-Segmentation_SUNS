@@ -94,6 +94,7 @@ def fastquant(A,q,b):
 @jit("void(f4[:,:,:],f4[:,:,:])",nopython=True,parallel=True,cache=True,fastmath=True)
 def fastnormf(f, meds):
     '''Normalize the input video pixel-by-pixel into SNR video.
+        f(t,x,y) = (f(t,x,y) - median(x,y))/median_based_std(x,y)
 
     Inputs: 
         f(numpy.ndarray of float32, shape = (T,Lx,Ly)): the input video
@@ -113,6 +114,7 @@ def fastnormf(f, meds):
 @jit("void(f4[:,:,:],f4)",nopython=True,parallel=True,cache=True,fastmath=True,locals={'temp': numba.float32})
 def fastnormback(f, mu):
     '''Normalize the input video by the mean of the median of every pixel.
+        f(t,x,y) = f(t,x,y)/mu.
         This function is used when SNR normalization is not used.
 
     Inputs: 

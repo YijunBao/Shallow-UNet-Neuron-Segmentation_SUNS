@@ -10,29 +10,31 @@ from scipy.io import loadmat
 
 
 def generate_masks(network_input:np.array, file_mask:str, list_thred_ratio:list, dir_save:str, Exp_ID:str):
-    '''Generate temporal masks showing active neurons for each SNR frame.
-        It calculates the traces of each GT neuron, and uses FISSA to decontaminate the traces. 
+    '''Generate temporal masks showing active neurons for each SNR frame in "network_input".
+        It calculates the traces of each GT neuron in "file_mask", 
+        and uses FISSA to decontaminate the traces. 
         Then it normalizes the decontaminated traces to SNR traces. 
         For each "thred_ratio" in "list_thred_ratio", when the SNR is larger than "thred_ratio", 
         the neuron is considered active at this frame.
-        For each frame, it addes all the active neurons to generate the binary temporal masks. 
+        For each frame, it addes all the active neurons to generate the binary temporal masks,
+        and save the temporal masks in "dir_save". 
 
     Inputs: 
         network_input (3D numpy.ndarray of float32, shape = (T,Lx,Ly)): the SNR video obtained after pre-processing.
         file_mask (str): The file path to store the GT masks.
             The GT masks are stored in a ".mat" file, and dataset "FinalMasks" is the GT masks
             (shape = (Ly0,Lx0,n) when saved in MATLAB).
-        list_thred_ratio (list): A list of SNR threshold used to determine when neurons are active.
+        list_thred_ratio (list of float): A list of SNR threshold used to determine when neurons are active.
         dir_save (str): The folder to save the temporal masks of active neurons 
             and the raw and unmixed traces in hard drive.
         Exp_ID (str): The filer name of the SNR video. 
 
     Outputs:
-        No output variable, but the temporal masks is saved in "dir_save" as a ".h5" file.
+        No output variable, but the temporal masks is saved in "dir_save" as a "(Exp_ID).h5" file.
             The saved ".h5" file has a dataset "temporal_masks", 
             which stores the temporal masks of active neurons (dtype = 'bool', shape = (T,Lx,Ly))
         In addition, the raw and unmixed traces before and after FISSA are saved in the same folder
-            but a different sub-folder in another ".h5" file. The ".h5" file has two datasets, 
+            but a different sub-folder in another "(Exp_ID).h5" file. The ".h5" file has two datasets, 
             "raw_traces" and "unmixed_traces" saving the traces before and after FISSA, respectively. 
     '''
     try: # If the ".mat" file is saved in '-v7.3' format
@@ -112,8 +114,8 @@ def generate_masks(network_input:np.array, file_mask:str, list_thred_ratio:list,
 
 
 def generate_masks_from_traces(file_mask:str, list_thred_ratio:list, dir_save:str, Exp_ID:str):
-    '''Generate temporal masks showing active neurons for each SNR frame.
-        Similar to "generate_masks", but this version uses the traces saved in "generate_masks", 
+    '''Generate temporal masks showing active neurons for each SNR frame in "network_input".
+        Similar to "generate_masks", but this version uses the traces saved in folder "traces", 
         a previous output of "generate_masks", so it does not redo FISSA and does not need input video.
 
     Inputs: 
@@ -126,7 +128,7 @@ def generate_masks_from_traces(file_mask:str, list_thred_ratio:list, dir_save:st
         Exp_ID (str): The filer name of the SNR video. 
 
     Outputs:
-        No output variable, but the temporal masks is saved in "dir_save" as a ".h5" file.
+        No output variable, but the temporal masks is saved in "dir_save" as a "(Exp_ID).h5" file.
             The saved ".h5" file has a dataset "temporal_masks", 
             which stores the temporal masks of active neurons (dtype = 'bool', shape = (T,Lx,Ly))
     '''

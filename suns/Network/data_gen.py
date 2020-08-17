@@ -3,7 +3,8 @@ import numpy as np
 
 
 def data_gen(train_img, train_mask, batch_size, flips=False, rotate=False): 
-    '''Generator of training images and masks from an array dataset that can be non-square 
+    '''Generator of training images and masks from an array dataset that can be non-square.
+        Used for CNN training.
 
     Inputs: 
         train_img(3D numpy.ndarray of float32, shape = (T,Lx,Ly)): the SNR images
@@ -71,7 +72,8 @@ def data_gen(train_img, train_mask, batch_size, flips=False, rotate=False):
 
 
 def data_gen_list(list_train_img, list_train_mask, batch_size, flips=False, rotate=False): 
-    '''Generator of training images and masks from a list of datasets with different sizes
+    '''Generator of training images and masks from a list of datasets with different sizes.
+        Used for CNN training.
 
     Inputs: 
         list_train_img(list of 3D numpy.ndarray of float32, shape = (T,Lx,Ly)): list of SNR images

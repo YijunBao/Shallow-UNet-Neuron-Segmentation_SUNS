@@ -40,8 +40,10 @@ if __name__ == '__main__':
             # Not needed in training.
     useWT=False # True if using additional watershed
     load_exist=False # True if using temp files already saved in the folders
+    use_validation = True # True to use a validation set outside the training set
     # Cross-validation strategy. Can be "leave_one_out" or "train_1_test_rest"
     cross_validation = "train_1_test_rest"
+    Params_loss = {'DL':1, 'BCE':20, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
 
     # %% set folders
     # file names of the ".h5" files storing the raw videos. 
@@ -93,7 +95,7 @@ if __name__ == '__main__':
     list_minArea = list(range(30,85,5)) 
     # average area of a typical neuron (unit: pixels in ABO videos)
     list_avgArea = [177] 
-    # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1.5)
+    # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
     list_thresh_pmap = list(range(130,235,10))
     # threshold to binarize the neuron masks. For each mask, 
     # values higher than "thresh_mask" times the maximum value of the mask are set to one.
@@ -141,16 +143,19 @@ if __name__ == '__main__':
         else: # cross_validation == "train_1_test_rest"
             list_Exp_ID_val = list_Exp_ID.copy()
             list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
+        if not use_validation:
+            list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
         file_CNN = weights_path+'Model_CV{}.h5'.format(CV)
         results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
-            BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rows, cols))
+            BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rows, cols), Params_loss)
 
         # save training and validation loss after each eopch
         f = h5py.File(training_output_path+"training_output_CV{}.h5".format(CV), "w")
-        f.create_dataset("val_loss", data=results.history['val_loss'])
-        f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
         f.create_dataset("loss", data=results.history['loss'])
         f.create_dataset("dice_loss", data=results.history['dice_loss'])
+        if use_validation:
+            f.create_dataset("val_loss", data=results.history['val_loss'])
+            f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
         f.close()
 
     # %% parameter optimization

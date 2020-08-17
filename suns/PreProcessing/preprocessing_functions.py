@@ -91,7 +91,7 @@ def plan_mask2(dims, dims1, gauss_filt_size):
 
 def spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2, display=False):
     '''Apply spatial homomorphic filtering to the input video.
-        Output = exp(IFFT(mask2*FFT(log(Input+1)))).
+        bb = exp(IFFT(mask2*FFT(log(bb+1)))).
 
     Inputs: 
         bb(3D numpy.ndarray of float32): array storing the raw video.
@@ -157,7 +157,7 @@ def temporal_filtering(bb, network_input, Poisson_filt=np.array([1]), display=Fa
 
 def SNR_normalization(network_input, med_frame2=None, dims=None, median_decimate=1, display=True):
     '''Normalize the video to be an SNR video.
-        Output(t,x,y) = (Input(t,x,y) - median(x,y)) / (median_based_standard_deviation(x,y)).
+        network_input(t,x,y) = (network_input(t,x,y) - median(x,y)) / (median_based_standard_deviation(x,y)).
 
     Inputs: 
         network_input (numpy.ndarray of float32): the input video. 
@@ -216,7 +216,7 @@ def SNR_normalization(network_input, med_frame2=None, dims=None, median_decimate
 
 def median_normalization(network_input, med_frame2=None, dims=None, median_decimate=1, display=True):
     '''Normalize the video by dividing to its temporal median.
-        Output(t,x,y) = Input(t,x,y) / mean(median(x,y)).
+        network_input(t,x,y) = network_input(t,x,y) / mean(median(x,y)).
 
     Inputs: 
         network_input (numpy.ndarray of float32, shape = (T,Lx,Ly)): the input video. 
@@ -257,19 +257,20 @@ def median_normalization(network_input, med_frame2=None, dims=None, median_decim
 
 def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisson_filt=np.array([1]), mask2=None, \
         bf=None, fft_object_b=None, fft_object_c=None, median_decimate=1, useSF=False, useTF=True, useSNR=True, prealloc=True, display=False):
-    '''Pre-process the input video "bb" into an SNR video.
-        It includes spatial filter, temporal filter, and SNR normalization. Each step is optional.
+    '''Pre-process the input video "bb" into an SNR video "network_input".
+        It applies spatial filter, temporal filter, and SNR normalization in sequance. 
+        Each step is optional.
 
     Inputs: 
-        bb: array storing the raw video.
+        bb (3D numpy.ndarray of float32, shape = (T0,Lx0f,Ly0f)): array storing the raw video.
         dimspad (tuplel of int, shape = (2,)): lateral dimension of the padded images.
-        network_input (3D empty numpy.ndarray of float32): empty array to store the SNR video.
+        network_input (3D empty numpy.ndarray of float32, shape = (T,Lx,Ly)): empty array to store the SNR video.
         med_frame2 (3D empty numpy.ndarray of float32, default to None): 
             empty array to store the median and median-based standard deviation.
         Poisson_filt (1D numpy.ndarray of float32, default to np.array([1])): The temporal filter kernel
-        bf(empty, default to None): array to store the complex spectrum for FFT.
-        fft_object_b(default to None): Object for forward FFT.
-        fft_object_c(default to None): Object for inverse FFT.
+        bf (empty, default to None): array to store the complex spectrum for FFT.
+        fft_object_b (default to None): Object for forward FFT.
+        fft_object_c (default to None): Object for inverse FFT.
         median_decimate (int, default to 1): Median and median-based standard deviation are 
             calculate from every "median_decimate" frames of the video
         useSF (bool, default to True): True if spatial filtering is used.
@@ -305,16 +306,15 @@ def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisso
 
 def preprocess_video(dir_video:str, Exp_ID:str, Params:dict, 
         dir_network_input:str = None, useSF=False, useTF=True, useSNR=True, prealloc=True, display=True):
-    '''Pre-process the registered video into an SNR video.
+    '''Pre-process the registered video "Exp_ID" in "dir_video" into an SNR video "network_input".
         The process includes spatial filter, temporal filter, and SNR normalization. Each step is optional.
-        The input video is stored under folder "dir_video". 
-        It does some preparations, including pre-allocating memory space (optional), FFT planing, 
+        The function does some preparations, including pre-allocating memory space (optional), FFT planing, 
         and setting filter kernels, before loading the video. 
 
     Inputs: 
         dir_video (str): The folder containing the input video.
+            Each file must be a ".h5" file, with dataset "mov" being the input video (shape = (T0,Lx0,Ly0)).
         Exp_ID (str): The filer name of the input video. 
-            The file must be a ".h5" file, with dataset "mov" being the input video (shape = (T0,Lx0,Ly0)).
         Params (dict): Parameters for pre-processing.
             Params['gauss_filt_size'] (float): The standard deviation of the spatial Gaussian filter in pixels
             Params['Poisson_filt'] (1D numpy.ndarray of float32): The temporal filter kernel
@@ -335,7 +335,7 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
             The shape is (T,Lx,Ly), where T is shorter than T0 due to temporal filtering, 
             and Lx and Ly are Lx0 and Ly0 padded to multiples of 8, so that the images can be process by the shallow U-Net.
         start (float): the starting time of the pipline (after the data is loaded into memory)
-        In addition, the SNR video is saved in "dir_network_input"
+        In addition, the SNR video is saved in "dir_network_input" as a "(Exp_ID).h5" file containing a dataset "network_input".
     '''
     nn = Params['nn']
     if useSF:

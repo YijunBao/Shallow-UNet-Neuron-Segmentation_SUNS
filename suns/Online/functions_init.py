@@ -45,6 +45,8 @@ def init_online(bb, dims, network_input, pmaps_b, fff, thresh_pmap_float, Params
     '''Process the initial part of a video into a list of segmented masks for every frame with statistics.
         It includes complete pre-processing, CNN inference, and a half of post-processing.
         The postprocessing includes the steps for each individual frame, but does not include temporal merging.
+        The outputs include "segs" containing the segmented masks for every frame with statistics, 
+        and "med_frame3" and "recent_frames" used for future frame-by-frame processing.
 
     Inputs: 
         bb(3D numpy.ndarray of float32): array storing the raw video.
