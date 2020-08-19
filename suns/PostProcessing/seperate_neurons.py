@@ -1,99 +1,76 @@
 import numpy as np
 import cv2
 from scipy import sparse
-from scipy import ndimage as ndi
-from skimage.morphology import watershed
-from skimage.feature import peak_local_max
+from skimage.segmentation import watershed
 
 
-def watershed_ski(seg: bool): # Watershed using skimage
-    dist_transform = cv2.distanceTransform(seg, cv2.DIST_L2, 0) # 0
-    local_maxi = peak_local_max(dist_transform, indices=False, footprint=np.ones((3, 3)), labels=seg)
-    markers = ndi.label(local_maxi)[0]  # ?
-    wt = watershed(-dist_transform, markers, mask=seg, watershed_line=True, connectivity=2).astype('uint8')  #
-    return wt
+def watershed_CV(img): 
+    '''Apply watershed from OpenCV to further segment the mask "img".
+        Adapted from [https://docs.opencv.org/master/d3/db4/tutorial_py_watershed.html]
 
+    Inputs: 
+        img (2D numpy.ndarray): the image to be segmented.
 
-def watershed_ski_nomarker(seg: bool): # Watershed using skimage
-    dist_transform = cv2.distanceTransform(seg, cv2.DIST_L2, 0) # 0
-    wt = watershed(-dist_transform, mask=seg, watershed_line=True, connectivity=2).astype('uint8')  #
-    return wt
-
-
-def watershed_CV(seg: bool): # Watershed using OpenCV
-    bw = 255 * seg.astype('uint8')
+    Outputs:
+        bw (2D numpy.ndarray of uint8): the segmented image after watershed. 
+            The boundary pixeles are marked as zero.
+    '''
+    bw = 255 * img.astype('uint8')
     kernel = np.ones((3, 3), np.uint8)
-    sure_bg = 255 - bw
-    dist = cv2.distanceTransform(bw, cv2.DIST_L2, 3) # 0
-    _, sure_fg = cv2.threshold(dist, 0.6 * dist.max(), 255, cv2.THRESH_BINARY)
-    sure_fg = cv2.erode(sure_fg, kernel, iterations=1).astype('uint8')
-    m = sure_bg + sure_fg
-    _, markers = cv2.connectedComponents(m.astype('uint8'))
-    mm = cv2.watershed(cv2.cvtColor(seg, cv2.COLOR_GRAY2RGB), markers)
-    bw[mm == -1] = 0
-    return bw
-
-def watershed_CV_dilate(seg: bool): # Watershed using OpenCV
-    bw = 255 * seg.astype('uint8')
-    kernel = np.ones((3, 3), np.uint8)
+    # noise removal
     opening = cv2.morphologyEx(bw, cv2.MORPH_OPEN, kernel, iterations=2)
-    sure_bg = 255 - cv2.dilate(opening, kernel, iterations=3)
-    dist = cv2.distanceTransform(bw, cv2.DIST_L2, 3) # 0
-    _, sure_fg = cv2.threshold(dist, 0.6 * dist.max(), 255, cv2.THRESH_BINARY)
-    sure_fg = cv2.erode(sure_fg, kernel, iterations=1).astype('uint8')
-    m = sure_bg + sure_fg
-    _, markers = cv2.connectedComponents(m.astype('uint8'))
-    mm = cv2.watershed(cv2.cvtColor(seg, cv2.COLOR_GRAY2RGB), markers)
-    bw[mm == -1] = 0
-    return bw
-
-def watershed_CV_dilate_unknown(seg: bool): # Watershed using OpenCV
-    bw = 255 * seg.astype('uint8')
-    kernel = np.ones((3, 3), np.uint8)
-    opening = cv2.morphologyEx(bw, cv2.MORPH_OPEN, kernel, iterations=2)
+    # sure background area
     sure_bg = cv2.dilate(opening, kernel, iterations=3)
-    dist = cv2.distanceTransform(bw, cv2.DIST_L2, 3) # 0
-    _, sure_fg = cv2.threshold(dist, 0.6 * dist.max(), 255, cv2.THRESH_BINARY)
+    # distance transform
+    dist = cv2.distanceTransform(bw, cv2.DIST_L2, 3)
+    # Finding sure foreground area
+    _, sure_fg = cv2.threshold(dist, 0.7 * dist.max(), 255, cv2.THRESH_BINARY)
     sure_fg = cv2.erode(sure_fg, kernel, iterations=1).astype('uint8')
+    # Finding unknown region
     unknown = cv2.subtract(sure_bg, sure_fg)    
-    _, markers = cv2.connectedComponents(sure_fg, connectivity=4)    
+    # Marker labelling
+    _, markers = cv2.connectedComponents(sure_fg, connectivity=4)  
+    # Add one to all labels so that sure background is not 0, but 1  
     markers = markers + 1    
+    # Now, mark the region of unknown with zero
     markers[unknown == 255] = 0
-    mm = cv2.watershed(cv2.cvtColor(seg, cv2.COLOR_GRAY2RGB), markers)
-    bw[mm == -1] = 0
-    return bw
-
-def watershed_CV_unknown(seg: bool): # Watershed using OpenCV
-    bw = 255 * seg.astype('uint8')
-    kernel = np.ones((3, 3), np.uint8)
-    sure_bg = bw
-    dist = cv2.distanceTransform(bw, cv2.DIST_L2, 3) # 0
-    _, sure_fg = cv2.threshold(dist, 0.6 * dist.max(), 255, cv2.THRESH_BINARY)
-    sure_fg = cv2.erode(sure_fg, kernel, iterations=1).astype('uint8')
-    unknown = cv2.subtract(sure_bg, sure_fg)    
-    _, markers = cv2.connectedComponents(sure_fg, connectivity=4)    
-    markers = markers + 1    
-    markers[unknown == 255] = 0
-    mm = cv2.watershed(cv2.cvtColor(seg, cv2.COLOR_GRAY2RGB), markers)
+    # Apply watershed with markers
+    mm = cv2.watershed(cv2.cvtColor(img, cv2.COLOR_GRAY2RGB), markers)
+    # The boundary pixeles are marked as -1. Now set these pixels in "bw" as 0.
     bw[mm == -1] = 0
     return bw
 
 
-def refineNeuron_WT(seg: bool, minArea, avgArea):
-    # wt = watershed_ski(seg)
-    # wt = watershed_ski_nomarker(seg)
-    # wt = watershed_CV(seg)
-    # wt = watershed_CV_dilate(seg)
-    wt = watershed_CV_dilate_unknown(seg)
-    # wt = watershed_CV_unknown(seg)
-    nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(wt, connectivity=4) #
-    tempstate = (nlabels <= 2)    
-    totalx, totaly, tempcent, temparea = [], [], [], []
-    #    neuron_cnt = []
+def refineNeuron_WT(img, minArea, avgArea):
+    '''Apply watershed to further segment the mask "img" that are larger than "avgArea".
+        The segmented neurons must be smaller than "minArea", otherwise they will be disgarded.
+        If all the segmented pieces are smaller than "minArea", then the watershed will be cancelled for this mask. 
+
+    Inputs: 
+        img (2D numpy.ndarray, shape = (lx,ly)): the image to be segmented.
+        minArea (int): Minimum area of a valid neuron mask (unit: pixels).
+        avgArea (int): The typical neuron area (unit: pixels). 
+            Neuron masks with areas larger than avgArea will be further segmented by watershed.
+
+    Outputs:
+        totalx (list of 1D numpy.ndarray of int): the x positions of the pixels of the segmented neuron masks.
+        totaly (list of 1D numpy.ndarray of int): the y positions of the pixels of the segmented neuron masks.
+        tempcent (list of 2D numpy.ndarray of float): COMs of the neuron masks.
+        tempstate (list of 1D numpy.ndarray of bool): Indicators of whether a neuron is obtained without watershed. 
+        temparea (list of 1D numpy.ndarray of int): Areas of the neuron masks.
+    '''
+    # Apply watershed
+    wt = watershed_CV(img)
+    # Segment the binary image into connected components with statistics
+    nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(wt, connectivity=4)
+    tempstate = (nlabels <= 2) # False if watershed segmentes the mask into multiple pieces.
+    totalx, totaly, tempcent, temparea = [], [], [], [] # output lists
     for k in range(1, nlabels):
         area_k = stats[k][4]
-        # if area_k > minArea:
         if (minArea < area_k <= avgArea) or (area_k > avgArea and tempstate):
+            # if the mask area is larger than "minArea" and smaller than "avgArea", 
+            # or if mask area is larger than "avgArea" but watershed has failed to further segment it,
+            # then add the mask into the output lists.
             neuronSegment = (labels == k)
             tempy, tempx = neuronSegment.nonzero()
             totalx.append(tempx)
@@ -101,52 +78,24 @@ def refineNeuron_WT(seg: bool, minArea, avgArea):
             tempcent.append(centroids[k, :])
             temparea.append(area_k)
         elif (area_k > avgArea) and not tempstate:
+            # if the mask area is larger than "avgArea", 
+            # and watershed has not been applied to this mask directly,
+            # then try to further segment it using watershed again,
+            # and add the result into the output lists. 
             neuronSegment = (labels == k)
-            tempxl, tempyl, centsl, _, areal = refineNeuron_WT(neuronSegment.astype('uint8'), minArea, avgArea) # , eng
+            tempxl, tempyl, centsl, _, areal = refineNeuron_WT(neuronSegment.astype('uint8'), minArea, avgArea)
             dcnt = len(centsl)
             if dcnt:
                 totalx = totalx + tempxl
                 totaly = totaly + tempyl
                 tempcent = tempcent + centsl
                 temparea = temparea + areal
+        # if the mask area is smaller than "minArea", or watershed cannot further segment it, keep the mask
 
-    return totalx, totaly, tempcent, tempstate, temparea
-
-
-def refineNeuron_WT_keep(seg: bool, minArea, avgArea):
-    # wt = watershed_ski(seg)
-    # wt = watershed_ski_nomarker(seg)
-    # wt = watershed_CV(seg)
-    # wt = watershed_CV_dilate(seg)
-    wt = watershed_CV_dilate_unknown(seg)
-    # wt = watershed_CV_unknown(seg)
-    nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(wt, connectivity=4) #
-    tempstate = (nlabels <= 2)    
-    totalx, totaly, tempcent, temparea = [], [], [], []
-    #    neuron_cnt = []
-    for k in range(1, nlabels):
-        area_k = stats[k][4]
-        # if area_k > minArea:
-        if (minArea < area_k <= avgArea) or (area_k > avgArea and tempstate):
-            neuronSegment = (labels == k)
-            tempy, tempx = neuronSegment.nonzero()
-            totalx.append(tempx)
-            totaly.append(tempy)
-            tempcent.append(centroids[k, :])
-            temparea.append(area_k)
-        elif (area_k > avgArea) and not tempstate:
-            neuronSegment = (labels == k)
-            tempxl, tempyl, centsl, _, areal = refineNeuron_WT_keep(neuronSegment.astype('uint8'), minArea, avgArea) # , eng
-            dcnt = len(centsl)
-            if dcnt:
-                totalx = totalx + tempxl
-                totaly = totaly + tempyl
-                tempcent = tempcent + centsl
-                temparea = temparea + areal
-
-    if not tempcent: # if all the cutted neurons are too small, then cancel watershed.
-        nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(seg, connectivity=4) #
-        # neuronSegment = (labels == 1)
+    if not tempcent: 
+        # if all the segmented neurons are smaller than "minArea", then cancel watershed,
+        # but mark "tempstate = True", warning that no more watershed is necessary. 
+        nlabels, labels, stats, centroids = cv2.connectedComponentsWithStats(img, connectivity=4)
         tempy, tempx = labels.nonzero()
         totalx.append(tempx)
         totaly.append(tempy)
@@ -166,8 +115,8 @@ def watershed_neurons(dims, frame_seg, minArea, avgArea):
     Inputs: 
         dims (tuple of int, shape = (2,)): the lateral shape of the region.
         frame_seg (a list of 4 elements): corresponding to the four outputs of this function, but before watershed.
-        minArea (float or int, default to 0): Minimum area of a valid neuron mask (unit: pixels).
-        avgArea (float or int, default to 0): The typical neuron area (unit: pixels). 
+        minArea (int, default to 0): Minimum area of a valid neuron mask (unit: pixels).
+        avgArea (int, default to 0): The typical neuron area (unit: pixels). 
             Neuron masks with areas larger than avgArea will be further segmented by watershed.
 
     Outputs:
@@ -199,7 +148,6 @@ def watershed_neurons(dims, frame_seg, minArea, avgArea):
                 
                 # Apply watershed to each mask, and create a series of possibly smaller masks
                 tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT(BW1, minArea, avgArea)
-                # tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT_keep(BW1, minArea, avgArea)
                 dcnt = len(tempcent)
                 if dcnt > 0:
                     # convert a 2D coordiate into a 1D index
@@ -246,8 +194,8 @@ def separate_neuron(img: np.array, thresh_pmap=None, minArea=0, avgArea=0, useWT
         img (2D numpy.ndarray of bool, uint8, uint16, int16, float32, or float64): the probablity map to be segmented.
         thresh_pmap (float or int, default to None): The probablity threshold. Values higher than thresh_pmap are active pixels. 
             if thresh_pmap==None, then thresholding is not performed. This is used when thresholding is done before this function.
-        minArea (float or int, default to 0): Minimum area of a valid neuron mask (unit: pixels).
-        avgArea (float or int, default to 0): The typical neuron area (unit: pixels). If watershed is used, 
+        minArea (int, default to 0): Minimum area of a valid neuron mask (unit: pixels).
+        avgArea (int, default to 0): The typical neuron area (unit: pixels). If watershed is used, 
             neuron masks with areas larger than avgArea will be further segmented by watershed.
         useWT (bool, default to False): Indicator of whether watershed is used. 
 
@@ -298,8 +246,8 @@ def separate_neuron(img: np.array, thresh_pmap=None, minArea=0, avgArea=0, useWT
                         BW1 = np.pad(BW1, ((1,0),(0,0)),'constant', constant_values=(0, 0))
                     if current_stat[1] + current_stat[3]==dims[0]:
                         BW1 = np.pad(BW1, ((0,1),(0,0)),'constant', constant_values=(0, 0))
+                    # Apply watershed to each mask, and create a series of possibly smaller masks
                     tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT(BW1.astype('uint8'), minArea, avgArea)
-                    # tempx1, tempy1, tempcent, tempstate, temparea = refineNeuron_WT_keep(BW1.astype('uint8'), minArea, avgArea)
                     
                     dcnt = len(tempcent) # Number of segmented pieces obtained by watershed
                     if dcnt > 0:
