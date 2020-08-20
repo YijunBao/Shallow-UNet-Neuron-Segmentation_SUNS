@@ -138,13 +138,13 @@ def refine_seperate_cons_online(times_temp, cons=1, have_cons=None):
         The output is the indicators of whether each neuron satisfies the requirement.
 
     Inputs: 
-        times_temp (list of 1D numpy.ndarray of int): indecis of frames when each neuron is active.
+        times_temp (list of 1D numpy.ndarray of int): indices of frames when each neuron is active.
         cons (int, default to 1): Minimum number of consecutive frames that a neuron should be active for.
-        have_cons (1D numpy.ndarray of bool, default to None): indecis of 
+        have_cons (1D numpy.ndarray of bool, default to None): indices of 
             whether each neuron satisfy consecutive frame requirement after the previous update.
 
     Outputs:
-        have_cons (1D numpy.ndarray of bool): indecis of 
+        have_cons (1D numpy.ndarray of bool): indices of 
             whether each neuron satisfy consecutive frame requirement after current update.
     '''
     if cons>1:
@@ -201,10 +201,10 @@ def merge_complete(segs, dims, Params):
         masks_final_2 (list of sparse.csr_matrix of float32, shape = (1,Lx*Ly)): 
             2D representation of each segmented real-number mask.
         times_final (list of 1D numpy.ndarray of int): 
-            indecis of frames when each neuron is active.
+            indices of frames when each neuron is active.
         area (1D numpy.ndarray of float32): areas of each mask.
         have_cons (1D numpy.ndarray of bool): 
-            indecis of whether each neuron satisfy consecutive frame requirement.
+            indices of whether each neuron satisfy consecutive frame requirement.
         The above outputs are often grouped into a tuple (shape = (5,)): 
             Segmented masks with statistics after update.
     '''
@@ -276,10 +276,10 @@ def merge_2(tuple1, tuple2, dims, Params):
         masks_merge (list of sparse.csr_matrix of float32, shape = (1,Lx*Ly)): 
             2D representation of each segmented real-number mask.
         times_merge (list of 1D numpy.ndarray of int): 
-            indecis of frames when each neuron is active.
+            indices of frames when each neuron is active.
         area_merge (1D numpy.ndarray of float32): areas of each mask.
         have_cons_merge (1D numpy.ndarray of bool): 
-            indecis of whether each neuron satisfy consecutive frame requirement.
+            indices of whether each neuron satisfy consecutive frame requirement.
         The above outputs are often grouped into a tuple (shape = (5,)): 
             Segmented masks with statistics after update.
     '''
@@ -393,10 +393,10 @@ def merge_2_nocons(tuple1, tuple2, dims, Params):
         masks_merge (list of sparse.csr_matrix of float32, shape = (1,Lx*Ly)): 
             2D representation of each segmented real-number mask.
         times_merge (list of 1D numpy.ndarray of int): 
-            indecis of frames when each neuron is active.
+            indices of frames when each neuron is active.
         area_merge (1D numpy.ndarray of float32): areas of each mask.
         have_cons_merge (1D numpy.ndarray of bool): 
-            indecis of whether each neuron satisfy consecutive frame requirement.
+            indices of whether each neuron satisfy consecutive frame requirement.
         The above outputs are often grouped into a tuple (shape = (5,)): 
             Segmented masks with statistics after update.
     '''

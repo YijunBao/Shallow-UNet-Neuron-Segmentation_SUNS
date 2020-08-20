@@ -11,7 +11,7 @@ def refine_seperate(masks_final_2, times_final, cons=1, thresh_mask=0.5, ThreshJ
 
     Inputs: 
         masks_final_2 (sparse.csr_matrix of float32): the segmented neuron masks. 
-        times_final (list of 1D numpy.array): indecis of frames when the neuron is active.
+        times_final (list of 1D numpy.array): indices of frames when the neuron is active.
         cons (int, default to 1): Minimum number of consecutive frames that a neuron should be active for.
         thresh_mask (float between 0 and 1, default to 0.5): Threashold to binarize the real-number mask.
             values higher than "thresh_mask" times the maximum value are set to be True.
@@ -51,7 +51,7 @@ def refine_seperate_multi(GTMasks_2, masks_final_2, times_final, list_cons, thre
     Inputs: 
         GTMasks_2 (sparse.csr_matrix): Ground truth masks.
         masks_final_2 (sparse.csr_matrix of float32): the segmented neuron masks. 
-        times_final (list of 1D numpy.array): indecis of frames when the neuron is active.
+        times_final (list of 1D numpy.array): indices of frames when the neuron is active.
         list_cons (list of int): A list of minimum number of consecutive frames that a neuron should be active for.
         thresh_mask (float between 0 and 1, default to 0.5): Threashold to binarize the real-number mask.
             values higher than "thresh_mask" times the maximum value are set to be True.

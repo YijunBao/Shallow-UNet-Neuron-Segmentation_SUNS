@@ -192,7 +192,7 @@ def parameter_optimization_pipeline(file_CNN, network_input, dims, \
 
 def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
         dims, dims1, dir_img, weights_path, dir_GTMasks, dir_temp, dir_output, \
-            batch_size_eval=1, useWT=False, useMP=True, load_exist=False):
+            batch_size_eval=1, useWT=False, useMP=True, load_exist=False, max_eid=None):
     '''The parameter optimization for a complete cross validation.
         For each cross validation, it uses "parameter_optimization_pipeline" to calculate 
         the recall, precision, and F1 of each training video over all parameter combinations from "Params_set",
@@ -230,6 +230,8 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         useWT (bool, default to False): Indicator of whether watershed is used. 
         useMP (bool, defaut to True): indicator of whether multiprocessing is used to speed up. 
         load_exist (bool, default to False): Indicator of whether previous F1 of various parameters are loaded. 
+        max_eid (int, default to None): The maximum index of video to process. 
+            If it is not None, this limits the number of processed video, so that the entire process can be split into multiple scripts. 
 
     Outputs:
         No output variable, but the recall, precision, and F1 of various parameters 
@@ -272,6 +274,9 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
 
     # %% start parameter optimization for each video with various CNN models
     for (eid,Exp_ID) in enumerate(list_Exp_ID):
+        if max_eid is not None:
+            if eid > max_eid:
+                continue
         list_saved_results = glob.glob(dir_temp+'Parameter Optimization * Exp{}.mat'.format(Exp_ID))
         p = mp.Pool(mp.cpu_count())
         if len(list_saved_results)<nvideo_train or not load_exist: 

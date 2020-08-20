@@ -139,7 +139,7 @@ def optimize_combine_1(uniques: sparse.csr_matrix, times_uniques: list, dims: tu
 
     Inputs: 
         uniques (sparse.csr_matrix of float32, shape = (n,Lx*Ly)): the neuron masks to be merged.
-        times_uniques (list of 1D numpy.array): indecis of frames when the neuron is active.
+        times_uniques (list of 1D numpy.array): indices of frames when the neuron is active.
         dims (tuple of int, shape = (2,)): the lateral shape of the image.
         Params (dict): Ranges of post-processing parameters to optimize over.
             Params['avgArea']: The typical neuron area (unit: pixels).
@@ -193,7 +193,7 @@ def optimize_combine_3(totalmasks, neuronstate, COMs, areas, probmapID, dims, mi
         neuronstate (1D numpy.array of bool, shape = (n,)): Indicators of whether a neuron is obtained without watershed.
         COMs (2D numpy.array of float, shape = (n,2)): COMs of the neurons.
         areas (1D numpy.array of uint32, shape = (n,)): Areas of the neurons. 
-        probmapID (1D numpy.array of uint32, shape = (n,): indecis of frames when the neuron is active. 
+        probmapID (1D numpy.array of uint32, shape = (n,): indices of frames when the neuron is active. 
         dims (tuple of int, shape = (2,)): the lateral shape of the region.
         minArea (float or int, default to 0): Minimum area of a valid neuron mask (unit: pixels).
         avgArea (float or int, default to 0): The typical neuron area (unit: pixels). 

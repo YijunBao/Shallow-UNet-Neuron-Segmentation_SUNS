@@ -1,5 +1,0 @@
-python PreProcessing_masks.py
-python train_float32.py
-python complete_inference_post.py
-python complete_inference_post_continue.py
-python complete_test.py

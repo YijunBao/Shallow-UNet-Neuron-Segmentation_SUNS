@@ -1,5 +1,0 @@
-python PreProcessing_NF.py
-python train_NF_1to1.py
-python inference_NF_1to1_online.py
-python parameter_optimization_NF_1to1_online.py
-python PostProcessing_NF_1to1_online.py

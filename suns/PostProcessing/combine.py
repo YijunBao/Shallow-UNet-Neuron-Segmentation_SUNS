@@ -18,7 +18,7 @@ def segs_results(segs: list):
         neuronstate (1D numpy.array of bool, shape = (n,)): Indicators of whether a neuron is obtained without watershed.
         COMs (2D numpy.array of float, shape = (n,2)): COMs of the neurons.
         areas (1D numpy.array of uint32, shape = (n,)): Areas of the neurons. 
-        probmapID (1D numpy.array of uint32, shape = (n,): indecis of frames when the neuron is active. 
+        probmapID (1D numpy.array of uint32, shape = (n,): indices of frames when the neuron is active. 
     '''
     totalmasks = sparse.vstack([x[0] for x in segs])
     neuronstate = np.hstack([x[1] for x in segs])
@@ -31,14 +31,14 @@ def segs_results(segs: list):
 def unique_neurons2_simp(totalmasks:sparse.csr_matrix, neuronstate:np.array, COMs:np.array, \
         areas:np.array, probmapID:np.array, minArea=0, thresh_COM0=0, useMP=True):
     '''Initally merge neurons with close COM (COM distance smaller than "thresh_COM0") by adding them together.
-        The outputs are the merged masks "uniques" and the indecis of frames when they are active "times".
+        The outputs are the merged masks "uniques" and the indices of frames when they are active "times".
 
     Inputs: 
         totalmasks (sparse.csr_matrix of float32, shape = (n,Lx*Ly)): the neuron masks to be merged.
         neuronstate (1D numpy.array of bool, shape = (n,)): Indicators of whether a neuron is obtained without watershed.
         COMs (2D numpy.array of float, shape = (n,2)): COMs of the neurons.
         areas (1D numpy.array of uint32, shape = (n,)): Areas of the neurons. 
-        probmapID (1D numpy.array of uint32, shape = (n,): indecis of frames when the neuron is active. 
+        probmapID (1D numpy.array of uint32, shape = (n,): indices of frames when the neuron is active. 
         minArea (float or int, default to 0): Minimum neuron area. 
         thresh_COM0 (float or int, default to 0): Threshold of COM distance. 
             Masks have COM distance smaller than "thresh_COM0" are considered the same neuron and will be merged.
@@ -46,7 +46,7 @@ def unique_neurons2_simp(totalmasks:sparse.csr_matrix, neuronstate:np.array, COM
 
     Outputs:
         uniques (sparse.csr_matrix): the neuron masks after merging. 
-        times (list of 1D numpy.array): indecis of frames when the neuron is active.
+        times (list of 1D numpy.array): indices of frames when the neuron is active.
     '''
     if minArea>0: # screen out neurons with very small area
         area_select = (areas > minArea)
@@ -83,8 +83,8 @@ def unique_neurons2_simp(totalmasks:sparse.csr_matrix, neuronstate:np.array, COM
                 keeplist[c] = True
                 cnt += 1
 
-        ind_row = np.hstack(rows).astype('int') # indecis of neurons merged to
-        ind_col = np.hstack(cols).astype('int') # indecis of neurons to be merged
+        ind_row = np.hstack(rows).astype('int') # indices of neurons merged to
+        ind_col = np.hstack(cols).astype('int') # indices of neurons to be merged
 
         val = np.ones(ind_row.size)
 
@@ -102,7 +102,7 @@ def unique_neurons2_simp(totalmasks:sparse.csr_matrix, neuronstate:np.array, COM
 def group_neurons(uniques: sparse.csr_matrix, thresh_COM, thresh_mask, dims: tuple, times: list, useMP=True):
     '''Further merge neurons with close COM (COM distance smaller than "thresh_COM") by adding them together. 
         The COM threshold is larger than that used in "unique_neurons2_simp". 
-        The outputs are the merged masks "uniqueout" and the indecis of frames when they are active "uniquetimes".
+        The outputs are the merged masks "uniqueout" and the indices of frames when they are active "uniquetimes".
 
     Inputs: 
         uniques (sparse.csr_matrix of float): the neuron masks to be merged.
@@ -111,12 +111,12 @@ def group_neurons(uniques: sparse.csr_matrix, thresh_COM, thresh_mask, dims: tup
         thresh_mask (float between 0 and 1): Threashold to binarize the real-number mask.
             values higher than "thresh_mask" times the maximum value are set to be True.
         dims (tuple of int, shape = (2,)): the lateral shape of the image.
-        times (list of 1D numpy.array): indecis of frames when the neuron is active. 
+        times (list of 1D numpy.array): indices of frames when the neuron is active. 
         useMP (bool, defaut to True): indicator of whether numba is used to speed up. 
 
     Outputs:
         uniqueout (sparse.csr_matrix): the neuron masks after merging. 
-        uniquetimes (list of 1D numpy.array): indecis of frames when the neuron is active.
+        uniquetimes (list of 1D numpy.array): indices of frames when the neuron is active.
     '''
     N = uniques.shape[0] # Number of current masks
     uniques_thresh = sparse.vstack([x >= x.max() * thresh_mask for x in uniques]) # binary masks
@@ -148,8 +148,8 @@ def group_neurons(uniques: sparse.csr_matrix, thresh_COM, thresh_mask, dims: tup
             keeplist[i] = True
             cnt += 1
 
-    ind_row = np.hstack(rows).astype('uint32') # indecis of neurons merged to
-    ind_col = np.hstack(cols).astype('uint32') # indecis of neurons to be merged
+    ind_row = np.hstack(rows).astype('uint32') # indices of neurons merged to
+    ind_col = np.hstack(cols).astype('uint32') # indices of neurons to be merged
 
     # If a mask is merged into multiple masks, keep only the one with the smallest COM distance
     ind_delete = []
@@ -169,14 +169,14 @@ def group_neurons(uniques: sparse.csr_matrix, thresh_COM, thresh_mask, dims: tup
     comb = sparse.csr_matrix((val, (ind_row, ind_col)), (N, N))
     comb = comb[keeplist]
     uniqueout = comb.dot(uniques) # Add merged neurons using sparse matrix multiplication
-    # merge active frame indecis
+    # merge active frame indices
     uniquetimes = [np.hstack([times[ind] for ind in comb[ii].toarray().nonzero()[1]]) for ii in range(cnt)]
     return uniqueout, uniquetimes
 
 
 def piece_neurons_IOU(neuronmasks: sparse.csr_matrix, thresh_mask, thresh_IOU, times: list):
     '''Merge neurons with high IoU (IoU > thresh_IOU) by adding them together.
-        The outputs are the merged masks "neuronmasks" and the indecis of frames when they are active "uniquetimes".
+        The outputs are the merged masks "neuronmasks" and the indices of frames when they are active "uniquetimes".
 
     Inputs: 
         neuronmasks (sparse.csr_matrix of float): the neuron masks to be merged.
@@ -184,11 +184,11 @@ def piece_neurons_IOU(neuronmasks: sparse.csr_matrix, thresh_mask, thresh_IOU, t
             values higher than "thresh_mask" times the maximum value are set to be True.
         thresh_IOU (float between 0 and 1): Threshold of IoU. 
             Masks have IoU higher than "thresh_IOU" are considered the same neuron and will be merged.
-        times (list of 1D numpy.array): indecis of frames when the neuron is active. 
+        times (list of 1D numpy.array): indices of frames when the neuron is active. 
 
     Outputs:
         neuronmasks (sparse.csr_matrix): the neuron masks after merging. 
-        uniquetimes (list of 1D numpy.array): indecis of frames when the neuron is active.
+        uniquetimes (list of 1D numpy.array): indices of frames when the neuron is active.
     '''
     uniquetimes = times.copy()
     N = neuronmasks.shape[0] # Number of current masks
@@ -202,8 +202,8 @@ def piece_neurons_IOU(neuronmasks: sparse.csr_matrix, thresh_mask, thresh_IOU, t
     area_u = a1 + a2 - area_i
     IOU = np.triu(area_i) / area_u # IOU matrix is semmetric, so keeping a half is sufficient
 
-    (x, y) = (IOU >= thresh_IOU).nonzero() # indecis of neuron pairs with high IOU
-    belongs = np.arange(N) # the indecis of neurons merged to. Initially they are just themselves.
+    (x, y) = (IOU >= thresh_IOU).nonzero() # indices of neuron pairs with high IOU
+    belongs = np.arange(N) # the indices of neurons merged to. Initially they are just themselves.
     for (xi, yi) in zip(x, y):
         xto = belongs[xi]
         yto = belongs[yi]
@@ -215,7 +215,7 @@ def piece_neurons_IOU(neuronmasks: sparse.csr_matrix, thresh_mask, thresh_IOU, t
             uniquetimes[addto] = np.hstack([uniquetimes[addfrom], uniquetimes[addto]]) # merge active time
             uniquetimes[addfrom] = np.array([], dtype='uint32')
 
-    remains = np.unique(belongs) # indecis of unique neurons after merging
+    remains = np.unique(belongs) # indices of unique neurons after merging
     comb = sparse.csr_matrix((np.ones(N), (belongs, np.arange(N))), (N, N))
     comb = comb[remains]
     neuronmasks = comb.dot(neuronmasks) # Add merged neurons using sparse matrix multiplication
@@ -227,7 +227,7 @@ def piece_neurons_IOU(neuronmasks: sparse.csr_matrix, thresh_mask, thresh_IOU, t
 def piece_neurons_consume(neuronmasks: sparse.csr_matrix, avgArea, thresh_mask, thresh_consume, times: list):
     '''Merge neurons with high consume (consume > thresh_consume) ratio. 
         If the larger neuron is larger than "avgArea", disgard it. Otherwise, add them together.
-        The outputs are the merged masks "neuronmasks" and the indecis of frames when they are active "uniquetimes".
+        The outputs are the merged masks "neuronmasks" and the indices of frames when they are active "uniquetimes".
 
     Inputs: 
         neuronmasks (sparse.csr_matrix of float): the neuron masks to be merged.
@@ -237,11 +237,11 @@ def piece_neurons_consume(neuronmasks: sparse.csr_matrix, avgArea, thresh_mask, 
             values higher than "thresh_mask" times the maximum value are set to be True.
         thresh_consume (float between 0 and 1): Threshold of consume ratio. 
             Masks have consume ratio higher than "thresh_consume" are considered the same neuron and will be merged.
-        times (list of 1D numpy.array): indecis of frames when the neuron is active.
+        times (list of 1D numpy.array): indices of frames when the neuron is active.
 
     Outputs:
         neuronmasks (sparse.csr_matrix): the neuron masks after merging. 
-        uniquetimes (list of 1D numpy.array): indecis of frames when the neuron is active.
+        uniquetimes (list of 1D numpy.array): indices of frames when the neuron is active.
     '''
     uniquetimes = times.copy()
     N = neuronmasks.shape[0] # Number of current masks
@@ -253,9 +253,9 @@ def piece_neurons_consume(neuronmasks: sparse.csr_matrix, avgArea, thresh_mask, 
     a2 = np.expand_dims(area, axis=0).repeat(N, axis=0)
     consume = area_i / a2
 
-    belongs = np.arange(N) # the indecis of neurons merged to. Initially they are just themselves.
+    belongs = np.arange(N) # the indices of neurons merged to. Initially they are just themselves.
     throw = 2 * N + 1 # used to indicate neurons that are ignored
-    (x, y) = (consume >= thresh_consume).nonzero() # indecis of neuron pairs with consume
+    (x, y) = (consume >= thresh_consume).nonzero() # indices of neuron pairs with consume
     for (xi, yi) in zip(x, y):
         area_x = area[xi]
         area_y = area[yi]
@@ -278,7 +278,7 @@ def piece_neurons_consume(neuronmasks: sparse.csr_matrix, avgArea, thresh_mask, 
                     uniquetimes[addto] = np.hstack([uniquetimes[addfrom], uniquetimes[addto]]) # merge active time
                     uniquetimes[addfrom] = np.array([], dtype='uint32')
 
-    keep = (belongs != throw).nonzero()[0] # indecis of unique neurons after merging
+    keep = (belongs != throw).nonzero()[0] # indices of unique neurons after merging
     comb = sparse.csr_matrix((np.ones(keep.size), (belongs[keep], np.arange(N)[keep])), (N, N))
     remains = np.setdiff1d(belongs, throw)
     comb = comb[remains]

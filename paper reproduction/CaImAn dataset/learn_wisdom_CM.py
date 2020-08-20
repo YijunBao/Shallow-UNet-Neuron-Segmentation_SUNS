@@ -13,7 +13,7 @@ list_nframes = [90000, 41000, 116043, 3000]
 if not os.path.exists(dir_wisdom):
     os.makedirs(dir_wisdom) 
 
-for ind_video in range(0,4): # 
+for ind_video in range(0,len(Dimens)): # 
     start = time.time()
     rows, cols = Dimens[ind_video] # lateral dimensions of the video
     # lateral dimensions slightly larger than the raw video but faster for FFT

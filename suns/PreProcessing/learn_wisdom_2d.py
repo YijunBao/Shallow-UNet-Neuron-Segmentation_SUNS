@@ -18,7 +18,7 @@ x = cv2.getOptimalDFTSize(rows)
 y = cv2.getOptimalDFTSize(cols)
 
 start1 = time.time()
-bb = pyfftw.empty_aligned((x, y), dtype='float32', n=8)
+bb = pyfftw.zeros_aligned((x, y), dtype='float32', n=8)
 bf = pyfftw.zeros_aligned((x, y//2+1), dtype='complex64', n=8)
 fft_object_b = pyfftw.FFTW(bb, bf,axes=(-2,-1),flags=('FFTW_MEASURE',), direction='FFTW_FORWARD',threads=mp.cpu_count())
 fft_object_c = pyfftw.FFTW(bf, bb,axes=(-2,-1),flags=('FFTW_MEASURE',), direction='FFTW_BACKWARD',threads=mp.cpu_count())

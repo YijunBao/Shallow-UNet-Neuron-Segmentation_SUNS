@@ -19,7 +19,7 @@ def merge_complete_nocons(uniques, times_uniques, dims, Params):
 
     Inputs: 
         uniques (sparse.csr_matrix): the neuron masks after the first COM merging. 
-        times_uniques (list of 1D numpy.array): indecis of frames when the neuron is active.
+        times_uniques (list of 1D numpy.array): indices of frames when the neuron is active.
         dims (tuple of int, shape = (2,)): lateral dimension of the image.
         Params_post (dict): Parameters for post-processing.
             Params['thresh_mask']: Threashold to binarize the real-number mask.
@@ -34,10 +34,10 @@ def merge_complete_nocons(uniques, times_uniques, dims, Params):
         masks_final_2 (list of sparse.csr_matrix of float32, shape = (1,Lx*Ly)): 
             2D representation of each segmented real-number mask.
         times_final (list of 1D numpy.ndarray of int): 
-            indecis of frames when each neuron is active.
+            indices of frames when each neuron is active.
         area (1D numpy.ndarray of float32): areas of each mask.
         have_cons (1D numpy.ndarray of bool): 
-            indecis of whether each neuron satisfy consecutive frame requirement.
+            indices of whether each neuron satisfy consecutive frame requirement.
         The above outputs are often grouped into a tuple (shape = (5,)): 
             Segmented masks with statistics after update.
     '''
@@ -92,7 +92,7 @@ def optimize_combine_1_online(list_uniques: list, list_times_uniques: list, dims
 
     Inputs: 
         list_uniques (list of sparse.csr_matrix of float32, shape = (merge_every,Lx*Ly)): the neuron masks to be merged.
-        list_times_uniques (list of list of 1D numpy.array, shape = (merge_every,)): indecis of frames when the neuron is active.
+        list_times_uniques (list of list of 1D numpy.array, shape = (merge_every,)): indices of frames when the neuron is active.
         dims (tuple of int, shape = (2,)): the lateral shape of the image.
         Params (dict): Ranges of post-processing parameters to optimize over.
             Params['thresh_mask']: (float) Threashold to binarize the real-number mask.
@@ -142,7 +142,7 @@ def optimize_combine_3_online(list_totalmasks, list_neuronstate, list_COMs, list
         list_neuronstate (list of 1D numpy.array of bool, shape = (merge_every,)): Indicators of whether a neuron is obtained without watershed.
         list_COMs (list of 2D numpy.array of float, shape = (merge_every,2)): COMs of the neurons.
         list_areas (list of 1D numpy.array of uint32, shape = (merge_every,)): Areas of the neurons. 
-        list_probmapID (list of 1D numpy.array of uint32, shape = (merge_every,): indecis of frames when the neuron is active. 
+        list_probmapID (list of 1D numpy.array of uint32, shape = (merge_every,): indices of frames when the neuron is active. 
         dims (tuple of int, shape = (2,)): the lateral shape of the region.
         minArea (float or int, default to 0): Minimum area of a valid neuron mask (unit: pixels).
         avgArea (float or int, default to 0): The typical neuron area (unit: pixels). 

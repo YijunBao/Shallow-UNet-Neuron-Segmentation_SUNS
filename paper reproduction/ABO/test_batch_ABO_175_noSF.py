@@ -8,7 +8,7 @@ import sys
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
 
-sys.path.insert(1, '..') # the path containing "suns" folder
+sys.path.insert(1, '..\\..') # the path containing "suns" folder
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     dir_video = 'E:\\ABO175\\20 percent\\' 
     dir_video_train = 'D:\\ABO\\20 percent\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = dir_video + 'Markings\\Layer175\\FinalGT\\FinalMasks_' 
+    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
     dir_parent = dir_video + 'complete\\' # folder to save all the processed data
     dir_parent_train = dir_video_train + 'complete\\' # folder to save all the processed data

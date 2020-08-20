@@ -55,7 +55,7 @@ if __name__ == '__main__':
         (rows, cols) = Dimens[ind_video] # size of the network input and output
         (Lx, Ly) = (rows, cols) # size of the original video
 
-        rate_hz = list_radius[ind_video] # frame rate of the video
+        rate_hz = list_rate_hz[ind_video] # frame rate of the video
         nframes = list_nframes[ind_video] # number of frames for each video
         Mag = list_Mag[ind_video] # spatial magnification compared to ABO videos.
         thred_std = list_thred_std[ind_video] # SNR threshold used to determine when neurons are active
