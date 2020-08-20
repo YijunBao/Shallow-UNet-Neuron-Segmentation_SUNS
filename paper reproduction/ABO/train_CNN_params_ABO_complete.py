@@ -21,16 +21,16 @@ from suns.train_CNN_params import train_CNN, parameter_optimization_cross_valida
 # %%
 if __name__ == '__main__':
     # %% setting parameters
-    rate_hz = 10 # frame rate of the video
-    Dimens = (120,88) # lateral dimensions of the video
-    nframes = 3000 # number of frames for each video
-    Mag = 6/8 # spatial magnification compared to ABO videos.
+    rate_hz = 30 # frame rate of the video
+    Dimens = (487,487) # lateral dimensions of the video
+    nframes = 23200 # number of frames for each video
+    Mag = 1 # spatial magnification compared to ABO videos.
 
-    thred_std = 3 # SNR threshold used to determine when neurons are active
-    num_train_per = 2400 # Number of frames per video used for training 
+    thred_std = 7 # SNR threshold used to determine when neurons are active
+    num_train_per = 200 # Number of frames per video used for training 
     BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
-    batch_size_eval = 100 # batch size in CNN inference
+    batch_size_eval = 200 # batch size in CNN inference
 
     useSF=True # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
@@ -43,15 +43,16 @@ if __name__ == '__main__':
     use_validation = True # True to use a validation set outside the training set
     # Cross-validation strategy. Can be "leave_one_out" or "train_1_test_rest"
     cross_validation = "leave_one_out"
-    Params_loss = {'DL':1, 'BCE':20, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
+    Params_loss = {'DL':1, 'BCE':0, 'FL':100, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
 
     # %% set folders
     # file names of the ".h5" files storing the raw videos. 
-    list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
+    list_Exp_ID = ['501484643','501574836','501729039','502608215','503109347',
+        '510214538','524691284','527048992','531006860','539670003']
     # folder of the raw videos
-    dir_video = 'data\\' 
+    dir_video = 'D:\\ABO\\20 percent\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
+    dir_GTMasks = dir_video + 'Markings\\Layer275\\FinalGT\\FinalMasks_' 
     dir_parent = dir_video + 'complete\\' # folder to save all the processed data
     dir_network_input = dir_parent + 'network_input\\' # folder of the SNR videos
     dir_mask = dir_parent + 'temporal_masks({})\\'.format(thred_std) # foldr to save the temporal masks
@@ -81,7 +82,7 @@ if __name__ == '__main__':
     gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
     num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
     list_thred_ratio = [thred_std] # A list of SNR threshold used to determine when neurons are active.
-    filename_TF_template = 'YST_spike_tempolate.h5'
+    filename_TF_template = 'GCaMP6f_spike_tempolate_mean.h5'
 
     h5f = h5py.File(filename_TF_template,'r')
     Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
@@ -92,11 +93,11 @@ if __name__ == '__main__':
 
     # %% set the range of post-processing hyper-parameters to be optimized in
     # minimum area of a neuron (unit: pixels in ABO videos). must be in ascend order
-    list_minArea = list(range(30,85,5)) 
+    list_minArea = list(range(80,135,10)) 
     # average area of a typical neuron (unit: pixels in ABO videos)
     list_avgArea = [177] 
     # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
-    list_thresh_pmap = list(range(130,235,10))
+    list_thresh_pmap = list(range(165,210,5))
     # threshold to binarize the neuron masks. For each mask, 
     # values higher than "thresh_mask" times the maximum value of the mask are set to one.
     thresh_mask = 0.5
@@ -136,22 +137,13 @@ if __name__ == '__main__':
         del video_input
 
     # %% CNN training
-    if cross_validation == "use_all":
-        list_CV = [nvideo]
-    else: 
-        list_CV = list(range(0,nvideo))
-    for CV in list_CV:
+    for CV in range(0,nvideo):
         if cross_validation == "leave_one_out":
             list_Exp_ID_train = list_Exp_ID.copy()
             list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
-        elif cross_validation == "train_1_test_rest":
+        else: # cross_validation == "train_1_test_rest"
             list_Exp_ID_val = list_Exp_ID.copy()
             list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
-        elif cross_validation == "use_all":
-            list_Exp_ID_val = None
-            list_Exp_ID_train = list_Exp_ID.copy() 
-        else:
-            raise('wrong "cross_validation"')
         if not use_validation:
             list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
         file_CNN = weights_path+'Model_CV{}.h5'.format(CV)

@@ -200,8 +200,11 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         The results are saved in "dir_temp" and "dir_output". 
 
     Inputs: 
-        cross_validation (str, can be "leave-one-out" or "train_1_test_rest"): 
-            Represent the cross validation is either "leave-one-out" cross validation or "train 1 test rest".
+        cross_validation (str, can be "leave-one-out", "train_1_test_rest", or "use_all"): 
+            Represent the cross validation type:
+                "leave-one-out" means training on all but one video and testing on that one video;
+                "train_1_test_rest" means training on one video and testing on the other videos;
+                "use_all" means training on all videos and testing on other videos not in the list.
         list_Exp_ID (list of str): The list of file names of all the videos. 
         Params_set (dict): Ranges of post-processing parameters to optimize over.
             Params_set['list_minArea']: (list) Range of minimum area of a valid neuron mask (unit: pixels).
@@ -236,8 +239,12 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
     nvideo = len(list_Exp_ID) # number of videos used for cross validation
     if cross_validation == "leave_one_out":
         nvideo_train = nvideo-1
-    else: # cross_validation == "train_1_test_rest"
+    elif cross_validation == "train_1_test_rest":
         nvideo_train = 1
+    elif cross_validation == 'use_all':
+        nvideo_train = nvideo
+    else:
+        raise('wrong "cross_validation"')
     (Lx, Ly) = dims
     (rows, cols) = dims1
 
@@ -250,8 +257,12 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
     thresh_mask = Params_set['thresh_mask']
     list_cons = Params_set['list_cons']
 
-    size_F1 = (nvideo,nvideo,len(list_minArea),len(list_avgArea),len(list_thresh_pmap),len(list_thresh_COM),len(list_thresh_IOU),len(list_cons))
-    # arrays to save the recall, precision, and F1 when different post-processing hyper-parameters are used.
+    if cross_validation == 'use_all':
+        size_F1 = (nvideo+1,nvideo,len(list_minArea),len(list_avgArea),len(list_thresh_pmap),len(list_thresh_COM),len(list_thresh_IOU),len(list_cons))
+        # arrays to save the recall, precision, and F1 when different post-processing hyper-parameters are used.
+    else:
+        size_F1 = (nvideo,nvideo,len(list_minArea),len(list_avgArea),len(list_thresh_pmap),len(list_thresh_COM),len(list_thresh_IOU),len(list_cons))
+
     F1_train = np.zeros(size_F1)
     Recall_train = np.zeros(size_F1)
     Precision_train = np.zeros(size_F1)
@@ -281,8 +292,10 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         if cross_validation == "leave_one_out":
             list_CV = list(range(nvideo))
             list_CV.pop(eid)
-        else: # cross_validation == "train_1_test_rest"
+        elif cross_validation == "train_1_test_rest":
             list_CV = [eid]
+        else: # cross_validation == 'use_all'
+            list_CV = [nvideo]
 
         for CV in list_CV:
             mat_filename = dir_temp+'Parameter Optimization CV{} Exp{}.mat'.format(CV,Exp_ID)
@@ -311,7 +324,11 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         p.close()
             
     # %% Find the optimal postprocessing parameters
-    for CV in range(nvideo):
+    if cross_validation == 'use_all':
+        list_CV = [nvideo]
+    else:
+        list_CV = list(range(nvideo))
+    for CV in list_CV:
         # calculate the mean recall, precision, and F1 of all the training videos
         Recall_mean = Recall_train[CV].mean(axis=0)*nvideo/nvideo_train
         Precision_mean = Precision_train[CV].mean(axis=0)*nvideo/nvideo_train
@@ -335,7 +352,7 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         print(Params)
         print('F1_mean=', F1_mean[ind])
 
-        # save the optimal hyper-parameters a ".mat" file
+        # save the optimal hyper-parameters to a ".mat" file
         Info_dict = {'Params_set':Params_set, 'Params':Params, 'Table': Table, \
             'Recall_train':Recall_train[CV], 'Precision_train':Precision_train[CV], 'F1_train':F1_train[CV]}
         savemat(dir_output+'Optimization_Info_{}.mat'.format(CV), Info_dict)

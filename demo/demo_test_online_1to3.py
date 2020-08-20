@@ -72,14 +72,15 @@ if __name__ == '__main__':
         'nn':nn, 'Poisson_filt': Poisson_filt}
 
     p = mp.Pool()
-    list_CV = list(range(0,4))
+    nvideo = len(list_Exp_ID)
+    list_CV = list(range(0,nvideo))
     num_CV = len(list_CV)
     # arrays to save the recall, precision, F1, total processing time, and average processing time per frame
-    list_Recall = np.zeros((num_CV, num_CV, 1))
-    list_Precision = np.zeros((num_CV, num_CV, 1))
-    list_F1 = np.zeros((num_CV, num_CV, 1))
-    list_time = np.zeros((num_CV, num_CV, 3))
-    list_time_frame = np.zeros((num_CV, num_CV, 3))
+    list_Recall = np.zeros((num_CV, nvideo, 1))
+    list_Precision = np.zeros((num_CV, nvideo, 1))
+    list_F1 = np.zeros((num_CV, nvideo, 1))
+    list_time = np.zeros((num_CV, nvideo, 4))
+    list_time_frame = np.zeros((num_CV, nvideo, 4))
 
 
     for CV in list_CV:

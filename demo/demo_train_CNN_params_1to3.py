@@ -136,13 +136,22 @@ if __name__ == '__main__':
         del video_input
 
     # %% CNN training
-    for CV in range(0,nvideo):
+    if cross_validation == "use_all":
+        list_CV = [nvideo]
+    else: 
+        list_CV = list(range(0,nvideo))
+    for CV in list_CV:
         if cross_validation == "leave_one_out":
             list_Exp_ID_train = list_Exp_ID.copy()
             list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
-        else: # cross_validation == "train_1_test_rest"
+        elif cross_validation == "train_1_test_rest":
             list_Exp_ID_val = list_Exp_ID.copy()
             list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
+        elif cross_validation == "use_all":
+            list_Exp_ID_val = None
+            list_Exp_ID_train = list_Exp_ID.copy() 
+        else:
+            raise('wrong "cross_validation"')
         if not use_validation:
             list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
         file_CNN = weights_path+'Model_CV{}.h5'.format(CV)
