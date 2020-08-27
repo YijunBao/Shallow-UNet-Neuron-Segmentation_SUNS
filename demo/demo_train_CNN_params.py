@@ -17,6 +17,11 @@ from suns.PreProcessing.preprocessing_functions import preprocess_video
 from suns.PreProcessing.generate_masks import generate_masks
 from suns.train_CNN_params import train_CNN, parameter_optimization_cross_validation
 
+# Import tensorflow as tf
+# Config = tf.ConfigProto()
+# Config.gpu_options.allow_growth = True
+# Sess = tf.Session(config = config)
+
 
 # %%
 if __name__ == '__main__':
@@ -99,7 +104,7 @@ if __name__ == '__main__':
     list_thresh_pmap = list(range(130,235,10))
     # threshold to binarize the neuron masks. For each mask, 
     # values higher than "thresh_mask" times the maximum value of the mask are set to one.
-    thresh_mask = 0.5
+    thresh_mask = 0.2
     # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels in ABO videos)
     thresh_COM0 = 2
     # maximum COM distance of two masks to be considered the same neuron (unit: pixels in ABO videos)
