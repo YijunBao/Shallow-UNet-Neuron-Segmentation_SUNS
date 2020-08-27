@@ -104,7 +104,7 @@ if __name__ == '__main__':
     list_thresh_pmap = list(range(130,235,10))
     # threshold to binarize the neuron masks. For each mask, 
     # values higher than "thresh_mask" times the maximum value of the mask are set to one.
-    thresh_mask = 0.2
+    thresh_mask = 0.5
     # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels in ABO videos)
     thresh_COM0 = 2
     # maximum COM distance of two masks to be considered the same neuron (unit: pixels in ABO videos)
