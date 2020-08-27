@@ -86,15 +86,15 @@ if __name__ == '__main__':
             num_total = nframes # number of frames of the video
 
             # %% pre-processing parameters
+            merge_every = rate_hz # number of frames every merge
+            frames_init = 30 * rate_hz # number of frames used for initialization
+            batch_size_init = 100 # batch size in CNN inference during initalization
+
             nn = nframes
             gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
             num_median_approx = frames_init # number of frames used to caluclate median and median-based standard deviation
             # dims = (Lx, Ly) = Dimens # lateral dimensions of the video
             filename_TF_template = 'GCaMP6s_spike_tempolate_mean.h5' # file name of the temporal filter kernel
-
-            merge_every = rate_hz # number of frames every merge
-            frames_init = 30 * rate_hz # number of frames used for initialization
-            batch_size_init = 100 # batch size in CNN inference during initalization
 
             if useTF:
                 h5f = h5py.File(filename_TF_template,'r')

@@ -8,6 +8,7 @@ import numpy as np
 import h5py
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
+from shutil import copyfile
 
 sys.path.insert(1, '..\\..') # the path containing "suns" folder
 os.environ['KERAS_BACKEND'] = 'tensorflow'
@@ -44,12 +45,12 @@ if __name__ == '__main__':
             # Not needed in training.
     useWT=False # True if using additional watershed
     load_exist=False # True if using temp files already saved in the folders
-    use_validation = True # True to use a validation set outside the training set
+    use_validation = False # True to use a validation set outside the training set
     # Cross-validation strategy. Can be "leave_one_out" or "train_1_test_rest"
-    cross_validation = "leave_one_out"
+    cross_validation = "train_1_test_rest"
     Params_loss = {'DL':1, 'BCE':1, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
 
-    for trainset_type in {'train', 'test'}: # 
+    for trainset_type in {'train', 'test'}: # 'train', 'test'
         # valset_type = list({'train','test'}-{trainset_type})[0]
         # %% set folders
         if trainset_type == 'train':
@@ -175,8 +176,10 @@ if __name__ == '__main__':
             list_Exp_ID_train = [Exp_ID]
             list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
             file_CNN = weights_path+'Model_{}.h5'.format(Exp_ID)
+            file_CNN_2 = weights_path+'Model_CV0.h5'
             results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
                 BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rows, cols), Params_loss)
+            copyfile(file_CNN, file_CNN_2)
 
             # save training and validation loss after each eopch
             f = h5py.File(training_output_path+"training_output_{}.h5".format(Exp_ID), "w")
@@ -188,10 +191,11 @@ if __name__ == '__main__':
             f.close()
 
             # %% parameter optimization
-            parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
+            parameter_optimization_cross_validation(cross_validation, list_Exp_ID_train, Params_set, \
                 (Lx, Ly), (rows, cols), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
                 batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist)
             # rename 'Optimization_Info_{}.mat'
-            Info_dict = loadmat(dir_output+'Optimization_Info_{}.mat'.format(0))
-            savemat(dir_output+'Optimization_Info_{}.mat'.format(Exp_ID), Info_dict)
+            # Info_dict = loadmat(dir_output+'Optimization_Info_{}.mat'.format(0))
+            # savemat(dir_output+'Optimization_Info_{}.mat'.format(Exp_ID), Info_dict)
+            copyfile(dir_output+'Optimization_Info_{}.mat'.format(0), dir_output+'Optimization_Info_{}.mat'.format(Exp_ID))
 

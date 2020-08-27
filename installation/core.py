@@ -119,7 +119,7 @@ def separate_func(inputs):
         X, method, maxiter=20000, tol=1e-4, maxtries=1, alpha=alpha
     )
     ROInum = inputs[3]
-    # print('Finished ROI number ' + str(ROInum))
+    print('Finished ROI number ' + str(ROInum))
     return Xsep, Xmatch, Xmixmat, convergence
 
 
