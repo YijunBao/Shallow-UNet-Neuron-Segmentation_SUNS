@@ -287,6 +287,8 @@ def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisso
     
     if useSF: # Homomorphic spatial filtering based on FFT
         spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2, display=display)
+    # if not prealloc:
+    #     del bf
 
     if useTF: # Temporal filtering
         temporal_filtering(bb[:, :rowspad, :colspad], network_input, Poisson_filt, display=display)
@@ -391,9 +393,9 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     else:
         nframesf = nframes
     if prealloc:
-        med_frame2 = np.ones((rows, cols, 2), dtype='float32')
+        med_frame2 = np.ones((rowspad, colspad, 2), dtype='float32')
     else:
-        med_frame2 = np.zeros((rows, cols, 2), dtype='float32')
+        med_frame2 = np.zeros((rowspad, colspad, 2), dtype='float32')
     median_decimate = max(1,nframes//num_median_approx)
     if display:
         end_init = time.time()

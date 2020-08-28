@@ -86,8 +86,8 @@ if __name__ == '__main__':
             num_total = nframes # number of frames of the video
 
             # %% pre-processing parameters
-            merge_every = rate_hz # number of frames every merge
-            frames_init = 30 * rate_hz # number of frames used for initialization
+            merge_every = 10 # number of frames every merge
+            frames_init = 300 # number of frames used for initialization
             batch_size_init = 100 # batch size in CNN inference during initalization
 
             nn = nframes

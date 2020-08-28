@@ -23,7 +23,10 @@ if __name__ == '__main__':
     # %% setting parameters
     rate_hz = 30 # frame rate of the video
     Dimens = (487,487) # lateral dimensions of the video
-    nframes = 23200 # number of frames for each video
+    nn = 23200 # number of frames used for preprocessing. 
+        # Can be slightly larger than the number of frames of a video
+    num_total = 23000 # number of frames used for CNN training. 
+        # Can be slightly smaller than the number of frames of a video
     Mag = 1 # spatial magnification compared to ABO videos.
 
     thred_std = 6 # SNR threshold used to determine when neurons are active
@@ -73,12 +76,11 @@ if __name__ == '__main__':
         os.makedirs(dir_temp) 
 
     nvideo = len(list_Exp_ID) # number of videos used for cross validation
-    (rows, cols) = Dimens # size of the network input and output
-    (Lx, Ly) = (rows, cols) # size of the original video
-    num_total = nframes # number of frames of the video
+    (rows, cols) = Dimens # size of the original video
+    rowspad = math.ceil(rows/8)*8  # size of the network input and output
+    colspad = math.ceil(cols/8)*8
 
     # %% set pre-processing parameters
-    nn = nframes
     gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
     num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
     list_thred_ratio = [thred_std] # A list of SNR threshold used to determine when neurons are active.
@@ -142,7 +144,7 @@ if __name__ == '__main__':
         list_Exp_ID_val = None # get rid of validation steps
         file_CNN = weights_path+'Model_CV{}.h5'.format(CV)
         results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
-            BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rows, cols), Params_loss)
+            BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rowspad, colspad), Params_loss)
 
         # save training and validation loss after each eopch
         f = h5py.File(training_output_path+"training_output_CV{}.h5".format(CV), "w")
@@ -155,5 +157,5 @@ if __name__ == '__main__':
 
     # %% parameter optimization
     parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
-        (Lx, Ly), (rows, cols), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
+        (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
         batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist)

@@ -19,7 +19,8 @@ from suns.run_suns import suns_batch
 if __name__ == '__main__':
     # %% setting parameters
     Dimens = (487,487) # lateral dimensions of the video
-    nframes = 23200 # number of frames for each video
+    nframes = 23200 # number of frames used for preprocessing. 
+        # Can be slightly larger than the number of frames of a video
     Mag = 1 # spatial magnification compared to ABO videos.
 
     useSF=False # True if spatial filtering is used in pre-processing.

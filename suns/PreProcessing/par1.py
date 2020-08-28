@@ -66,9 +66,9 @@ def fastconv(a,b,f):
         b(numpy.ndarray of float32, shape = (T-nt+1,Lx,Ly)): the output video, convolution of a and f
     '''
     lf = len(f)
-    for i in prange(a.shape[0]-lf+1):
-        for j in prange(a.shape[1]):
-            for k in prange(a.shape[2]):
+    for i in prange(b.shape[0]):
+        for j in prange(b.shape[1]):
+            for k in prange(b.shape[2]):
                 temp = 0
                 for l in prange(lf):
                     temp += a[i+l,j,k]*f[l]

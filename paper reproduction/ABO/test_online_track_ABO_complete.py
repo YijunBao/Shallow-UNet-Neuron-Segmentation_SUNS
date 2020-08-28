@@ -22,7 +22,8 @@ if __name__ == '__main__':
     # %% setting parameters
     rate_hz = 30 # frame rate of the video
     Dimens = (487,487) # lateral dimensions of the video
-    nframes = 23200 # number of frames for each video
+    nframes = 23200 # number of frames used for preprocessing. 
+        # Can be slightly larger than the number of frames of a video
     Mag = 1 # spatial magnification compared to ABO videos.
 
     useSF=True # True if spatial filtering is used in pre-processing.
