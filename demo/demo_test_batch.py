@@ -25,7 +25,8 @@ from suns.run_suns import suns_batch
 if __name__ == '__main__':
     # %% setting parameters
     Dimens = (120,88) # lateral dimensions of the video
-    nframes = 3000 # number of frames for each video
+    nn = 3000 # number of frames used for preprocessing. 
+        # Can be slightly larger than the number of frames of a video
     Mag = 6/8 # spatial magnification compared to ABO videos.
 
     useSF=True # True if spatial filtering is used in pre-processing.
@@ -52,7 +53,6 @@ if __name__ == '__main__':
         os.makedirs(dir_output) 
 
     # %% pre-processing parameters
-    nn = nframes
     gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
     num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
     dims = (Lx, Ly) = Dimens # lateral dimensions of the video

@@ -5,6 +5,7 @@ import random
 import time
 import glob
 import numpy as np
+import math
 import h5py
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
@@ -52,8 +53,8 @@ if __name__ == '__main__':
         # %% setting parameters
         name_video = list_name_video[ind_video]
         list_Exp_ID = [name_video+x for x in ID_part]
-        (rows, cols) = Dimens[ind_video] # size of the network input and output
-        (Lx, Ly) = (rows, cols) # size of the original video
+        (rows, cols) = Dimens[ind_video] # size of the original video
+        (rowspad, colspad) = (rows, cols) # size of the network input and output
 
         rate_hz = list_rate_hz[ind_video] # frame rate of the video
         nframes = list_nframes[ind_video] # number of frames for each video
@@ -156,7 +157,7 @@ if __name__ == '__main__':
                 list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
             file_CNN = weights_path+'Model_CV{}.h5'.format(CV)
             results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
-                BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rows, cols), Params_loss)
+                BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rowspad, colspad), Params_loss)
 
             # save training and validation loss after each eopch
             f = h5py.File(training_output_path+"training_output_CV{}.h5".format(CV), "w")
@@ -168,5 +169,5 @@ if __name__ == '__main__':
 
         # %% parameter optimization
         parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
-            (Lx, Ly), (rows, cols), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
+            (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
             batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist)

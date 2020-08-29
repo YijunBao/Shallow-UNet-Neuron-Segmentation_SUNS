@@ -1,4 +1,3 @@
-import cv2
 import math
 import numpy as np
 import time
@@ -53,7 +52,7 @@ def generate_masks(network_input:np.array, file_mask:str, list_thred_ratio:list,
     # Use FISSA to calculate the decontaminated traces of neural activities. 
     folder_FISSA = dir_save + 'FISSA'    
     start = time.time()
-    experiment = fissa.Experiment([network_input], [rois.tolist()], folder_FISSA)
+    experiment = fissa.Experiment([network_input], [rois.tolist()], folder_FISSA, ncores_preparation=1)
     experiment.separation_prep(redo=True)
     prep = time.time()
     
@@ -140,6 +139,8 @@ def generate_masks_from_traces(file_mask:str, list_thred_ratio:list, dir_save:st
         mat = loadmat(file_mask)
         rois = np.array(mat["FinalMasks"]).transpose([2,1,0])
     (_, rows, cols) = rois.shape
+    rowspad = math.ceil(rows/8)*8  # size of the network input and output
+    colspad = math.ceil(cols/8)*8
 
     # %% Extract raw and unmixed traces from the saved ".h5" file
     dir_trace = dir_save+"traces\\"

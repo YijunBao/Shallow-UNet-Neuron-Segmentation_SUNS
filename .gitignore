@@ -8,3 +8,4 @@ demo/FISSA
 *.html
 *.asv
 *.txt
+demo/demo_train_pre.py
