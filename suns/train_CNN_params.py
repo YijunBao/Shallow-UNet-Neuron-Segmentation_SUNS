@@ -82,11 +82,11 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
     # Select training images: for each video, start from frame "start_frame", 
     # select a frame every "train_every" frames, totally "train_val_per" frames  
     for cnt, Exp_ID in enumerate(list_Exp_ID_train):
-        h5_img = h5py.File(dir_img+Exp_ID+'.h5', 'r')
+        h5_img = h5py.File(os.path.join(dir_img, Exp_ID+'.h5'), 'r')
         train_imgs[cnt*num_train_per:(cnt+1)*num_train_per,:,:] \
             = np.array(h5_img['network_input'][start_frame_train:train_every*num_train_per:train_every])
         h5_img.close()
-        h5_mask = h5py.File(dir_mask+Exp_ID+'.h5', 'r')
+        h5_mask = h5py.File(os.path.join(dir_mask, Exp_ID+'.h5'), 'r')
         train_masks[cnt*num_train_per:(cnt+1)*num_train_per,:,:] \
             = np.array(h5_mask['temporal_masks'][start_frame_train:train_every*num_train_per:train_every])
         h5_mask.close()
@@ -95,11 +95,11 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
         # Select validation images: for each video, start from frame "start_frame", 
         # select a frame every "val_every" frames, totally "num_val_per" frames  
         for cnt, Exp_ID in enumerate(list_Exp_ID_val):
-            h5_img = h5py.File(dir_img+Exp_ID+'.h5', 'r')
+            h5_img = h5py.File(os.path.join(dir_img, Exp_ID+'.h5'), 'r')
             val_imgs[cnt*num_val_per:(cnt+1)*num_val_per,:,:] \
                 = np.array(h5_img['network_input'][start_frame_val:val_every*num_val_per:val_every])
             h5_img.close()
-            h5_mask = h5py.File(dir_mask+Exp_ID+'.h5', 'r')
+            h5_mask = h5py.File(os.path.join(dir_mask, Exp_ID+'.h5'), 'r')
             val_masks[cnt*num_val_per:(cnt+1)*num_val_per,:,:] \
                 = np.array(h5_mask['temporal_masks'][start_frame_val:val_every*num_val_per:val_every])
             h5_mask.close()
@@ -277,14 +277,14 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         if max_eid is not None:
             if eid > max_eid:
                 continue
-        list_saved_results = glob.glob(dir_temp+'Parameter Optimization * Exp{}.mat'.format(Exp_ID))
+        list_saved_results = glob.glob(os.path.join(dir_temp, 'Parameter Optimization * Exp{}.mat'.format(Exp_ID)))
         p = mp.Pool(mp.cpu_count())
         if len(list_saved_results)<nvideo_train or not load_exist: 
             # load SNR videos as "network_input"
             network_input = 0
             print('Video '+Exp_ID)
             start = time.time()
-            h5_img = h5py.File(dir_img+Exp_ID+'.h5', 'r')
+            h5_img = h5py.File(os.path.join(dir_img, Exp_ID+'.h5'), 'r')
             nframes = h5_img['network_input'].shape[0]
             network_input = np.zeros((nframes, rows, cols, 1), dtype='float32')
             for t in range(nframes):
@@ -303,7 +303,7 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
             list_CV = [nvideo]
 
         for CV in list_CV:
-            mat_filename = dir_temp+'Parameter Optimization CV{} Exp{}.mat'.format(CV,Exp_ID)
+            mat_filename = os.path.join(dir_temp, 'Parameter Optimization CV{} Exp{}.mat'.format(CV,Exp_ID))
             if os.path.exists(mat_filename) and load_exist: 
                 # if the temporary output file already exists, load it
                 mdict = loadmat(mat_filename)
@@ -313,7 +313,7 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         
             else: # Calculate recall, precision, and F1 for various parameters
                 start = time.time()
-                file_CNN = weights_path+'Model_CV{}.h5'.format(CV)
+                file_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV))
                 list_Recall, list_Precision, list_F1 = parameter_optimization_pipeline(
                     file_CNN, network_input, (Lx,Ly), Params_set, filename_GT, batch_size_eval, useWT=useWT, useMP=useMP, p=p)
                 
@@ -360,5 +360,5 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         # save the optimal hyper-parameters to a ".mat" file
         Info_dict = {'Params_set':Params_set, 'Params':Params, 'Table': Table, \
             'Recall_train':Recall_train[CV], 'Precision_train':Precision_train[CV], 'F1_train':F1_train[CV]}
-        savemat(dir_output+'Optimization_Info_{}.mat'.format(CV), Info_dict)
+        savemat(os.path.join(dir_output, 'Optimization_Info_{}.mat'.format(CV)), Info_dict)
 

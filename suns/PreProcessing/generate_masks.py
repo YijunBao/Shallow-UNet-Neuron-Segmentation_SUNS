@@ -50,7 +50,7 @@ def generate_masks(network_input:np.array, file_mask:str, list_thred_ratio:list,
     network_input = network_input[:, :rows, :cols]
 
     # Use FISSA to calculate the decontaminated traces of neural activities. 
-    folder_FISSA = dir_save + 'FISSA'    
+    folder_FISSA = os.path.join(dir_save, 'FISSA')    
     start = time.time()
     experiment = fissa.Experiment([network_input], [rois.tolist()], folder_FISSA, ncores_preparation=1)
     experiment.separation_prep(redo=True)
@@ -70,10 +70,10 @@ def generate_masks(network_input:np.array, file_mask:str, list_thred_ratio:list,
     del experiment
 
     # Save the raw and unmixed traces into a ".h5" file under folder "dir_trace".
-    dir_trace = dir_save+"traces\\"
+    dir_trace = os.path.join(dir_save, "traces")
     if not os.path.exists(dir_trace):
         os.makedirs(dir_trace)        
-    f = h5py.File(dir_trace+Exp_ID+".h5", "w")
+    f = h5py.File(os.path.join(dir_trace, Exp_ID+".h5"), "w")
     f.create_dataset("raw_traces", data = raw_traces)
     f.create_dataset("unmixed_traces", data = unmixed_traces)
     f.close()
@@ -102,10 +102,10 @@ def generate_masks(network_input:np.array, file_mask:str, list_thred_ratio:list,
         print('Mask creation: {} s'.format(end_mask-start_mask))
 
         # Save temporal masks in "dir_save" in a ".h5" file
-        dir_temporal_masks = dir_save+"temporal_masks({})\\".format(thred_ratio)
+        dir_temporal_masks = os.path.join(dir_save, "temporal_masks({})".format(thred_ratio))
         if not os.path.exists(dir_temporal_masks):
             os.makedirs(dir_temporal_masks) 
-        f = h5py.File(dir_temporal_masks+Exp_ID+".h5", "w")
+        f = h5py.File(os.path.join(dir_temporal_masks, Exp_ID+".h5"), "w")
         f.create_dataset("temporal_masks", data = temporal_masks)
         f.close()
         end_saving = time.time()
@@ -143,8 +143,8 @@ def generate_masks_from_traces(file_mask:str, list_thred_ratio:list, dir_save:st
     colspad = math.ceil(cols/8)*8
 
     # %% Extract raw and unmixed traces from the saved ".h5" file
-    dir_trace = dir_save+"traces\\"
-    f = h5py.File(dir_trace+Exp_ID+".h5", "r")
+    dir_trace = os.path.join(dir_save, "traces")
+    f = h5py.File(os.path.join(dir_trace, Exp_ID+".h5"), "r")
     raw_traces = np.array(f["raw_traces"])
     unmixed_traces = np.array(f["unmixed_traces"])
     f.close()
@@ -174,10 +174,10 @@ def generate_masks_from_traces(file_mask:str, list_thred_ratio:list, dir_save:st
         print('Mask creation: {} s'.format(end_mask-start_mask))
 
         # Save temporal masks in "dir_save" in a ".h5" file
-        dir_temporal_masks = dir_save+"temporal_masks({})\\".format(thred_ratio)
+        dir_temporal_masks = os.path.join(dir_save, "temporal_masks({})".format(thred_ratio))
         if not os.path.exists(dir_temporal_masks):
             os.makedirs(dir_temporal_masks) 
-        f = h5py.File(dir_temporal_masks+Exp_ID+".h5", "w")
+        f = h5py.File(os.path.join(dir_temporal_masks, Exp_ID+".h5"), "w")
         f.create_dataset("temporal_masks", data = temporal_masks)
         f.close()
         end_saving = time.time()

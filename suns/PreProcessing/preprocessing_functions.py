@@ -347,7 +347,7 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     if useSNR:
         num_median_approx = Params['num_median_approx']
 
-    h5_video = dir_video + Exp_ID + '.h5'
+    h5_video = os.path.join(dir_video, Exp_ID + '.h5')
     h5_file = h5py.File(h5_video,'r')
     (nframes, rows, cols) = h5_file['mov'].shape
     # Make the lateral number of pixels a multiple of 8, so that the CNN can process them 
@@ -423,7 +423,7 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
 
     # if "dir_network_input" is not None, save network_input to an ".h5" file
     if dir_network_input:
-        f = h5py.File(dir_network_input+Exp_ID+".h5", "w")
+        f = h5py.File(os.path.join(dir_network_input, Exp_ID+".h5"), "w")
         f.create_dataset("network_input", data = network_input)
         f.close()
         if display:

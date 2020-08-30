@@ -41,14 +41,14 @@ if __name__ == '__main__':
     # file names of the ".h5" files storing the raw videos. 
     list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
     # folder of the raw videos
-    dir_video = 'data\\' 
-    # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
+    dir_video = 'data' 
+    # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
+    dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
 
-    dir_parent = dir_video + 'complete\\' # folder to save all the processed data
-    dir_output = dir_parent + 'output_masks\\' # folder to save the segmented masks and the performance scores
-    dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
-    weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
+    dir_parent = os.path.join(dir_video, 'complete') # folder to save all the processed data
+    dir_output = os.path.join(dir_parent, 'output_masks') # folder to save the segmented masks and the performance scores
+    dir_params = os.path.join(dir_parent, 'output_masks') # folder of the optimized hyper-parameters
+    weights_path = os.path.join(dir_parent, 'Weights') # folder of the trained CNN
     if not os.path.exists(dir_output):
         os.makedirs(dir_output) 
 
@@ -80,10 +80,10 @@ if __name__ == '__main__':
     for CV in list_CV:
         Exp_ID = list_Exp_ID[CV]
         print('Video ', Exp_ID)
-        filename_CNN = weights_path+'Model_CV{}.h5'.format(CV) # The path of the CNN model.
+        filename_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV)) # The path of the CNN model.
 
         # load optimal post-processing parameters
-        Optimization_Info = loadmat(dir_params+'Optimization_Info_{}.mat'.format(CV))
+        Optimization_Info = loadmat(os.path.join(dir_params, 'Optimization_Info_{}.mat'.format(CV)))
         Params_post_mat = Optimization_Info['Params'][0]
         # dictionary of all optimized post-processing parameters.
         Params_post={
@@ -117,7 +117,7 @@ if __name__ == '__main__':
         GTMasks_2 = data_GT['GTMasks_2'].transpose()
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks':Masks})
+        savemat(os.path.join(dir_output, 'Output_Masks_{}.mat'.format(Exp_ID)), {'Masks':Masks})
 
         # %% Save recall, precision, F1, total processing time, and average processing time per frame
         list_Recall[CV] = Recall
@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
         Info_dict = {'list_Recall':list_Recall, 'list_Precision':list_Precision, 'list_F1':list_F1, 
             'list_time':list_time, 'list_time_frame':list_time_frame}
-        savemat(dir_output+'Output_Info_All.mat', Info_dict)
+        savemat(os.path.join(dir_output, 'Output_Info_All.mat'), Info_dict)
 
     p.close()
 

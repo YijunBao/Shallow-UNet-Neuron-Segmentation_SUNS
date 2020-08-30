@@ -10,7 +10,7 @@ import pyfftw
 Dimens = (120,88) # The lateral dimension of the target 3D array
 Nframes = 3000 # The number of frames of the target 3D array. Can be slightly larger
 
-dir_wisdom = 'wisdom\\'
+dir_wisdom = 'wisdom'
 if not os.path.exists(dir_wisdom):
     os.makedirs(dir_wisdom) 
 
@@ -29,14 +29,14 @@ end1 = time.time()
 
 bb = pyfftw.export_wisdom()
 print(bb)
-Length_data=str((nn, x, y))
-file = open(dir_wisdom+Length_data+"x1.txt", "wb")
+Length_data=str((x, y))
+file = open(os.path.join(dir_wisdom, Length_data+"x1.txt"), "wb")
 file.write(bb[0])
 file.close
-file = open(dir_wisdom+Length_data+"x2.txt", "wb")
+file = open(os.path.join(dir_wisdom, Length_data+"x2.txt"), "wb")
 file.write(bb[1])
 file.close
-file = open(dir_wisdom+Length_data+"x3.txt", "wb")
+file = open(os.path.join(dir_wisdom, Length_data+"x3.txt"), "wb")
 file.write(bb[2])
 file.close()
 print(end1-start1, ' s')

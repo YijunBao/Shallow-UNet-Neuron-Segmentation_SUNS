@@ -53,16 +53,16 @@ if __name__ == '__main__':
     # file names of the ".h5" files storing the raw videos. 
     list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
     # folder of the raw videos
-    dir_video = 'data\\' 
-    # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
-    dir_parent = dir_video + 'complete 1to3\\' # folder to save all the processed data
-    dir_network_input = dir_parent + 'network_input\\' # folder of the SNR videos
-    dir_mask = dir_parent + 'temporal_masks({})\\'.format(thred_std) # foldr to save the temporal masks
-    weights_path = dir_parent + 'Weights\\' # folder to save the trained CNN
-    training_output_path = dir_parent + 'training output\\' # folder to save the loss functions during training
-    dir_output = dir_parent + 'output_masks\\' # folder to save the optimized hyper-parameters
-    dir_temp = dir_parent + 'temp\\' # temporary folder to save the F1 with various hyper-parameters
+    dir_video = 'data' 
+    # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
+    dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
+    dir_parent = os.path.join(dir_video, 'complete 1to3') # folder to save all the processed data
+    dir_network_input = os.path.join(dir_parent, 'network_input') # folder of the SNR videos
+    dir_mask = os.path.join(dir_parent, 'temporal_masks({})'.format(thred_std)) # foldr to save the temporal masks
+    weights_path = os.path.join(dir_parent, 'Weights') # folder to save the trained CNN
+    training_output_path = os.path.join(dir_parent, 'training output') # folder to save the loss functions during training
+    dir_output = os.path.join(dir_parent, 'output_masks') # folder to save the optimized hyper-parameters
+    dir_temp = os.path.join(dir_parent, 'temp') # temporary folder to save the F1 with various hyper-parameters
 
     if not os.path.exists(dir_network_input):
         os.makedirs(dir_network_input) 
@@ -157,12 +157,12 @@ if __name__ == '__main__':
             raise('wrong "cross_validation"')
         if not use_validation:
             list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
-        file_CNN = weights_path+'Model_CV{}.h5'.format(CV)
+        file_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV))
         results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
             BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rowspad, colspad), Params_loss)
 
         # save training and validation loss after each eopch
-        f = h5py.File(training_output_path+"training_output_CV{}.h5".format(CV), "w")
+        f = h5py.File(os.path.join(training_output_path, "training_output_CV{}.h5".format(CV)), "w")
         f.create_dataset("loss", data=results.history['loss'])
         f.create_dataset("dice_loss", data=results.history['dice_loss'])
         if use_validation:

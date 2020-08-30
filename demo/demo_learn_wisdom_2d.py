@@ -8,7 +8,7 @@ import multiprocessing as mp
 ''' This script is used to learn 2D wistom used to speed up FFT-based spatial homomorphic filtering
     2D wistom is only used in SUNS online.
 '''
-dir_wisdom = 'wisdom\\'
+dir_wisdom = 'wisdom'
 if not os.path.exists(dir_wisdom):
     os.makedirs(dir_wisdom) 
 Dimens = (120,88) # lateral dimension of the video
@@ -33,13 +33,13 @@ end1 = time.time()
 bb = pyfftw.export_wisdom()
 print(bb)
 Length_data=str((x, y))
-file = open(dir_wisdom+Length_data+"x1.txt", "wb")
+file = open(os.path.join(dir_wisdom, Length_data+"x1.txt"), "wb")
 file.write(bb[0])
 file.close
-file = open(dir_wisdom+Length_data+"x2.txt", "wb")
+file = open(os.path.join(dir_wisdom, Length_data+"x2.txt"), "wb")
 file.write(bb[1])
 file.close
-file = open(dir_wisdom+Length_data+"x3.txt", "wb")
+file = open(os.path.join(dir_wisdom, Length_data+"x3.txt"), "wb")
 file.write(bb[2])
 file.close()
 print(end1-start1, ' s')
