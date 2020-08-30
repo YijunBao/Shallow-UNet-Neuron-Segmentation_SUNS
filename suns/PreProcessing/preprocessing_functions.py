@@ -379,8 +379,12 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
         # %% Initialization: Calculate the spatial filter and set variables.
         mask2 = plan_mask2((rows, cols), (rows1, cols1), gauss_filt_size)
     else:
-        end_plan = time.time()
         bb=np.zeros((nframes, rowspad, colspad), dtype='float32')
+        fft_object_b = None
+        fft_object_c = None
+        bf = None
+        end_plan = time.time()
+        mask2 = None
 
     # %% Initialization: Set variables.
     if useTF:

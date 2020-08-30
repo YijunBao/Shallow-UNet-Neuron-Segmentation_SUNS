@@ -79,12 +79,14 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
     if display:
         start = time.time()
     (Lx, Ly) = dims
+    rowspad = math.ceil(Lx/8)*8
+    colspad = math.ceil(Ly/8)*8
     # load CNN model
     fff = get_shallow_unet()
     fff.load_weights(filename_CNN)
     # run CNN inference once to warm up
-    init_imgs = np.zeros((batch_size_eval, Lx, Ly, 1), dtype='float32')
-    init_masks = np.zeros((batch_size_eval, Lx, Ly, 1), dtype='uint8')
+    init_imgs = np.zeros((batch_size_eval, rowspad, colspad, 1), dtype='float32')
+    init_masks = np.zeros((batch_size_eval, rowspad, colspad, 1), dtype='uint8')
     fff.evaluate(init_imgs, init_masks, batch_size=batch_size_eval)
     del init_imgs, init_masks
 
@@ -221,8 +223,8 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
     fff = get_shallow_unet()
     fff.load_weights(filename_CNN)
     # run CNN inference once to warm up
-    init_imgs = np.zeros((batch_size_init, Lx, Ly, 1), dtype='float32')
-    init_masks = np.zeros((batch_size_init, Lx, Ly, 1), dtype='uint8')
+    init_imgs = np.zeros((batch_size_init, rowspad, colspad, 1), dtype='float32')
+    init_masks = np.zeros((batch_size_init, rowspad, colspad, 1), dtype='uint8')
     fff.evaluate(init_imgs, init_masks, batch_size=batch_size_init)
     del init_imgs, init_masks
 
@@ -534,8 +536,8 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
     fff = get_shallow_unet()
     fff.load_weights(filename_CNN)
     # run CNN inference once to warm up
-    init_imgs = np.zeros((batch_size_init, Lx, Ly, 1), dtype='float32')
-    init_masks = np.zeros((batch_size_init, Lx, Ly, 1), dtype='uint8')
+    init_imgs = np.zeros((batch_size_init, rowspad, colspad, 1), dtype='float32')
+    init_masks = np.zeros((batch_size_init, rowspad, colspad, 1), dtype='uint8')
     fff.evaluate(init_imgs, init_masks, batch_size=batch_size_init)
     del init_imgs, init_masks
 

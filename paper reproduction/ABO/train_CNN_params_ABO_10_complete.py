@@ -31,7 +31,7 @@ if __name__ == '__main__':
     Mag = 1 # spatial magnification compared to ABO videos.
 
     thred_std = 7 # SNR threshold used to determine when neurons are active
-    num_train_per = 200 # Number of frames per video used for training 
+    num_train_per = 180 # Number of frames per video used for training 
     BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
     batch_size_eval = 200 # batch size in CNN inference
