@@ -17,44 +17,44 @@ REM REM Run SUNS online with tracking
 REM python test_online_track_ABO_complete.py
 
 
-REM train-1-test-9 cross validation
-REM Training pipeline
-python train_CNN_params_ABO_1to9_complete.py
+REM REM train-1-test-9 cross validation
+REM REM Training pipeline
+REM python train_CNN_params_ABO_1to9_complete.py
+
+REM Run SUNS batch. The post-processing will slow down after running many times, 
+REM so I split each cross-validation into different scripts.
+python test_batch_ABO_1to9_complete.py 0
+python test_batch_ABO_1to9_complete.py 1
+python test_batch_ABO_1to9_complete.py 2
+python test_batch_ABO_1to9_complete.py 3
+python test_batch_ABO_1to9_complete.py 4
+python test_batch_ABO_1to9_complete.py 5
+python test_batch_ABO_1to9_complete.py 6
+python test_batch_ABO_1to9_complete.py 7
+python test_batch_ABO_1to9_complete.py 8
+python test_batch_ABO_1to9_complete.py 9
+
+REM Run SUNS online. The post-processing will slow down after running many times, 
+REM so I split each cross-validation into different scripts.
+python test_online_ABO_1to9_complete.py 0
+python test_online_ABO_1to9_complete.py 1
+python test_online_ABO_1to9_complete.py 2
+python test_online_ABO_1to9_complete.py 3
+python test_online_ABO_1to9_complete.py 4
+python test_online_ABO_1to9_complete.py 5
+python test_online_ABO_1to9_complete.py 6
+python test_online_ABO_1to9_complete.py 7
+python test_online_ABO_1to9_complete.py 8
+python test_online_ABO_1to9_complete.py 9
+
+
+REM REM train on all 275 layer and test on 175 layer
+REM REM Training pipeline
+REM python train_CNN_params_ABO_10_complete.py
 echo off
-REM REM Run SUNS batch. The post-processing will slow down after running many times, 
-REM REM so I split each cross-validation into different scripts.
-python test_batch_ABO_1to9_complete_0.py
-python test_batch_ABO_1to9_complete_1.py
-python test_batch_ABO_1to9_complete_2.py
-REM python test_batch_ABO_1to9_complete_3.py
-REM python test_batch_ABO_1to9_complete_4.py
-REM python test_batch_ABO_1to9_complete_5.py
-REM python test_batch_ABO_1to9_complete_6.py
-REM python test_batch_ABO_1to9_complete_7.py
-REM python test_batch_ABO_1to9_complete_8.py
-REM python test_batch_ABO_1to9_complete_9.py
+REM Run SUNS batch
+python test_batch_ABO_175_complete.py
+REM Run SUNS online
+python test_online_ABO_175_complete.py
 
-REM REM Run SUNS online. The post-processing will slow down after running many times, 
-REM REM so I split each cross-validation into different scripts.
-REM python test_online_ABO_1to9_complete_0.py
-REM python test_online_ABO_1to9_complete_1.py
-REM python test_online_ABO_1to9_complete_2.py
-REM python test_online_ABO_1to9_complete_3.py
-REM python test_online_ABO_1to9_complete_4.py
-REM python test_online_ABO_1to9_complete_5.py
-REM python test_online_ABO_1to9_complete_6.py
-REM python test_online_ABO_1to9_complete_7.py
-REM python test_online_ABO_1to9_complete_8.py
-REM python test_online_ABO_1to9_complete_9.py
-
-
-REM train on all 275 layer and test on 175 layer
-REM Training pipeline
-python train_CNN_params_ABO_10_complete_10.py
-
-REM REM Run SUNS batch
-REM python test_batch_ABO_175_complete_175.py
-REM REM Run SUNS online
-REM python test_online_ABO_175_complete_175.py
-
-REM python "C:\Matlab Files\timer\timer_stop_2.py"
+python "C:\Matlab Files\timer\timer_stop_2.py"
