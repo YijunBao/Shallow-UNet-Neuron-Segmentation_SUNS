@@ -40,10 +40,10 @@ if __name__ == '__main__':
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
     dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
-    dir_parent = dir_video + 'noSF 1to9\\' # folder to save all the processed data
-    dir_output = dir_parent + 'output_masks\\' # folder to save the segmented masks and the performance scores
-    dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
-    weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
+    dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
+    dir_output = dir_parent + 'output_masks 1to9\\' # folder to save the segmented masks and the performance scores
+    dir_params = dir_parent + 'output_masks 1to9\\' # folder of the optimized hyper-parameters
+    weights_path = dir_parent + 'Weights 1to9\\' # folder of the trained CNN
     if not os.path.exists(dir_output):
         os.makedirs(dir_output) 
 
@@ -72,38 +72,47 @@ if __name__ == '__main__':
     list_time = np.zeros((num_CV, nvideo, 4))
     list_time_frame = np.zeros((num_CV, nvideo, 4))
 
+    if len(sys.argv) > 1:
+        try:
+            list_eid = [int(x) for x in sys.argv[1:]]
+        except:
+            raise ValueError('The argument should be an integer as the index of the video')
+    else:
+        list_eid = list(range(0,nvideo))
 
-    for CV in [5]:
-        filename_CNN = weights_path+'Model_CV{}.h5'.format(CV) # The path of the CNN model.
+    for (eid, Exp_ID) in enumerate(list_Exp_ID):
+        if eid not in list_eid:
+            continue
 
-        # load optimal post-processing parameters
-        Optimization_Info = loadmat(dir_params+'Optimization_Info_{}.mat'.format(CV))
-        Params_post_mat = Optimization_Info['Params'][0]
-        # dictionary of all optimized post-processing parameters.
-        Params_post={
-            # minimum area of a neuron (unit: pixels).
-            'minArea': Params_post_mat['minArea'][0][0,0], 
-            # average area of a typical neuron (unit: pixels) 
-            'avgArea': Params_post_mat['avgArea'][0][0,0],
-            # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
-            'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
-            # values higher than "thresh_mask" times the maximum value of the mask are set to one.
-            'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
-            # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels)
-            'thresh_COM0': Params_post_mat['thresh_COM0'][0][0,0], 
-            # maximum COM distance of two masks to be considered the same neuron (unit: pixels)
-            'thresh_COM': Params_post_mat['thresh_COM'][0][0,0], 
-            # minimum IoU of two masks to be considered the same neuron
-            'thresh_IOU': Params_post_mat['thresh_IOU'][0][0,0], 
-            # minimum consume ratio of two masks to be considered the same neuron
-            'thresh_consume': Params_post_mat['thresh_consume'][0][0,0], 
-            # minimum consecutive number of frames of active neurons
-            'cons':Params_post_mat['cons'][0][0,0]}
-
-        for (eid, Exp_ID) in enumerate(list_Exp_ID):
-            if eid == CV:
+        for CV in list_CV:
+            if CV == eid:
                 continue
             print('CV ', CV, ', Video ', Exp_ID)
+
+            filename_CNN = weights_path+'Model_CV{}.h5'.format(CV) # The path of the CNN model.
+            # load optimal post-processing parameters
+            Optimization_Info = loadmat(dir_params+'Optimization_Info_{}.mat'.format(CV))
+            Params_post_mat = Optimization_Info['Params'][0]
+            # dictionary of all optimized post-processing parameters.
+            Params_post={
+                # minimum area of a neuron (unit: pixels).
+                'minArea': Params_post_mat['minArea'][0][0,0], 
+                # average area of a typical neuron (unit: pixels) 
+                'avgArea': Params_post_mat['avgArea'][0][0,0],
+                # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
+                'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
+                # values higher than "thresh_mask" times the maximum value of the mask are set to one.
+                'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
+                # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels)
+                'thresh_COM0': Params_post_mat['thresh_COM0'][0][0,0], 
+                # maximum COM distance of two masks to be considered the same neuron (unit: pixels)
+                'thresh_COM': Params_post_mat['thresh_COM'][0][0,0], 
+                # minimum IoU of two masks to be considered the same neuron
+                'thresh_IOU': Params_post_mat['thresh_IOU'][0][0,0], 
+                # minimum consume ratio of two masks to be considered the same neuron
+                'thresh_consume': Params_post_mat['thresh_consume'][0][0,0], 
+                # minimum consecutive number of frames of active neurons
+                'cons':Params_post_mat['cons'][0][0,0]}
 
             # The entire process of SUNS batch
             Masks, Masks_2, time_total, time_frame = suns_batch(
@@ -116,7 +125,7 @@ if __name__ == '__main__':
             GTMasks_2 = data_GT['GTMasks_2'].transpose()
             (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
             print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-            savemat(dir_output+'Output_Masks_CV{}_{}.mat'.format(CV, Exp_ID), {'Masks':Masks})
+            savemat(dir_output+'Output_Masks_CV{}_{}.mat'.format(CV, Exp_ID), {'Masks_2':Masks_2})
 
             # %% Save recall, precision, F1, total processing time, and average processing time per frame
             list_Recall[CV, eid] = Recall
@@ -127,7 +136,7 @@ if __name__ == '__main__':
 
         Info_dict = {'list_Recall':list_Recall, 'list_Precision':list_Precision, 'list_F1':list_F1, 
             'list_time':list_time, 'list_time_frame':list_time_frame}
-        savemat(dir_output+'Output_Info_All.mat', Info_dict)
+        savemat(dir_output+'Output_Info_{}.mat'.format(Exp_ID), Info_dict)
 
     p.close()
 

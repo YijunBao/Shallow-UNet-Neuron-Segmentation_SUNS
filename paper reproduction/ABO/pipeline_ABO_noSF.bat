@@ -23,28 +23,28 @@ python train_CNN_params_ABO_1to9_noSF.py
 
 REM Run SUNS batch. The post-processing will slow down after running many times, 
 REM so I split each cross-validation into different scripts.
-python test_batch_ABO_1to9_noSF_0.py
-python test_batch_ABO_1to9_noSF_1.py
-python test_batch_ABO_1to9_noSF_2.py
-python test_batch_ABO_1to9_noSF_3.py
-python test_batch_ABO_1to9_noSF_4.py
-python test_batch_ABO_1to9_noSF_5.py
-python test_batch_ABO_1to9_noSF_6.py
-python test_batch_ABO_1to9_noSF_7.py
-python test_batch_ABO_1to9_noSF_8.py
-python test_batch_ABO_1to9_noSF_9.py
+python test_batch_ABO_1to9_noSF.py 0
+python test_batch_ABO_1to9_noSF.py 1
+python test_batch_ABO_1to9_noSF.py 2
+python test_batch_ABO_1to9_noSF.py 3
+python test_batch_ABO_1to9_noSF.py 4
+python test_batch_ABO_1to9_noSF.py 5
+python test_batch_ABO_1to9_noSF.py 6
+python test_batch_ABO_1to9_noSF.py 7
+python test_batch_ABO_1to9_noSF.py 8
+python test_batch_ABO_1to9_noSF.py 9
 REM Run SUNS online. The post-processing will slow down after running many times, 
 REM so I split each cross-validation into different scripts.
-python test_online_ABO_1to9_noSF_0.py
-python test_online_ABO_1to9_noSF_1.py
-python test_online_ABO_1to9_noSF_2.py
-python test_online_ABO_1to9_noSF_3.py
-python test_online_ABO_1to9_noSF_4.py
-python test_online_ABO_1to9_noSF_5.py
-python test_online_ABO_1to9_noSF_6.py
-python test_online_ABO_1to9_noSF_7.py
-python test_online_ABO_1to9_noSF_8.py
-python test_online_ABO_1to9_noSF_9.py
+python test_online_ABO_1to9_noSF.py 0
+python test_online_ABO_1to9_noSF.py 1
+python test_online_ABO_1to9_noSF.py 2
+python test_online_ABO_1to9_noSF.py 3
+python test_online_ABO_1to9_noSF.py 4
+python test_online_ABO_1to9_noSF.py 5
+python test_online_ABO_1to9_noSF.py 6
+python test_online_ABO_1to9_noSF.py 7
+python test_online_ABO_1to9_noSF.py 8
+python test_online_ABO_1to9_noSF.py 9
 
 
 REM train on all 275 layer and test on 175 layer
