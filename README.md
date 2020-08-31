@@ -10,7 +10,7 @@ Copyright (C) 2020 Duke University NeuroToolbox
 - [SUNS](#suns)
 - [Documentation](#documentation)
 - [System requirement](#system-requirement)
-- [Installation on Windows](#installation-on-windows)
+- [Installation on Windows or Linux](#installation-on-windows-or-linux)
 - [Demo](#demo)
 - [Links to Datasets and Manual Markings](#links-to-datasets-and-manual-markings)
 - [Citing](#citing)
@@ -23,20 +23,19 @@ The how-to guides are available on [the Wiki](https://github.com/YijunBao/Shallo
 
 
 # System requirement
-* Operation system: Windows 10.
 * Memory: ~6x file size of the raw video if the the raw video is in uint16 format. ~3x file size of the raw video if the the raw video is in float32 format. 
 * A CUDA compatible GPU is preferred.
 
 
-# Installation on Windows
-* Install [Anaconda](https://www.anaconda.com/) with Python 3.7
+# Installation on Windows or Linux
+* Install [Anaconda](https://www.anaconda.com/)
 * Launch Anaconda prompt and type the following in order (SUNS_python_root_path is the directory to which the provided files were downloaded to, such as `C:/Users/(username)/Documents/GitHub/Shallow-UNet-Neuron-Segmentation_SUNS`):
 ```bat
 cd SUNS_python_root_path
 cd installation
 conda env create -f environment_suns.yml -n suns
 ```
-* Go to the Anaconda environment foler, (such as `C:/ProgramData/Anaconda3/envs` or `C:/Users/(username)/.conda/envs`), and then go to folder `suns/Lib/site-packages/fissa`, overwrite `core.py` with the files provided in the `installation` folder. The modified files increase speed by eliminating redundant `separate` or `separation_prep` during initializating an `Experiment` object, enable videos whose size are larger than 4 GB after converting to float32, and eliminate a lot of text output from FISSA. If none of them is important to you, then you can skip replacing the **files**. If you see a lot of text output when activating suns environment and do not want to see them, you can go to the Anaconda environment foler, go to folder `suns/etc/conda/activate.d`, and delete the two files under this folder. 
+* Go to the Anaconda environment foler, (such as `C:/ProgramData/Anaconda3/envs` or `C:/Users/(username)/.conda/envs`), and then go to folder `suns/Lib/site-packages/fissa`, overwrite `core.py` with the files provided in the `installation` folder. The modified files increase speed by eliminating redundant `separate` or `separation_prep` during initializating an `Experiment` object, and enable videos whose size are larger than 4 GB after converting to float32. If neither of them is important to you, then you can skip replacing the **files**. If you see a lot of text output when activating suns environment and do not want to see them, you can go to the Anaconda environment foler, go to folder `suns/etc/conda/activate.d`, and delete the two files under this folder. 
 
 The installation should take less than half an hour in total. The first run of the software may take some additional time (up to 20 minutes on a laptop) to add the GPU, but this extra time will not occur in later runs.
 
@@ -44,14 +43,15 @@ The installation should take less than half an hour in total. The first run of t
 # Demo
 We provided a demo for all users to get familiar with our software. We provided four two-photon imaging videos as well as their manually marked neurons in `demo/data`, adapted from [CaImAn dataset](https://zenodo.org/record/1659149). The demo will perform a cross validation over the four videos: train the CNN and search for optimal hyper-parameters using three videos, and test SUNS with the training output on the remaining video. 
 
-To run the demo, launch Anaconda prompt and type the following script 
+To run the demo on Windows, launch Anaconda prompt and type the following script 
 ```bat
 cd SUNS_python_root_path
 cd demo
 conda activate suns
-demo_pipeline.bat
+.\demo_pipeline.bat
 ```
-The demo contains four parts: training CNN and hyper-parameters, testing SUNS batch, testing SUNS online, and testing SUNS online with tracking. The output masks of SUNS batch will be in `demo/complete/output_masks`, the output masks of SUNS online will be in `demo/complete/output_masks online`, and the output masks of SUNS online with tracking will be in `demo/complete/output_masks track`. Alternatively, you can also run `demo_pipeline_1to3.bat` instead of `demo_pipeline.bat`. The pipeline `demo_pipeline.bat` does standard leave-one-out cross validation on the four example videos. The pipeline `demo_pipeline_1to3.bat` trains the CNN model and post-processing parameters on one video, and tests on the remaining videos. The expected average F1 scores and example processing time are shown on the following tables.
+
+The demo contains four parts: training CNN and hyper-parameters, testing SUNS batch, testing SUNS online, and testing SUNS online with tracking. The output masks of SUNS batch will be in `demo/complete/output_masks`, the output masks of SUNS online will be in `demo/complete/output_masks online`, and the output masks of SUNS online with tracking will be in `demo/complete/output_masks track`. Alternatively, you can also run `demo_pipeline_1to3.bat` instead of `demo_pipeline.bat`. The pipeline `demo_pipeline.bat` does standard leave-one-out cross validation on the four example videos. The pipeline `demo_pipeline_1to3.bat` trains the CNN model and post-processing parameters on one video, and tests on the remaining videos. The expected average F1 scores and example processing time on Windows are shown on the following tables.
 
 Expected average F1 score
 |	|Train	|Batch	|Online	|Track|
@@ -65,6 +65,14 @@ Example running time
 |AMD 1920X<br>12-core	|NVIDIA Titan RTX|	|	|1.5 s	|20 s	|	|
 |Intel i7-6800K<br>6-core	|NVIDIA GTX 1080|1.9 h	|	|1.9 s	|19 s	|27 s	|
 |Intel i5-6200U<br>dual-core	|NVIDIA 940MX	|5.4 h	|1.9 h	|6.0 s	|35 s	|36 s|
+
+To run the demo on Linux, launch Anaconda prompt and type the following script 
+```sh
+cd SUNS_python_root_path
+cd demo
+conda activate suns
+./demo_pipeline.sh
+```
 
 
 # Links to Datasets and Manual Markings

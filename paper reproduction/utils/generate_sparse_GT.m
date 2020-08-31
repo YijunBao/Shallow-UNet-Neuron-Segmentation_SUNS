@@ -6,6 +6,7 @@ dir_all = dir(fullfile(dir_data,'*FinalMasks*.mat'));
 for ind = 1:length(dir_all)
     filename = dir_all(ind).name;
     if ~contains(filename,'_sparse')
+        disp(filename)
         load(fullfile(dir_data,filename),'FinalMasks');
         [Lx,Ly,ncells]=size(FinalMasks);
         GTMasks_2=sparse(reshape(logical(FinalMasks),Lx*Ly,ncells));

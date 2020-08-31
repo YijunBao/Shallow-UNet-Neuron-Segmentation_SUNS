@@ -165,7 +165,7 @@ def optimize_combine_1(uniques: sparse.csr_matrix, times_uniques: list, dims: tu
 
     # second merge neurons with close COM.
     groupedneurons, times_groupedneurons = group_neurons(uniques, \
-        thresh_COM, thresh_mask, (dims[1], dims[2]), times_uniques)
+        thresh_COM, thresh_mask, (dims[1], dims[2]), times_uniques, useMP=False)
     # Merge neurons with high IoU.
     piecedneurons_1, times_piecedneurons_1 = piece_neurons_IOU(groupedneurons, \
         thresh_mask, thresh_IOU, times_groupedneurons)
@@ -183,7 +183,7 @@ def optimize_combine_1(uniques: sparse.csr_matrix, times_uniques: list, dims: tu
     return Recall_k, Precision_k, F1_k
 
 
-def optimize_combine_3(totalmasks, neuronstate, COMs, areas, probmapID, dims, minArea, avgArea, Params_set: dict, filename_GT: str, useMP=True):
+def optimize_combine_3(totalmasks, neuronstate, COMs, areas, probmapID, dims, minArea, avgArea, Params_set: dict, filename_GT: str, useMP=True, p=None):
     '''Optimize 3 post-processing parameters: "thresh_COM", "thresh_IOU", "cons". 
         Start before the first COM merging, which can include disgarding masks smaller than "minArea".
         The outputs are the recall, precisoin, and F1 calculated from all parameter combinations.
@@ -229,7 +229,7 @@ def optimize_combine_3(totalmasks, neuronstate, COMs, areas, probmapID, dims, mi
     size_inter = (L_thresh_COM, L_thresh_IOU, L_cons)
 
     # Initally merge neurons with close COM.
-    uniques, times_uniques = unique_neurons2_simp(totalmasks, neuronstate, COMs, areas, probmapID, minArea, thresh_COM0)
+    uniques, times_uniques = unique_neurons2_simp(totalmasks, neuronstate, COMs, areas, probmapID, minArea, thresh_COM0, useMP=False)
 
     if not times_uniques:
         list_Recall_inter = np.zeros(size_inter)
@@ -238,16 +238,16 @@ def optimize_combine_3(totalmasks, neuronstate, COMs, areas, probmapID, dims, mi
     else:
         # Calculate accuracy scores for various "thresh_COM", "thresh_IOU", and "cons".
         if useMP:
-            p3 = mp.Pool()
-            list_temp = p3.starmap(optimize_combine_1, [(uniques, times_uniques, dims, 
+            # p3 = mp.Pool()
+            list_temp = p.starmap(optimize_combine_1, [(uniques, times_uniques, dims, 
                 {'avgArea': avgArea, 'thresh_mask': thresh_mask, 'thresh_COM': thresh_COM,
                 'thresh_IOU': thresh_IOU, 'list_cons':list_cons}, filename_GT) \
                     for thresh_COM in list_thresh_COM for thresh_IOU in list_thresh_IOU], chunksize=1)
             list_Recall_inter = np.vstack([x[0] for x in list_temp]).reshape(size_inter)
             list_Precision_inter = np.vstack([x[1] for x in list_temp]).reshape(size_inter)
             list_F1_inter = np.vstack([x[2] for x in list_temp]).reshape(size_inter)
-            p3.close()
-            p3.join()
+            # p3.close()
+            # p3.join()
         else: 
             list_Recall_inter = np.zeros(size_inter)
             list_Precision_inter = np.zeros(size_inter)
@@ -386,7 +386,7 @@ def parameter_optimization(pmaps: np.ndarray, Params_set: dict, \
                     for (i1,minArea) in enumerate(list_minArea):
                         print('Using minArea={}, avgArea={}, thresh_pmap={}'.format(minArea, avgArea, thresh_pmap))
                         list_Recall_inter, list_Precision_inter, list_F1_inter = optimize_combine_3(
-                            totalmasks, neuronstate, COMs, areas, probmapID, dims, minArea, avgArea, Params_set, filename_GT, useMP=False)
+                            totalmasks, neuronstate, COMs, areas, probmapID, dims, minArea, avgArea, Params_set, filename_GT, useMP=False, p=p)
                         list_Recall[i1,i2,i3,:,:,:]=list_Recall_inter
                         list_Precision[i1,i2,i3,:,:,:]=list_Precision_inter
                         list_F1[i1,i2,i3,:,:,:]=list_F1_inter

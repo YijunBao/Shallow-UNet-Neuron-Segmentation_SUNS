@@ -186,7 +186,7 @@ def parameter_optimization_pipeline(file_CNN, network_input, dims, \
     del prob_map, fff
 
     # calculate the recall, precision, and F1 when different post-processing hyper-parameters are used.
-    list_Recall, list_Precision, list_F1 = parameter_optimization(pmaps, Params_set, filename_GT, useWT=useWT, p=p)
+    list_Recall, list_Precision, list_F1 = parameter_optimization(pmaps, Params_set, filename_GT, useMP=useMP, useWT=useWT, p=p)
     return list_Recall, list_Precision, list_F1
 
 
@@ -273,12 +273,12 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         # Notice that meshgrid swaps the first two dimensions, so they are placed in a different way.
 
     # %% start parameter optimization for each video with various CNN models
+    p = mp.Pool(mp.cpu_count())
     for (eid,Exp_ID) in enumerate(list_Exp_ID):
         if max_eid is not None:
             if eid > max_eid:
                 continue
         list_saved_results = glob.glob(os.path.join(dir_temp, 'Parameter Optimization * Exp{}.mat'.format(Exp_ID)))
-        p = mp.Pool(mp.cpu_count())
         if len(list_saved_results)<nvideo_train or not load_exist: 
             # load SNR videos as "network_input"
             network_input = 0
@@ -326,7 +326,7 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
                 mdict={'list_Recall':list_Recall, 'list_Precision':list_Precision, 'list_F1':list_F1, 'Table':Table, 'Params_set':Params_set}
                 savemat(mat_filename, mdict) 
 
-        p.close()
+    p.close()
             
     # %% Find the optimal postprocessing parameters
     if cross_validation == 'use_all':

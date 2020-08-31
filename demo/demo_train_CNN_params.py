@@ -50,6 +50,7 @@ if __name__ == '__main__':
     useWT=False # True if using additional watershed
     load_exist=False # True if using temp files already saved in the folders
     use_validation = True # True to use a validation set outside the training set
+    useMP = True # True to use multiprocessing to speed up
     # Cross-validation strategy. Can be "leave_one_out" or "train_1_test_rest"
     cross_validation = "leave_one_out"
     Params_loss = {'DL':1, 'BCE':20, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
@@ -178,4 +179,4 @@ if __name__ == '__main__':
     # %% parameter optimization
     parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
         (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
-        batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist)
+        batch_size_eval, useWT=useWT, useMP=useMP, load_exist=load_exist)

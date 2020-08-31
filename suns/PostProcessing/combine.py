@@ -57,7 +57,7 @@ def unique_neurons2_simp(totalmasks:sparse.csr_matrix, neuronstate:np.array, COM
         probmapID = probmapID[area_select]
 
     maxN = neuronstate.size # Number of current masks
-    if maxN>0:
+    if maxN>0: # False: # 
         # Only masks obtained without watershed can be neurons merged to
         coreneurons = neuronstate.nonzero()[0] 
         rows, cols = [], []
@@ -96,6 +96,7 @@ def unique_neurons2_simp(totalmasks:sparse.csr_matrix, neuronstate:np.array, COM
     else:
         uniques = sparse.csc_matrix((0,totalmasks.shape[1]), dtype='bool')
         times = []
+
     return uniques, times
 
 
