@@ -39,7 +39,7 @@ if __name__ == '__main__':
     list_Exp_ID = ['501271265', '501704220','501836392', '502115959', '502205092', \
                     '504637623', '510514474', '510517131','540684467', '545446482']
     # folder of the raw videos
-    dir_video = 'E:\\ABO175\\20 percent\\' 
+    dir_video = 'E:\\ABO 175\\20 percent\\' 
     dir_video_train = 'D:\\ABO\\20 percent\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
     dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
@@ -50,7 +50,7 @@ if __name__ == '__main__':
 
     dir_parent = dir_video + 'complete\\' # folder to save all the processed data
     dir_parent_train = dir_video_train + 'complete\\' # folder to save all the processed data
-    dir_output = dir_parent + 'output_masks\\' # folder to save the segmented masks and the performance scores
+    dir_output = dir_parent + 'output_masks online\\' # folder to save the segmented masks and the performance scores
     dir_params = dir_parent_train + 'output_masks\\' # folder of the optimized hyper-parameters
     weights_path = dir_parent_train + 'Weights\\' # folder of the trained CNN
     if not os.path.exists(dir_output):

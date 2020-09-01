@@ -1,8 +1,4 @@
-REM Prepare for FFT-based spatial filtering
-python learn_wisdom_ABO.py
-python learn_wisdom_2d_ABO.py
-
-
+REM python "C:\Matlab Files\timer\timer_start_next_2.py"
 REM leave-one-out cross validation
 REM Training pipeline. The post-processing will slow down after running many times, 
 REM so I split the parameter search into two scripts.
@@ -55,3 +51,4 @@ REM Run SUNS batch
 python test_batch_ABO_175_noSF.py
 REM Run SUNS online
 python test_online_ABO_175_noSF.py
+REM python "C:\Matlab Files\timer\timer_stop.py"

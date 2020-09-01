@@ -1,7 +1,3 @@
-REM Prepare for FFT-based spatial filtering
-python learn_wisdom_CM.py
-python learn_wisdom_2d_CM.py
-
 REM Training pipeline
 python train_CNN_params_noSF_J115.py
 python train_CNN_params_noSF_J123.py
