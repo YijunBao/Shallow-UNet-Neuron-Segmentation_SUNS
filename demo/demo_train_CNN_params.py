@@ -18,10 +18,10 @@ from suns.PreProcessing.preprocessing_functions import preprocess_video
 from suns.PreProcessing.generate_masks import generate_masks
 from suns.train_CNN_params import train_CNN, parameter_optimization_cross_validation
 
-# Import tensorflow as tf
-# Config = tf.ConfigProto()
-# Config.gpu_options.allow_growth = True
-# Sess = tf.Session(config = config)
+# import tensorflow as tf
+# config = tf.ConfigProto()
+# config.gpu_options.allow_growth = True
+# sess = tf.Session(config = config)
 
 
 # %%
