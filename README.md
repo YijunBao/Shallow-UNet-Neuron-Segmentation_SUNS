@@ -66,12 +66,14 @@ Example running time
 |Intel i7-6800K<br>6-core	|NVIDIA GTX 1080|1.9 h	|	|1.9 s	|19 s	|27 s	|
 |Intel i5-6200U<br>dual-core	|NVIDIA 940MX	|5.4 h	|1.9 h	|6.0 s	|35 s	|36 s|
 
+When you download this repo, you will see some files and folder under `demo/data`. The .h5 files are the input videos contained in dataset 'mov' (shape = (3000, 120, 88)). The `GT Masks` folder contains the ground truth masks of each video. `FinalMasks_YST_part??.mat` stores the GT masks in a 3D array (shape = (88, 120, n) in MATLAB), and `FinalMasks_YST_part??_sparse.mat` stores the GT masks in a 2D sparse matrix (shape = (88*120, n) in MATLAB). The intermediate and output files will be under folder `demo/data/complete`. 
+
 To run the demo on Linux, launch Anaconda prompt and type the following script 
 ```sh
 cd SUNS_python_root_path
 cd demo
 conda activate suns
-./demo_pipeline.sh
+sh demo_pipeline.sh
 ```
 
 
