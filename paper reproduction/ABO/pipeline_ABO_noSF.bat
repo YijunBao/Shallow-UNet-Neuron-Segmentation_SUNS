@@ -1,12 +1,12 @@
-REM python "C:\Matlab Files\timer\timer_start_next_2.py"
-REM leave-one-out cross validation
-REM Training pipeline. The post-processing will slow down after running many times, 
-REM so I split the parameter search into two scripts.
-python train_CNN_params_ABO_noSF.py
-python train_params_ABO_continue_noSF.py
+python "C:\Matlab Files\timer\timer_start_next.py"
+REM REM leave-one-out cross validation
+REM REM Training pipeline. The post-processing will slow down after running many times, 
+REM REM so I split the parameter search into two scripts.
+REM REM python train_CNN_params_ABO_noSF.py
+REM python train_params_ABO_continue_noSF.py
 
-REM Run SUNS batch
-python test_batch_ABO_noSF.py
+REM REM Run SUNS batch
+REM python test_batch_ABO_noSF.py
 REM Run SUNS online
 python test_online_ABO_noSF.py
 REM Run SUNS online with tracking
@@ -51,4 +51,4 @@ REM Run SUNS batch
 python test_batch_ABO_175_noSF.py
 REM Run SUNS online
 python test_online_ABO_175_noSF.py
-REM python "C:\Matlab Files\timer\timer_stop.py"
+python "C:\Matlab Files\timer\timer_stop.py"

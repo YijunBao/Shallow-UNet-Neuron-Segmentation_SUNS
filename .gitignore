@@ -9,3 +9,5 @@ demo/FISSA
 *.asv
 *.txt
 demo/demo_train_pre.py
+paper reproduction/utils/temporal filter/*.mat
+paper reproduction/utils/temporal filter/*.h5

@@ -86,7 +86,6 @@ if __name__ == '__main__':
             os.makedirs(dir_temp) 
 
         nvideo = len(list_Exp_ID) # number of videos used for cross validation
-        num_total = nframes # number of frames of the video
 
         # %% set pre-processing parameters
         nn = nframes
@@ -98,6 +97,7 @@ if __name__ == '__main__':
         h5f = h5py.File(filename_TF_template,'r')
         Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
         Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+        num_total = nframes - len(Poisson_filt) + 1 # number of frames of the video
         # dictionary of pre-processing parameters
         Params = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
             'nn':nn, 'Poisson_filt': Poisson_filt}

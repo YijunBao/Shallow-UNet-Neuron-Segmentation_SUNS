@@ -8,7 +8,7 @@ after=30; % number of frames after spike peak
 list_d=[6,8]; % two element array showing the minimum and maximum allowed SNR
 doesplot=true;
 num_dff=length(list_d)-1;
-[array_tau,array_tau2]=deal(2,num_dff);
+[array_tau_s,array_tau2_s]=deal(2,num_dff);
 spikes_avg_all=nan(2, before+after+1);
 time_frame = -before:after;
 
@@ -38,11 +38,9 @@ for vid=1:length(tasks)
     %% Calculate the average spike shape and decay time
     for ii=1:num_dff
         [tau,tau2,spikes_avg]=determine_decay_time_d_nomix(traces_in, ROIs2, list_d(ii), list_d(ii+1), before, after, doesplot, fs);
-        array_tau(vid,ii)=tau;
-        array_tau2(vid,ii)=tau2;
+        array_tau_s(vid,ii)=tau/fs;
+        array_tau2_s(vid,ii)=tau2/fs;
     end
-    array_tau_s=array_tau/fs;
-    array_tau2_s=array_tau2/fs;
     spikes_avg_all(vid,:)=spikes_avg;
     
     figure(97);

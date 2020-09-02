@@ -94,7 +94,6 @@ if __name__ == '__main__':
             # thred_std = list_thred_std[ind_video] # SNR threshold used to determine when neurons are active
             (rows, cols) = Dimens[ind_video] # size of the network input and output
             (Lx, Ly) = (rows, cols) # size of the original video
-            num_total = nframes # number of frames of the video
 
             # %% set pre-processing parameters
             nn = nframes
@@ -103,12 +102,25 @@ if __name__ == '__main__':
             list_thred_ratio = [thred_std] # A list of SNR threshold used to determine when neurons are active.
             filename_TF_template = 'GCaMP6s_spike_tempolate_mean.h5'
 
-            h5f = h5py.File(filename_TF_template,'r')
-            Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
-            Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+            if useTF:
+                h5f = h5py.File(filename_TF_template,'r')
+                # Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
+                # Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+                fs_template = 3
+                Poisson_template = np.array(h5f['filter_tempolate']).squeeze()
+                h5f.close()
+                peak = Poisson_template.argmax()
+                length = Poisson_template.shape
+                xp = np.arange(-peak,length-peak,1)/fs_template
+                x = np.arange(np.round(-peak*rate_hz/fs_template), np.round(length-peak*rate_hz/fs_template), 1)/rate_hz
+                Poisson_filt = np.interp(x,xp,Poisson_template)
+                Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)].astype('float32')
+            else:
+                Poisson_filt=np.array([1])
             # dictionary of pre-processing parameters
             Params = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
                 'nn':nn, 'Poisson_filt': Poisson_filt}
+            num_total = nframes - len(Poisson_filt) + 1 # number of frames of the video
 
             # %% set the range of post-processing hyper-parameters to be optimized in
             # minimum area of a neuron (unit: pixels in ABO videos). must be in ascend order

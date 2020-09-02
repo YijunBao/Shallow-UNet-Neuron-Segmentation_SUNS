@@ -98,8 +98,17 @@ if __name__ == '__main__':
 
             if useTF:
                 h5f = h5py.File(filename_TF_template,'r')
-                Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
-                Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+                # Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
+                # Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+                fs_template = 3
+                Poisson_template = np.array(h5f['filter_tempolate']).squeeze()
+                h5f.close()
+                peak = Poisson_template.argmax()
+                length = Poisson_template.shape
+                xp = np.arange(-peak,length-peak,1)/fs_template
+                x = np.arange(np.round(-peak*rate_hz/fs_template), np.round(length-peak*rate_hz/fs_template), 1)/rate_hz
+                Poisson_filt = np.interp(x,xp,Poisson_template)
+                Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)].astype('float32')
             else:
                 Poisson_filt=np.array([1])
 

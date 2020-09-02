@@ -1,13 +1,13 @@
 % folder of the GT Masks
 dir_GTMasks = 'F:\CaImAn data\WEBSITE\divided_data\';
 % name of the videos
-list_Exp_ID={'J115', 'J123', 'K53'}; 
-rate_hz = [30, 30, 30]; % frame rate of each video
+list_Exp_ID={'YST'}; 
+rate_hz = [10]; % frame rate of each video
          
 before=15; % number of frames before spike peak
 after=60; % number of frames after spike peak
 doesplot=true;
-list_d=[5,6]; % two element array showing the minimum and maximum allowed SNR
+list_d=[4:7]; % two element array showing the minimum and maximum allowed SNR
 num_dff=length(list_d)-1;
 [array_tau_s,array_tau2_s]=deal(nan(length(list_Exp_ID),num_dff));
 spikes_avg_all=nan(length(list_Exp_ID), before+after+1);
@@ -19,7 +19,7 @@ set(gcf,'Position',[100,100,500,400]);
 hold on;
 
 %%
-for vid=1:3
+for vid=1
     %% Load traces and ROIs of all four sub-videos
     Exp_ID = list_Exp_ID{vid};
     fs = rate_hz(vid);

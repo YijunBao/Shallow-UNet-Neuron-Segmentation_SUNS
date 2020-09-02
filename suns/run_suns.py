@@ -370,13 +370,13 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
             # uniques, times_uniques = unique_neurons1_simp(segs_all[t_merge:], thresh_COM0) # minArea,
             totalmasks, neuronstate, COMs, areas, probmapID = segs_results(segs_all[t_merge:])
             uniques, times_uniques = unique_neurons2_simp(totalmasks, neuronstate, COMs, \
-                areas, probmapID, minArea=0, thresh_COM0=thresh_COM0)
+                areas, probmapID, minArea=0, thresh_COM0=thresh_COM0, useMP=useMP)
 
         # temporal merging 2: combine neurons with COM distance smaller than thresh_COM
         if ((t - 0 - t_merge) == merge_every) or (t==nframesf-1):
             if uniques.size:
                 groupedneurons, times_groupedneurons = \
-                    group_neurons(uniques, thresh_COM, thresh_mask, dims, times_uniques)
+                    group_neurons(uniques, thresh_COM, thresh_mask, dims, times_uniques, useMP=useMP)
 
         # temporal merging 3: combine neurons with IoU larger than thresh_IOU
         if ((t - 1 - t_merge) == merge_every) or (t==nframesf-1):

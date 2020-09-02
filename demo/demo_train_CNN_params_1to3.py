@@ -26,8 +26,8 @@ if __name__ == '__main__':
     Dimens = (120,88) # lateral dimensions of the video
     nn = 3000 # number of frames used for preprocessing. 
         # Can be slightly larger than the number of frames of a video
-    num_total = 3000 # number of frames used for CNN training. 
-        # Can be slightly smaller than the number of frames of a video
+    num_total = 2980 # number of frames used for CNN training. 
+        # Can be slightly smaller than the number of frames of a video after temporal filtering
     Mag = 6/8 # spatial magnification compared to ABO videos.
 
     thred_std = 3 # SNR threshold used to determine when neurons are active
