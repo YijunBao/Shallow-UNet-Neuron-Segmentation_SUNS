@@ -1,6 +1,7 @@
-REM Prepare for FFT-based spatial filtering
-python learn_wisdom_NF.py
-python learn_wisdom_2d_NF.py
+python "C:\Matlab Files\timer\timer_start_next.py"
+REM REM Prepare for FFT-based spatial filtering
+REM python learn_wisdom_NF.py
+REM python learn_wisdom_2d_NF.py
 
 REM Training pipeline
 python train_CNN_params_NF_complete.py
@@ -9,3 +10,4 @@ REM Run SUNS batch
 python test_batch_NF_complete.py
 REM Run SUNS online
 python test_online_NF_complete.py
+python "C:\Matlab Files\timer\timer_stop_2.py"
