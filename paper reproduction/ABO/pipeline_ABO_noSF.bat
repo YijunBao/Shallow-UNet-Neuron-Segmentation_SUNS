@@ -1,4 +1,5 @@
-python "C:\Matlab Files\timer\timer_start_next.py"
+python "C:\Matlab Files\timer\timer_start_next_2.py"
+python test_batch_ABO_175_complete.py
 REM REM leave-one-out cross validation
 REM REM Training pipeline. The post-processing will slow down after running many times, 
 REM REM so I split the parameter search into two scripts.
@@ -16,6 +17,18 @@ python test_online_track_ABO_noSF.py
 REM train-1-test-9 cross validation
 REM Training pipeline
 python train_CNN_params_ABO_1to9_noSF.py
+
+REM leave-one-out cross validation
+REM Training pipeline. The post-processing will slow down after running many times, 
+REM so I split the parameter search into two scripts.
+python train_CNN_params_ABO_noSF.py
+
+REM Run SUNS batch
+python test_batch_ABO_noSF.py
+REM Run SUNS online
+python test_online_ABO_noSF.py
+REM Run SUNS online with tracking
+python test_online_track_ABO_noSF.py
 
 REM Run SUNS batch. The post-processing will slow down after running many times, 
 REM so I split each cross-validation into different scripts.

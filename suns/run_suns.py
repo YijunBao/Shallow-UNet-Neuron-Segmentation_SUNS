@@ -135,7 +135,7 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
         print('Post-Processing time: {:6f} s, {:6f} ms/frame'.format(time_post, time_frame_post))
 
     # convert to a 3D array of the segmented neurons
-    Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly))
+    Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly)).astype('bool')
 
     # Save total processing time, and average processing time per frame
     if display:
@@ -462,7 +462,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         time_frame = np.zeros((3,))
 
     # convert to a 3D array of the segmented neurons
-    Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly))
+    Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly)).astype('bool')
     return Masks, Masks_2, time_total, time_frame
 
 
@@ -853,5 +853,5 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
         time_frame = np.zeros((3,))
 
     # convert to a 3D array of the segmented neurons
-    Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly))
+    Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly)).astype('bool')
     return Masks, Masks_2, time_total, time_frame

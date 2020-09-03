@@ -11,7 +11,7 @@ import multiprocessing as mp
 
 sys.path.insert(1, '..\\..') # the path containing "suns" folder
 os.environ['KERAS_BACKEND'] = 'tensorflow'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
 from suns.run_suns import suns_online
@@ -127,7 +127,7 @@ if __name__ == '__main__':
         GTMasks_2 = data_GT['GTMasks_2'].transpose()
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks':Masks})
+        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks_2':Masks_2})
 
         # %% Save recall, precision, F1, total processing time, and average processing time per frame
         list_Recall[CV] = Recall

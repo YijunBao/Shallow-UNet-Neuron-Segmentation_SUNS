@@ -36,7 +36,7 @@ if __name__ == '__main__':
     list_Exp_ID = ['501271265', '501704220','501836392', '502115959', '502205092', \
                     '504637623', '510514474', '510517131','540684467', '545446482']
     # folder of the raw videos
-    dir_video = 'E:\\ABO175\\20 percent\\' 
+    dir_video = 'E:\\ABO 175\\20 percent\\' 
     dir_video_train = 'D:\\ABO\\20 percent\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
     dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
@@ -115,7 +115,7 @@ if __name__ == '__main__':
         GTMasks_2 = data_GT['GTMasks_2'].transpose()
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks':Masks})
+        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks_2':Masks_2})
 
         # %% Save recall, precision, F1, total processing time, and average processing time per frame
         list_Recall[CV] = Recall
