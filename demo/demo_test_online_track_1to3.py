@@ -127,7 +127,7 @@ if __name__ == '__main__':
             GTMasks_2 = data_GT['GTMasks_2'].transpose()
             (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
             print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-            savemat(os.path.join(dir_output, 'Output_Masks_{}.mat'.format(Exp_ID)), {'Masks':Masks})
+            savemat(os.path.join(dir_output, 'Output_Masks_CV{}_{}.mat'.format(CV, Exp_ID)), {'Masks':Masks})
 
             # %% Save recall, precision, F1, total processing time, and average processing time per frame
             list_Recall[CV, eid] = Recall

@@ -35,7 +35,7 @@ cd SUNS_python_root_path
 cd installation
 conda env create -f environment_suns.yml -n suns
 ```
-* Go to the Anaconda environment foler, (such as `C:/ProgramData/Anaconda3/envs` or `C:/Users/(username)/.conda/envs`), and then go to folder `suns/Lib/site-packages/fissa`, overwrite `core.py` with the files provided in the `installation` folder. The modified files increase speed by eliminating redundant `separate` or `separation_prep` during initializating an `Experiment` object, and enable videos whose size are larger than 4 GB after converting to float32. If neither of them is important to you, then you can skip replacing the **files**. If you see a lot of text output when activating suns environment and do not want to see them, you can go to the Anaconda environment foler, go to folder `suns/etc/conda/activate.d`, and delete the two files under this folder. 
+* Go to the Anaconda environment foler, (such as `C:/ProgramData/Anaconda3/envs` or `C:/Users/(username)/.conda/envs`), and then go to folder `suns/Lib/site-packages/fissa`, overwrite `core.py` with the files provided in the `installation` folder. The modified files increase speed by eliminating redundant `separate` or `separation_prep` during initializating an `Experiment` object, and enable videos whose size are larger than 4 GB after converting to float32. If neither of them is important to you, then you can skip replacing the files. If you see a lot of text output when activating suns environment and do not want to see them, you can go to the Anaconda environment foler, go to folder `suns/etc/conda/activate.d`, and delete the two files under this folder. 
 
 The installation should take less than half an hour in total. The first run of the software may take some additional time (up to 20 minutes on a laptop) to add the GPU, but this extra time will not occur in later runs.
 
@@ -66,7 +66,7 @@ Example running time
 |Intel i7-6800K<br>6-core	|NVIDIA GTX 1080|1.9 h	|	|1.9 s	|19 s	|27 s	|
 |Intel i5-6200U<br>dual-core	|NVIDIA 940MX	|5.4 h	|1.9 h	|6.0 s	|35 s	|36 s|
 
-When you download this repo, you will see some files and folder under `demo/data`. The .h5 files are the input videos contained in dataset 'mov' (shape = (3000, 120, 88)). The `GT Masks` folder contains the ground truth masks of each video. `FinalMasks_YST_part??.mat` stores the GT masks in a 3D array (shape = (88, 120, n) in MATLAB), and `FinalMasks_YST_part??_sparse.mat` stores the GT masks in a 2D sparse matrix (shape = (88*120, n) in MATLAB). The intermediate and output files will be under folder `demo/data/complete`. 
+When you download this repo, you will see some files and a folder under `demo/data`. The .h5 files are the input videos contained in dataset 'mov' (shape = (3000, 120, 88)). The `GT Masks` folder contains the ground truth masks of each video. `FinalMasks_YST_part??.mat` stores the GT masks in a 3D array (shape = (88, 120, n) in MATLAB), and `FinalMasks_YST_part??_sparse.mat` stores the GT masks in a 2D sparse matrix (shape = (88*120, n) in MATLAB). After running a complete pipeline, the intermediate and output files will be under a new folder `demo/data/complete`. Under this folder, `network_input` stores the SNR videos after pre-processing (in dataset 'network_input'), `FISSA` stores the temporary output of [FISSA](https://github.com/rochefort-lab/fissa), `traces` stores the traces of the GT neurons after decontamination using FISSA, `temporal_masks(3)` stores the temporal masks of active neurons (in dataset 'temporal_masks')used to train CNN, `Weights` stores the trained CNN model, `training output` stores the loss after each training epoch, `temp` stores the recall, precision, and F1 score of all parameter combinations for each video and each cross validation, and `output_masks` stores the optimal hyper-parameters in `Optimization_Info_{}.mat`. The output masks after SUNS batch, SUNS online, and SUNS online with tracking are stored under `output_masks`, `output_masks online`, and `output_masks track`, respectively, as `Output_Masks_{}.mat`. The segmented masks are stored in a 3D array with shape (n, 120, 88) in MATLAB, so you may need to transpose the demensions to match the GT masks. The speed and accuracy scores are stored in the same three folders as `Output_Info_All.mat`. In addition, some text files will appear under `demo/wistom`, which stores the learned wisdom used for spatial filtering. 
 
 To run the demo on Linux, launch Anaconda prompt and type the following script 
 ```sh
@@ -75,6 +75,8 @@ cd demo
 conda activate suns
 sh demo_pipeline.sh
 ```
+
+Due to the randomness in training CNN, there is a low chance (~1%) that the trained CNN model is bad (e.g., the resulting F1 score is 0). If that happens, simply retrain the CNN one more time, and it should work out.
 
 
 # Links to Datasets and Manual Markings
