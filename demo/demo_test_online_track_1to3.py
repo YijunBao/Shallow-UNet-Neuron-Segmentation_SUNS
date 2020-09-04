@@ -63,6 +63,7 @@ if __name__ == '__main__':
         h5f = h5py.File(filename_TF_template,'r')
         Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
         Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+        Poisson_filt = Poisson_filt/Poisson_filt.sum()
     else:
         Poisson_filt=np.array([1])
 
