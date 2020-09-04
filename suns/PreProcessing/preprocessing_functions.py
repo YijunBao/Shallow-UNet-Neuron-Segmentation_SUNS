@@ -292,6 +292,8 @@ def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisso
 
     if useTF: # Temporal filtering
         temporal_filtering(bb[:, :rowspad, :colspad], network_input, Poisson_filt, display=display)
+        # use copy() to enhance the stability when the lateral size of bb is 512.
+        # temporal_filtering(bb[:, :rowspad, :colspad].copy(), network_input, Poisson_filt, display=display)
     else:
         network_input = bb[:, :rowspad, :colspad]
 

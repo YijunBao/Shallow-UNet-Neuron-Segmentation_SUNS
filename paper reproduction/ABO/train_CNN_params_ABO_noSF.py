@@ -140,7 +140,7 @@ if __name__ == '__main__':
     #     del video_input
 
     # %% CNN training
-    for CV in [8]: # range(0,nvideo):
+    for CV in range(0,nvideo):
         if cross_validation == "leave_one_out":
             list_Exp_ID_train = list_Exp_ID.copy()
             list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
@@ -165,4 +165,4 @@ if __name__ == '__main__':
     # %% parameter optimization
     parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
         (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
-        batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist) # , max_eid=4
+        batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist, max_eid=4)
