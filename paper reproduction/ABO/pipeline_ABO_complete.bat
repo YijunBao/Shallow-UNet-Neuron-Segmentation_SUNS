@@ -32,7 +32,6 @@ python test_batch_ABO_1to9_complete.py 6
 python test_batch_ABO_1to9_complete.py 7
 python test_batch_ABO_1to9_complete.py 8
 python test_batch_ABO_1to9_complete.py 9
-
 REM Run SUNS online. The post-processing will slow down after running many times, 
 REM so I split each cross-validation into different scripts.
 python test_online_ABO_1to9_complete.py 0

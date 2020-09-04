@@ -1,3 +1,4 @@
+REM python "C:\Matlab Files\timer\timer_start_next.py"
 REM Training pipeline
 python train_CNN_params_noSF_J115.py
 python train_CNN_params_noSF_J123.py

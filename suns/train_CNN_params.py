@@ -278,8 +278,14 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         if max_eid is not None:
             if eid > max_eid:
                 continue
-        list_saved_results = glob.glob(os.path.join(dir_temp, 'Parameter Optimization * Exp{}.mat'.format(Exp_ID)))
-        if len(list_saved_results)<nvideo_train or not load_exist: 
+        list_saved_results = glob.glob(os.path.join(dir_temp, 'Parameter Optimization CV* Exp{}.mat'.format(Exp_ID)))
+        saved_results_CVall = os.path.join(dir_temp, 'Parameter Optimization CV{} Exp{}.mat'.format(nvideo, Exp_ID))
+        if saved_results_CVall in list_saved_results:
+            num_exist = len(list_saved_results)-1
+        else:
+            num_exist = len(list_saved_results)
+
+        if not load_exist or num_exist<nvideo_train: 
             # load SNR videos as "network_input"
             network_input = 0
             print('Video '+Exp_ID)

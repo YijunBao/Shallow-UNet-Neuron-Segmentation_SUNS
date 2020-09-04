@@ -10,7 +10,7 @@ import multiprocessing as mp
 
 sys.path.insert(1, '..\\..') # the path containing "suns" folder
 os.environ['KERAS_BACKEND'] = 'tensorflow'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
 from suns.run_suns import suns_batch
