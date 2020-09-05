@@ -23,7 +23,7 @@ if __name__ == '__main__':
         # Can be slightly larger than the number of frames of a video
     Mag = 6/8 # spatial magnification compared to ABO videos.
 
-    useSF=True # True if spatial filtering is used in pre-processing.
+    useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
     dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
 
-    dir_parent = os.path.join(dir_video, 'complete 1to3') # folder to save all the processed data
+    dir_parent = os.path.join(dir_video, 'noSF 1to3') # folder to save all the processed data
     dir_output = os.path.join(dir_parent, 'output_masks') # folder to save the segmented masks and the performance scores
     dir_params = os.path.join(dir_parent, 'output_masks') # folder of the optimized hyper-parameters
     weights_path = os.path.join(dir_parent, 'Weights') # folder of the trained CNN
@@ -55,6 +55,7 @@ if __name__ == '__main__':
     h5f = h5py.File(filename_TF_template,'r')
     Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
     Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+    Poisson_filt = Poisson_filt/Poisson_filt.sum()
     # dictionary of pre-processing parameters
     Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
         'nn':nn, 'Poisson_filt': Poisson_filt}

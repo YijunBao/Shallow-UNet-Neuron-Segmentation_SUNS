@@ -14,7 +14,7 @@ from scipy.io import savemat, loadmat
 import multiprocessing as mp
 
 from suns.Online.par_online import fastlog_2, fastmask_2, fastexp_2, \
-    fastconv_2, fastnormf_2, fastnormback_2, fastthreshold_2
+    fastconv_2, fastnormf_2, fastnormback_2, fastthreshold_2, fastmediansubtract_2
 from suns.PostProcessing.seperate_neurons import separate_neuron
 from suns.PostProcessing.combine import segs_results, unique_neurons2_simp, \
     group_neurons, piece_neurons_IOU, piece_neurons_consume
@@ -80,6 +80,10 @@ def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = Non
         fastconv_2(past_frames, frame_SNR, Poisson_filt)
     else:
         frame_SNR = bb[:rowspad, :colspad]
+
+    if not useSF: # Subtract every frame with its median.
+        temp = np.zeros(frame_SNR.shape[:1], dtype = 'float32')
+        fastmediansubtract_2(frame_SNR, temp, 2)
 
     # Median computation and normalization
     if useSNR:

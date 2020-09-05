@@ -38,10 +38,10 @@ if __name__ == '__main__':
     thred_std = 3 # SNR threshold used to determine when neurons are active
     num_train_per = 2400 # Number of frames per video used for training 
     BATCH_SIZE = 20 # Batch size for training 
-    NO_OF_EPOCHS = 200 # Number of epoches used for training 
+    NO_OF_EPOCHS = 50 # Number of epoches used for training 
     batch_size_eval = 100 # batch size in CNN inference
 
-    useSF=True # True if spatial filtering is used in pre-processing.
+    useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     prealloc=False # True if pre-allocate memory space for large variables in pre-processing. 
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     dir_video = 'data' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
     dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
-    dir_parent = os.path.join(dir_video, 'complete 1to3') # folder to save all the processed data
+    dir_parent = os.path.join(dir_video, 'noSF 1to3') # folder to save all the processed data
     dir_network_input = os.path.join(dir_parent, 'network_input') # folder of the SNR videos
     dir_mask = os.path.join(dir_parent, 'temporal_masks({})'.format(thred_std)) # foldr to save the temporal masks
     weights_path = os.path.join(dir_parent, 'Weights') # folder to save the trained CNN
@@ -95,6 +95,7 @@ if __name__ == '__main__':
     h5f = h5py.File(filename_TF_template,'r')
     Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
     Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+    Poisson_filt = Poisson_filt/Poisson_filt.sum()
     # dictionary of pre-processing parameters
     Params = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
         'nn':nn, 'Poisson_filt': Poisson_filt}
