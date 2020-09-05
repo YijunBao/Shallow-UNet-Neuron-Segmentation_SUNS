@@ -127,3 +127,33 @@ def fastthreshold_2(f, g, th):
                 g[j,k] = 255
             else:
                 g[j,k] = 0
+
+
+@jit("void(f4[:,:], f4[:], u4)",nopython=True,parallel=True,cache=True,fastmath=True)
+def fastmediansubtract_2(f, temp, dec):
+    '''Subtract a frame with its median, to remove large-scale fluctuation.
+
+    Inputs: 
+        f(numpy.ndarray of float32, shape = (Lx,Ly)): the input video
+        dec(int): the median is calculated every "dec" pixels to save time
+
+    Outputs:
+        f(numpy.ndarray of float32, shape = (Lx,Ly)): the output video, after median subtraction
+    '''
+    for i in prange(f.shape[0]):
+        temp[i] = np.median(f[i, ::dec])
+    f -= np.median(temp)
+
+
+# def mediansubtract_2(f, dec):
+#     '''Subtract a frame with its median, to remove large-scale fluctuation.
+
+#     Inputs: 
+#         f(numpy.ndarray of float32, shape = (Lx,Ly)): the input video
+#         dec(int): the median is calculated every "dec" pixels to save time
+
+#     Outputs:
+#         f(numpy.ndarray of float32, shape = (Lx,Ly)): the output video, after median subtraction
+#     '''
+#     f -= np.median(f[::dec, ::dec])
+
