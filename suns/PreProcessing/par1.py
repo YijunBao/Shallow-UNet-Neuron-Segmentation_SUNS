@@ -130,3 +130,20 @@ def fastnormback(f, mu):
             for k in prange(f.shape[2]):
                 f[i,j,k] = f[i,j,k]*mu_1
 
+
+@jit("void(f4[:,:,:], f4[:,:], u4)",nopython=True,parallel=True,cache=True,fastmath=True)
+def fastmediansubtract(f, temp, dec):
+    '''Subtract every frame with its median, to remove large-scale fluctuation.
+
+    Inputs: 
+        f(numpy.ndarray of float32, shape = (T,Lx,Ly)): the input video
+        dec(int): the median is calculated every "dec" pixels to save time
+
+    Outputs:
+        f(numpy.ndarray of float32, shape = (T,Lx,Ly)): the output video, after median subtraction
+    '''
+    for i in prange(f.shape[0]):
+        for j in prange(f.shape[1]):
+            temp[i,j] = np.median(f[i, j, ::dec])
+        f[i] -= np.median(temp[i, ::dec])
+
