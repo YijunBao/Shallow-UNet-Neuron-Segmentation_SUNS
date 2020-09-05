@@ -38,7 +38,7 @@ if __name__ == '__main__':
     thred_std = 3 # SNR threshold used to determine when neurons are active
     num_train_per = 2400 # Number of frames per video used for training 
     BATCH_SIZE = 20 # Batch size for training 
-    NO_OF_EPOCHS = 200 # Number of epoches used for training 
+    NO_OF_EPOCHS = 50 # Number of epoches used for training 
     batch_size_eval = 100 # batch size in CNN inference
 
     useSF=False # True if spatial filtering is used in pre-processing.

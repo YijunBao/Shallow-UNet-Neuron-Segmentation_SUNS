@@ -1,6 +1,6 @@
 demo/data/complete*
 demo/data float32
-demo/data/noSF
+demo/data/noSF*
 demo/wisdom
 .vscode
 __pycache__
