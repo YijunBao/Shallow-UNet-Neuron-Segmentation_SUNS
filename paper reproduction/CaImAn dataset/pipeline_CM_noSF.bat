@@ -10,3 +10,4 @@ python test_batch_noSF_CM.py
 REM Run SUNS online
 python test_online_noSF_CM.py
 python test_online_complete_CM.py
+REM python "C:\Matlab Files\timer\timer_stop.py"
