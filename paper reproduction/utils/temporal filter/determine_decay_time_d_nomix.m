@@ -92,25 +92,30 @@ for nn=1:ncells
 end
 
 list_spikes_all=cell2mat(list_spikes);
-spikes_avg=mean(list_spikes_all);
-t_fine=(1:(before+after+1)*fine_ratio)/fine_ratio;
-spikes_fine=interp1(1:(before+after+1),spikes_avg,t_fine); %,'pchip'
-taud1=find(spikes_fine>exp(-1),1,'last');
-tau1=taud1/fine_ratio-before-1;
-% spikes_fine_subs=spikes_fine-spikes_fine(end);
-taud2=find(spikes_fine>0.5,1,'last');
-tau2=taud2/fine_ratio-before-1;
-tau2=tau2/log(2);
-num_avg=size(list_spikes_all,1);
+if isempty(list_spikes_all)
+    tau1 = nan;
+    tau2 = nan;
+    spikes_avg = nan(1+before+after,1);
+else
+    spikes_avg=mean(list_spikes_all,1);
+    t_fine=(1:(before+after+1)*fine_ratio)/fine_ratio;
+    spikes_fine=interp1(1:(before+after+1),spikes_avg,t_fine); %,'pchip'
+    taud1=find(spikes_fine>exp(-1),1,'last');
+    tau1=taud1/fine_ratio-before-1;
+    % spikes_fine_subs=spikes_fine-spikes_fine(end);
+    taud2=find(spikes_fine>0.5,1,'last');
+    tau2=taud2/fine_ratio-before-1;
+    tau2=tau2/log(2);
+    num_avg=size(list_spikes_all,1);
 
-time=(-before:after)/fs;
-if doesplot % plot all the selected spikes with normalized amplitude
-    figure; 
-    plot(time,list_spikes_all','Color',[0.5,0.5,0.5]);
-    hold on;
-    plot((t_fine-before-1)/fs,spikes_fine,'LineWidth',2);
-    title(['Average trace from ',num2str(num_avg),' spikes, ',num2str(d_min),'<d<',num2str(d_max)]);
-    xlabel('Time (s)');
-    ylabel('Normalized d');
+    time=(-before:after)/fs;
+    if doesplot % plot all the selected spikes with normalized amplitude
+        figure; 
+        plot(time,list_spikes_all','Color',[0.5,0.5,0.5]);
+        hold on;
+        plot((t_fine-before-1)/fs,spikes_fine,'LineWidth',2);
+        title(['Average trace from ',num2str(num_avg),' spikes, ',num2str(d_min),'<d<',num2str(d_max)]);
+        xlabel('Time (s)');
+        ylabel('Normalized d');
+    end
 end
-

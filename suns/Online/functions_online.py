@@ -81,9 +81,9 @@ def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = Non
     else:
         frame_SNR = bb[:rowspad, :colspad]
 
-    if not useSF: # Subtract every frame with its median.
-        temp = np.zeros(frame_SNR.shape[:1], dtype = 'float32')
-        fastmediansubtract_2(frame_SNR, temp, 2)
+    # if not useSF: # Subtract every frame with its median.
+    #     temp = np.zeros(frame_SNR.shape[:1], dtype = 'float32')
+    #     fastmediansubtract_2(frame_SNR, temp, 2)
 
     # Median computation and normalization
     if useSNR:

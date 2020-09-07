@@ -297,14 +297,14 @@ def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisso
     else:
         network_input = bb[:, :rowspad, :colspad]
 
-    if not useSF: # Subtract every frame with its median.
-        if display:
-            start = time.time()
-        temp = np.zeros(network_input.shape[:2], dtype = 'float32')
-        fastmediansubtract(network_input, temp, 2)
-        if display:
-            endmedsubtr = time.time()
-            print('median subtraction: {} s'.format(endmedsubtr-start))
+    # if not useSF: # Subtract every frame with its median.
+    #     if display:
+    #         start = time.time()
+    #     temp = np.zeros(network_input.shape[:2], dtype = 'float32')
+    #     fastmediansubtract(network_input, temp, 2)
+    #     if display:
+    #         endmedsubtr = time.time()
+    #         print('median subtraction: {} s'.format(endmedsubtr-start))
 
     # Median computation and normalization
     if useSNR:

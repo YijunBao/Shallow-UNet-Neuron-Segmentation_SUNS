@@ -38,7 +38,7 @@ if __name__ == '__main__':
     useWT=False # True if using additional watershed
     display=True # True if display information about running time 
 
-    for ind_video in range(0,4): # [1]: # 
+    for ind_video in [3]: # range(0,4): # 
         name_video = list_name_video[ind_video]
         # file names of the ".h5" files storing the raw videos. 
         list_Exp_ID = [name_video+x for x in ID_part]

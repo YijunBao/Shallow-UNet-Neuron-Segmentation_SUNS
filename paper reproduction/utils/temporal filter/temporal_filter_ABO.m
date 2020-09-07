@@ -12,7 +12,7 @@ doesplot=true;
 num_dff=length(list_d)-1;
 [array_tau,array_tau2]=deal(zeros(length(list_Exp_ID),num_dff));
 spikes_avg_all=zeros(length(list_Exp_ID), before+after+1);
-list_spikes_all=cell(10,num_dff);
+list_spikes_all=cell(length(list_Exp_ID),num_dff);
 
 %%
 for id=1:length(list_Exp_ID)
@@ -73,7 +73,7 @@ for ii=1:num_dff
     avg = plot(t,filter_tempolate,'LineWidth',2);
     xlabel('Time (s)'); %\DeltaF/F
     ylabel('Normalized Spike Amplitude');
-    title('Spike Tempolate');
+    title(['Spike Tempolate averaged over ',num2str(size(spikes_all,1)),' spikes']);
     exp_1 = plot([t(1),t(end)],exp(-1)*[1,1],'b--','LineWidth',1);
     zero = plot([-0.2,t(end)],0*[1,1],'k','LineWidth',1);
     
