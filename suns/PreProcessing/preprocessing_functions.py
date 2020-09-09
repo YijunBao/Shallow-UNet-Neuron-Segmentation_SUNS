@@ -247,7 +247,7 @@ def median_normalization(network_input, med_frame2=None, dims=None, median_decim
         endmedtime = time.time()
         print('median computation: {} s'.format(endmedtime - start))
 
-    fastnormback(network_input[:, :rows, :cols], med_frame2[:,:,0].mean())
+    fastnormback(network_input[:, :rows, :cols], max(1, med_frame2[:,:,0].mean()))
     med_frame3 = np.copy(med_frame2.transpose([2,0,1])) # Using copy to avoid computer crashing
     if display:
         endnormtime = time.time()
@@ -256,7 +256,8 @@ def median_normalization(network_input, med_frame2=None, dims=None, median_decim
     
 
 def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisson_filt=np.array([1]), mask2=None, \
-        bf=None, fft_object_b=None, fft_object_c=None, median_decimate=1, useSF=False, useTF=True, useSNR=True, prealloc=True, display=False):
+        bf=None, fft_object_b=None, fft_object_c=None, median_decimate=1, \
+        useSF=False, useTF=True, useSNR=True, med_subtract=False, prealloc=True, display=False):
     '''Pre-process the input video "bb" into an SNR video "network_input".
         It applies spatial filter, temporal filter, and SNR normalization in sequance. 
         Each step is optional.
@@ -276,6 +277,8 @@ def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisso
         useSF (bool, default to True): True if spatial filtering is used.
         useTF (bool, default to True): True if temporal filtering is used.
         useSNR (bool, default to True): True if pixel-by-pixel SNR normalization filtering is used.
+        med_subtract (bool, default to False): True if the spatial median of every frame is subtracted before temporal filtering.
+            Can only be used when spatial filtering is not used. 
         prealloc (bool, default to True): True if pre-allocate memory space for large variables. 
             Achieve faster speed at the cost of higher memory occupation.
 
@@ -297,14 +300,14 @@ def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisso
     else:
         network_input = bb[:, :rowspad, :colspad]
 
-    # if not useSF: # Subtract every frame with its median.
-    #     if display:
-    #         start = time.time()
-    #     temp = np.zeros(network_input.shape[:2], dtype = 'float32')
-    #     fastmediansubtract(network_input, temp, 2)
-    #     if display:
-    #         endmedsubtr = time.time()
-    #         print('median subtraction: {} s'.format(endmedsubtr-start))
+    if med_subtract and not useSF: # Subtract every frame with its median.
+        if display:
+            start = time.time()
+        temp = np.zeros(network_input.shape[:2], dtype = 'float32')
+        fastmediansubtract(network_input, temp, 2)
+        if display:
+            endmedsubtr = time.time()
+            print('median subtraction: {} s'.format(endmedsubtr-start))
 
     # Median computation and normalization
     if useSNR:
@@ -318,7 +321,8 @@ def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisso
 
 
 def preprocess_video(dir_video:str, Exp_ID:str, Params:dict, 
-        dir_network_input:str = None, useSF=False, useTF=True, useSNR=True, prealloc=True, display=True):
+        dir_network_input:str = None, useSF=False, useTF=True, useSNR=True, \
+        med_subtract=False, prealloc=True, display=True):
     '''Pre-process the registered video "Exp_ID" in "dir_video" into an SNR video "network_input".
         The process includes spatial filter, temporal filter, and SNR normalization. Each step is optional.
         The function does some preparations, including pre-allocating memory space (optional), FFT planing, 
@@ -340,6 +344,8 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
         useSF (bool, default to True): True if spatial filtering is used.
         useTF (bool, default to True): True if temporal filtering is used.
         useSNR (bool, default to True): True if pixel-by-pixel SNR normalization filtering is used.
+        med_subtract (bool, default to False): True if the spatial median of every frame is subtracted before temporal filtering.
+            Can only be used when spatial filtering is not used. 
         prealloc (bool, default to True): True if pre-allocate memory space for large variables. 
             Achieve faster speed at the cost of higher memory occupation.
 
@@ -426,7 +432,7 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
 
     start = time.time() # The pipline starts after the video is loaded into memory
     network_input, _ = preprocess_complete(bb, (rowspad,colspad), network_input, med_frame2, Poisson_filt, mask2, \
-        bf, fft_object_b, fft_object_c, median_decimate, useSF, useTF, useSNR, prealloc, display)
+        bf, fft_object_b, fft_object_c, median_decimate, useSF, useTF, useSNR, med_subtract, prealloc, display)
 
     if display:
         end = time.time()

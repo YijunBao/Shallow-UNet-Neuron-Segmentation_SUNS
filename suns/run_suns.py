@@ -18,7 +18,8 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 from suns.Online.functions_online import merge_2, merge_2_nocons, merge_complete, select_cons, \
     preprocess_online, CNN_online, separate_neuron_online, refine_seperate_cons_online
 from suns.Online.functions_init import init_online, plan_fft2
-from suns.PreProcessing.preprocessing_functions import preprocess_video, plan_fft, plan_mask2, load_wisdom_txt
+from suns.PreProcessing.preprocessing_functions import preprocess_video, \
+    plan_fft, plan_mask2, load_wisdom_txt, SNR_normalization, median_normalization
 from suns.Network.shallow_unet import get_shallow_unet
 from suns.PostProcessing.par3 import fastthreshold
 from suns.PostProcessing.combine import segs_results, unique_neurons2_simp, \
@@ -27,7 +28,7 @@ from suns.PostProcessing.complete_post import complete_segment
 
 
 def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
-        batch_size_eval=1, useSF=True, useTF=True, useSNR=True, \
+        batch_size_eval=1, useSF=True, useTF=True, useSNR=True, med_subtract=False, \
         useWT=False, prealloc=True, display=True, useMP=True, p=None):
     '''The complete SUNS batch procedure.
         It uses the trained CNN model from "filename_CNN" and the optimized hyper-parameters in "Params_post"
@@ -61,6 +62,8 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
         useSF (bool, default to True): True if spatial filtering is used.
         useTF (bool, default to True): True if temporal filtering is used.
         useSNR (bool, default to True): True if pixel-by-pixel SNR normalization filtering is used.
+        med_subtract (bool, default to False): True if the spatial median of every frame is subtracted before temporal filtering.
+            Can only be used when spatial filtering is not used. 
         useWT (bool, default to False): Indicator of whether watershed is used. 
         prealloc (bool, default to True): True if pre-allocate memory space for large variables. 
             Achieve faster speed at the cost of higher memory occupation.
@@ -100,7 +103,7 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
         # which is in the middle of "preprocess_video", represented by the output "start"
     # pre-processing including loading data
     video_input, start = preprocess_video(dir_video, Exp_ID, Params_pre, \
-        useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=prealloc, display=display)
+        useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, prealloc=prealloc, display=display)
     nframes = video_input.shape[0]
     if display:
         end_pre = time.time()
@@ -153,6 +156,7 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
 
 def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         frames_init, merge_every, batch_size_init=1, useSF=True, useTF=True, useSNR=True, \
+        med_subtract=False, update_baseline=False, \
         useWT=False, show_intermediate=True, prealloc=True, display=True, useMP=True, p=None):
     '''The complete SUNS online procedure.
         It uses the trained CNN model from "filename_CNN" and the optimized hyper-parameters in "Params_post"
@@ -187,6 +191,9 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         useSF (bool, default to True): True if spatial filtering is used.
         useTF (bool, default to True): True if temporal filtering is used.
         useSNR (bool, default to True): True if pixel-by-pixel SNR normalization filtering is used.
+        med_subtract (bool, default to False): True if the spatial median of every frame is subtracted before temporal filtering.
+            Can only be used when spatial filtering is not used. 
+        update_baseline (bool, default to False): True if the median and median-based std is updated every "frames_init" frames.
         useWT (bool, default to False): Indicator of whether watershed is used. 
         show_intermediate (bool, default to True): Indicator of whether 
             consecutive frame requirement is applied to screen neurons after every update. 
@@ -261,7 +268,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         # mask for spatial filter
         mask2 = plan_mask2(dims, (rows1, cols1), gauss_filt_size)
         # FFT planning
-        (bb, bf, fft_object_b, fft_object_c) = plan_fft(frames_init, (rows1, cols1))
+        (bb, bf, fft_object_b, fft_object_c) = plan_fft(frames_init, (rows1, cols1), prealloc)
     else:
         (mask2, bf, fft_object_b, fft_object_c) = (None, None, None, None)
         bb=np.zeros((frames_init, rowspad, colspad), dtype='float32')
@@ -283,12 +290,16 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         pmaps_b_init = np.ones((frames_initf, Lx, Ly), dtype='uint8')        
         frame_SNR = np.ones(dimspad, dtype='float32')
         pmaps_b = np.ones(dims, dtype='uint8')
+        if update_baseline:
+            video_tf_past = np.ones((frames_init, rowspad, colspad), dtype='float32')        
     else:
         med_frame2 = np.zeros((rowspad, colspad, 2), dtype='float32')
         video_input = np.zeros((frames_initf, rowspad, colspad), dtype='float32')        
         pmaps_b_init = np.zeros((frames_initf, Lx, Ly), dtype='uint8')        
         frame_SNR = np.zeros(dimspad, dtype='float32')
         pmaps_b = np.zeros(dims, dtype='uint8')
+        if update_baseline:
+            video_tf_past = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
 
     if display:
         time_init = time.time()
@@ -315,7 +326,8 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
     med_frame3, segs_all, recent_frames = init_online(
         bb, dims, video_input, pmaps_b_init, fff, thresh_pmap_float, Params_post, \
         med_frame2, mask2, bf, fft_object_b, fft_object_c, Poisson_filt, \
-        useSF=useSF, useTF=useTF, useSNR=useSNR, useWT=useWT, batch_size_init=batch_size_init, p=p)
+        useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
+        useWT=useWT, batch_size_init=batch_size_init, p=p)
     if useTF==True:
         past_frames[:leng_tf] = recent_frames
     tuple_temp = merge_complete(segs_all[:frames_initf], dims, Params_post)
@@ -343,7 +355,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
     
     print('Start frame by frame processing')
     # %% Online processing for the following frames
-    current_frame = leng_tf
+    current_frame = leng_tf+1
     t_merge = frames_initf
     for t in range(frames_initf,nframesf):
         if display:
@@ -354,9 +366,22 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         bb[:, Ly:] = 0
         
         # PreProcessing
-        frame_SNR = preprocess_online(bb, dimspad, med_frame3, frame_SNR, \
-            past_frames[current_frame-leng_tf:current_frame], mask2, bf, fft_object_b, fft_object_c, \
-            Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR)
+        frame_SNR, frame_tf = preprocess_online(bb, dimspad, med_frame3, frame_SNR, \
+            past_frames[current_frame-leng_tf:current_frame], mask2, bf, fft_object_b, \
+            fft_object_c, Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR, \
+            med_subtract=med_subtract, update_baseline=update_baseline)
+
+        if update_baseline:
+            t_past = (t-frames_initf) % frames_init
+            video_tf_past[t_past] = frame_tf
+            if t_past == frames_init-1: 
+            # update median and median-based standard deviation every "frames_init" frames
+                if useSNR:
+                    med_frame3 = SNR_normalization(
+                        video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
+                else:
+                    med_frame3 = median_normalization(
+                        video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
 
         # CNN inference
         frame_prob = CNN_online(frame_SNR, fff, dims)
@@ -426,8 +451,8 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
 
         current_frame +=1
         # Update the stored latest frames when it runs out: move them "leng_tf" ahead
-        if current_frame >= leng_past:
-            current_frame = leng_tf
+        if current_frame > leng_past:
+            current_frame = leng_tf+1
             past_frames[:leng_tf] = past_frames[-leng_tf:]
         if display:
             end_frame = time.time()
@@ -468,6 +493,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
 
 def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         frames_init, merge_every, batch_size_init=1, useSF=True, useTF=True, useSNR=True, \
+        med_subtract=False, update_baseline=False, \
         useWT=False, prealloc=True, display=True, useMP=True, p=None):
     '''The complete SUNS online procedure with tracking.
         It uses the trained CNN model from "filename_CNN" and the optimized hyper-parameters in "Params_post"
@@ -502,6 +528,9 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
         useSF (bool, default to True): True if spatial filtering is used.
         useTF (bool, default to True): True if temporal filtering is used.
         useSNR (bool, default to True): True if pixel-by-pixel SNR normalization filtering is used.
+        med_subtract (bool, default to False): True if the spatial median of every frame is subtracted before temporal filtering.
+            Can only be used when spatial filtering is not used. 
+        update_baseline (bool, default to False): True if the median and median-based std is updated every "frames_init" frames.
         useWT (bool, default to False): Indicator of whether watershed is used. 
         prealloc (bool, default to True): True if pre-allocate memory space for large variables. 
             Achieve faster speed at the cost of higher memory occupation.
@@ -574,7 +603,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
         # mask for spatial filter
         mask2 = plan_mask2(dims, (rows1, cols1), gauss_filt_size)
         # FFT planning
-        (bb, bf, fft_object_b, fft_object_c) = plan_fft(frames_init, (rows1, cols1))
+        (bb, bf, fft_object_b, fft_object_c) = plan_fft(frames_init, (rows1, cols1), prealloc)
     else:
         (mask2, bf, fft_object_b, fft_object_c) = (None, None, None, None)
         bb=np.zeros((frames_init, rowspad, colspad), dtype='float32')
@@ -596,12 +625,16 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
         pmaps_b_init = np.ones((frames_initf, Lx, Ly), dtype='uint8')        
         frame_SNR = np.ones(dimspad, dtype='float32')
         pmaps_b = np.ones(dims, dtype='uint8')
+        if update_baseline:
+            video_tf_past = np.ones((frames_init, rowspad, colspad), dtype='float32')        
     else:
         med_frame2 = np.zeros((rowspad, colspad, 2), dtype='float32')
         video_input = np.zeros((frames_initf, rowspad, colspad), dtype='float32')        
         pmaps_b_init = np.zeros((frames_initf, Lx, Ly), dtype='uint8')        
         frame_SNR = np.zeros(dimspad, dtype='float32')
         pmaps_b = np.zeros(dims, dtype='uint8')
+        if update_baseline:
+            video_tf_past = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
 
     if display:
         time_init = time.time()
@@ -628,7 +661,8 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
     med_frame3, segs_all, recent_frames = init_online(
         bb, dims, video_input, pmaps_b_init, fff, thresh_pmap_float, Params_post, \
         med_frame2, mask2, bf, fft_object_b, fft_object_c, Poisson_filt, \
-        useSF=useSF, useTF=useTF, useSNR=useSNR, useWT=useWT, batch_size_init=batch_size_init, p=p)
+        useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
+        useWT=useWT, batch_size_init=batch_size_init, p=p)
     if useTF==True:
         past_frames[:leng_tf] = recent_frames
     tuple_temp = merge_complete(segs_all[:frames_initf], dims, Params_post)
@@ -676,7 +710,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
 
     print('Start frame by frame processing')
     # %% Online processing for the following frames
-    current_frame = leng_tf
+    current_frame = leng_tf+1
     t_merge = frames_initf
     for t in range(frames_initf, nframesf):
         if display:
@@ -687,9 +721,22 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
         bb[:, Ly:] = 0
 
         # PreProcessing
-        frame_SNR = preprocess_online(bb, dimspad, med_frame3, frame_SNR, \
+        frame_SNR, frame_tf = preprocess_online(bb, dimspad, med_frame3, frame_SNR, \
             past_frames[current_frame-leng_tf:current_frame], mask2, bf, fft_object_b, fft_object_c, \
-            Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR)
+            Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR, \
+            med_subtract=med_subtract, update_baseline=update_baseline)
+
+        if update_baseline:
+            t_past = (t-frames_initf) % frames_init
+            video_tf_past[t_past] = frame_tf
+            if t_past == frames_init-1: 
+            # update median and median-based standard deviation every "frames_init" frames
+                if useSNR:
+                    med_frame3 = SNR_normalization(
+                        video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
+                else:
+                    med_frame3 = median_normalization(
+                        video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
 
         # CNN inference
         frame_prob = CNN_online(frame_SNR, fff, dims)
@@ -818,8 +865,8 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
 
         current_frame +=1
         # Update the stored latest frames when it runs out: move them "leng_tf" ahead
-        if current_frame >= leng_past:
-            current_frame = leng_tf
+        if current_frame > leng_past:
+            current_frame = leng_tf+1
             past_frames[:leng_tf] = past_frames[-leng_tf:]
         if display:
             end_frame = time.time()

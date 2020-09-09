@@ -41,7 +41,7 @@ def plan_fft2(dims1):
 
 def init_online(bb, dims, network_input, pmaps_b, fff, thresh_pmap_float, Params_post, med_frame2=None, mask2=None, \
         bf=None, fft_object_b=None, fft_object_c=None, Poisson_filt=np.array([1]), \
-        useSF=True, useTF=True, useSNR=True, useMP=True, useWT=False, batch_size_init=1, p=None):
+        useSF=True, useTF=True, useSNR=True, med_subtract=False, useMP=True, useWT=False, batch_size_init=1, p=None):
     '''Process the initial part of a video into a list of segmented masks for every frame with statistics.
         It includes complete pre-processing, CNN inference, and a half of post-processing.
         The postprocessing includes the steps for each individual frame, but does not include temporal merging.
@@ -68,6 +68,8 @@ def init_online(bb, dims, network_input, pmaps_b, fff, thresh_pmap_float, Params
         useSF (bool, default to True): True if spatial filtering is used.
         useTF (bool, default to True): True if temporal filtering is used.
         useSNR (bool, default to True): True if pixel-by-pixel SNR normalization filtering is used.
+        med_subtract (bool, default to False): True if the spatial median of every frame is subtracted before temporal filtering.
+            Can only be used when spatial filtering is not used. 
         useMP (bool, defaut to True): indicator of whether multiprocessing is used to speed up. 
         useWT (bool, default to False): Indicator of whether watershed is used. 
         batch_size_init (int, default to 1): Batch size for CNN inference in the initalization stage.
@@ -86,8 +88,9 @@ def init_online(bb, dims, network_input, pmaps_b, fff, thresh_pmap_float, Params
     dimspad = (rowspad, colspad)
 
     # PreProcessing
-    network_input, med_frame3 = preprocess_complete(bb, dimspad, network_input, med_frame2, Poisson_filt, mask2, \
-        bf, fft_object_b, fft_object_c, median_decimate=1, useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=True)
+    network_input, med_frame3 = preprocess_complete(bb, dimspad, network_input, med_frame2, \
+        Poisson_filt, mask2, bf, fft_object_b, fft_object_c, median_decimate=1, \
+        useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, prealloc=True)
     if useTF==True: # store the reacent frames, used in futher temporal filtering.
         recent_frames = bb[-(Poisson_filt.size):, :rowspad, :colspad]
     else:

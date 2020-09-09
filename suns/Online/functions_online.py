@@ -44,7 +44,7 @@ def spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2):
 
 def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = None, \
         mask2=None, bf=None, fft_object_b=None, fft_object_c=None, Poisson_filt=np.array([1]), \
-        useSF=True, useTF=True, useSNR=True):
+        useSF=True, useTF=True, useSNR=True, med_subtract=False, update_baseline=False):
     '''Pre-process the registered image in "bb" into an SNR image "frame_SNR" 
         using known median and median-based std in "med_frame3".
         It includes spatial filter, temporal filter, and SNR normalization. 
@@ -66,9 +66,14 @@ def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = Non
         useSF (bool, default to True): True if spatial filtering is used.
         useTF (bool, default to True): True if temporal filtering is used.
         useSNR (bool, default to True): True if pixel-by-pixel SNR normalization filtering is used.
+        med_subtract (bool, default to False): True if the spatial median of every frame is subtracted before temporal filtering.
+            Can only be used when spatial filtering is not used. 
+        update_baseline (bool, default to False): True if the median and median-based std is updated every "frames_init" frames.
 
     Outputs:
         frame_SNR (2D numpy.ndarray of float32, shape = (Lx,Ly)): the SNR image obtained after pre-processing. 
+        frame_tf (2D numpy.ndarray of float32, shape = (Lx,Ly)): the image obtained after temporal filtering but before SNR normalization. 
+            if update_baseline==False, then this is just 0, because it is not used later. 
     '''
     (rowspad, colspad) = dimspad
     
@@ -81,17 +86,23 @@ def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = Non
     else:
         frame_SNR = bb[:rowspad, :colspad]
 
-    # if not useSF: # Subtract every frame with its median.
-    #     temp = np.zeros(frame_SNR.shape[:1], dtype = 'float32')
-    #     fastmediansubtract_2(frame_SNR, temp, 2)
+    if med_subtract and not useSF: # Subtract every frame with its median.
+        temp = np.zeros(frame_SNR.shape[:1], dtype = 'float32')
+        fastmediansubtract_2(frame_SNR, temp, 2)
+
+    if update_baseline: # keep the temporally filtered frame, 
+        # used for updating median and median-based standard deviation
+        frame_tf = frame_SNR.copy()
+    else:
+        frame_tf = 0
 
     # Median computation and normalization
     if useSNR:
         fastnormf_2(frame_SNR, med_frame3)
     else:
-        fastnormback_2(frame_SNR, med_frame3[0,:,:].mean())
+        fastnormback_2(frame_SNR, max(1, med_frame3[0,:,:].mean()))
 
-    return frame_SNR
+    return frame_SNR, frame_tf
 
 
 def CNN_online(frame_SNR, fff, dims=None):
