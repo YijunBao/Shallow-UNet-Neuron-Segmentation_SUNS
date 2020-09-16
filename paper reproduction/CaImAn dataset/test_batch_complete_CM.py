@@ -32,13 +32,15 @@ if __name__ == '__main__':
     useSF=True # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
+    med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
+        # Can only be used when spatial filtering is not used. 
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     batch_size_eval = 200 # batch size in CNN inference
     useWT=False # True if using additional watershed
     display=True # True if display information about running time 
 
-    for ind_video in [3]: # range(0,4): # 
+    for ind_video in range(0,4): # [3]: # 
         name_video = list_name_video[ind_video]
         # file names of the ".h5" files storing the raw videos. 
         list_Exp_ID = [name_video+x for x in ID_part]
@@ -111,7 +113,8 @@ if __name__ == '__main__':
             # The entire process of SUNS batch
             Masks, Masks_2, time_total, time_frame = suns_batch(
                 dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, batch_size_eval, \
-                useSF=useSF, useTF=useTF, useSNR=useSNR, useWT=useWT, prealloc=prealloc, display=display, p=p)
+                useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
+                useWT=useWT, prealloc=prealloc, display=display, p=p)
 
             # %% Evaluation of the segmentation accuracy compared to manual ground truth
             filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'

@@ -46,12 +46,12 @@ if __name__ == '__main__':
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
     dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
-    merge_every = rate_hz # number of frames every merge
+    merge_every = int(sys.argv[1]) # rate_hz # number of frames every merge
     frames_init = 30 * rate_hz # number of frames used for initialization
     batch_size_init = 100 # batch size in CNN inference during initalization
 
     dir_parent = dir_video + 'complete\\' # folder to save all the processed data
-    dir_output = dir_parent + 'output_masks online\\' # folder to save the segmented masks and the performance scores
+    dir_output = dir_parent + 'output_masks online merge{}\\'.format(merge_every) # folder to save the segmented masks and the performance scores
     dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
     weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
     if not os.path.exists(dir_output):
