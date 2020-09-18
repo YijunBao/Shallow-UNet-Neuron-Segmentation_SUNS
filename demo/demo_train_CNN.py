@@ -44,6 +44,8 @@ if __name__ == '__main__':
     useSF=True # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
+    med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
+        # Can only be used when spatial filtering is not used. 
     prealloc=False # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
             # Not needed in training.
@@ -138,7 +140,7 @@ if __name__ == '__main__':
     for Exp_ID in list_Exp_ID: #
         # %% Pre-process video
         video_input, _ = preprocess_video(dir_video, Exp_ID, Params, dir_network_input, \
-            useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=prealloc) #
+            useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, prealloc=prealloc) #
 
         # %% Determine active neurons in all frames using FISSA
         file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks

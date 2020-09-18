@@ -5,7 +5,7 @@ from scipy.io import savemat, loadmat
 import time
 import multiprocessing as mp
 
-from suns.online.functions_online import merge_2
+from suns.Online.functions_online import merge_2
 from suns.PostProcessing.seperate_neurons import watershed_neurons, separate_neuron
 from suns.PostProcessing.combine import unique_neurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
 from suns.PostProcessing.refine_cons import refine_seperate, refine_seperate_multi
