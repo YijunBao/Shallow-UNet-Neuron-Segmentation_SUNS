@@ -359,10 +359,8 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     nn = Params['nn']
     if useSF:
         gauss_filt_size = Params['gauss_filt_size']
-    if useTF:
-        Poisson_filt = Params['Poisson_filt']
-    if useSNR:
-        num_median_approx = Params['num_median_approx']
+    Poisson_filt = Params['Poisson_filt']
+    num_median_approx = Params['num_median_approx']
 
     h5_video = os.path.join(dir_video, Exp_ID + '.h5')
     h5_file = h5py.File(h5_video,'r')
@@ -407,15 +405,13 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     if useTF:
         leng_tf = Poisson_filt.size
         nframesf = nframes - leng_tf + 1 # Number of frames after temporal filtering
-        if prealloc:
-            network_input = np.ones((nframesf, rowspad, colspad), dtype='float32')
-        else:
-            network_input = np.zeros((nframesf, rowspad, colspad), dtype='float32')
     else:
         nframesf = nframes
     if prealloc:
+        network_input = np.ones((nframesf, rowspad, colspad), dtype='float32')
         med_frame2 = np.ones((rowspad, colspad, 2), dtype='float32')
     else:
+        network_input = np.zeros((nframesf, rowspad, colspad), dtype='float32')
         med_frame2 = np.zeros((rowspad, colspad, 2), dtype='float32')
     median_decimate = max(1,nframes//num_median_approx)
     if display:

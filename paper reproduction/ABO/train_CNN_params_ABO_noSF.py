@@ -30,7 +30,7 @@ if __name__ == '__main__':
         # Can be slightly smaller than the number of frames of a video
     Mag = 1 # spatial magnification compared to ABO videos.
 
-    thred_std = 6 # SNR threshold used to determine when neurons are active
+    thred_std = 7 # SNR threshold used to determine when neurons are active
     num_train_per = 200 # Number of frames per video used for training 
     BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
@@ -128,16 +128,16 @@ if __name__ == '__main__':
     print(Params_set)
 
 
-    # pre-processing for training
-    for Exp_ID in list_Exp_ID: #
-        # %% Pre-process video
-        video_input, _ = preprocess_video(dir_video, Exp_ID, Params, dir_network_input, \
-            useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=prealloc) #
+    # # pre-processing for training
+    # for Exp_ID in list_Exp_ID: #
+    #     # %% Pre-process video
+    #     video_input, _ = preprocess_video(dir_video, Exp_ID, Params, dir_network_input, \
+    #         useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=prealloc) #
 
-        # %% Determine active neurons in all frames using FISSA
-        file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
-        generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
-        del video_input
+    #     # %% Determine active neurons in all frames using FISSA
+    #     file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
+    #     generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
+    #     del video_input
 
     # %% CNN training
     for CV in range(0,nvideo):
