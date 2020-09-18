@@ -85,14 +85,14 @@ def SNR_normalization(network_input, med_frame2=None, dims=None, frames_initf=10
             endnormtime = time.time()
             print('normalization: {} s'.format(endnormtime - endmedtime))
     else:
-        fastnormf(network_input[:frames_initf+frames_init, :rows, :cols], med_frame3)
-        for t_update in range(frames_initf + frames_init, network_input.shape[0], frames_init):
-            result = np.copy(network_input[t_update-frames_init:t_update, :rows, :cols].transpose([1, 2, 0]))
-            med_frame3 = median_std(result, med_frame2)
+        fastnormf(network_input[:frames_initf, :rows, :cols], med_frame3)
+        for t_update in range(frames_initf, network_input.shape[0], frames_init):
+            result = np.copy(network_input[t_update:t_update+frames_init, :rows, :cols].transpose([1, 2, 0]))
             fastnormf(network_input[t_update:t_update+frames_init, :rows, :cols], med_frame3)
+            med_frame3 = median_std(result, med_frame2)
         if display:
             endnormtime = time.time()
-            print('median computation and normalization: {} s'.format(endnormtime - endmedtime))
+            print('median computation and normalization: {} s'.format(endnormtime - start))
     # return med_frame3
 
 
@@ -147,7 +147,7 @@ def median_normalization(network_input, med_frame2=None, dims=None, frames_initf
             fastnormback(network_input[t_update:t_update+frames_init, :rows, :cols], max(1, med_frame2[:,:,0].mean()))
         if display:
             endnormtime = time.time()
-            print('median computation and normalization: {} s'.format(endnormtime - endmedtime))
+            print('median computation and normalization: {} s'.format(endnormtime - start))
     # return med_frame3
     
 
@@ -262,7 +262,7 @@ def preprocess_video_online(dir_video:str, Exp_ID:str, Params:dict, frames_init=
     if useSF:
         gauss_filt_size = Params['gauss_filt_size']
     Poisson_filt = Params['Poisson_filt']
-    num_median_approx = Params['num_median_approx']
+    # num_median_approx = Params['num_median_approx']
 
     h5_video = os.path.join(dir_video, Exp_ID + '.h5')
     h5_file = h5py.File(h5_video,'r')
@@ -332,7 +332,7 @@ def preprocess_video_online(dir_video:str, Exp_ID:str, Params:dict, frames_init=
     start = time.time() # The pipline starts after the video is loaded into memory
     network_input = preprocess_complete_online(bb, (rowspad,colspad), network_input, med_frame2, \
         Poisson_filt, mask2, bf, fft_object_b, fft_object_c, useSF, useTF, useSNR, \
-        med_subtract, update_baseline, frames_init, frames_initf, prealloc, display)
+        med_subtract, update_baseline, frames_initf, frames_init, prealloc, display)
 
     if display:
         end = time.time()

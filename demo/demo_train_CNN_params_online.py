@@ -18,7 +18,7 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 from suns.Online.preprocessing_functions_online import preprocess_video_online
 from suns.PreProcessing.generate_masks import generate_masks
 from suns.train_CNN_params import train_CNN
-# from suns.train_CNN_params_online import parameter_optimization_cross_validation
+from suns.Online.train_params_online import parameter_optimization_cross_validation_online
 
 # import tensorflow as tf
 # config = tf.ConfigProto()
@@ -43,13 +43,14 @@ if __name__ == '__main__':
     NO_OF_EPOCHS = 20 # Number of epoches used for training 
     batch_size_eval = 100 # batch size in CNN inference
     frames_init = 30 * rate_hz # number of frames used for initialization
+    merge_every = rate_hz # number of frames every merge
 
     useSF=True # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
         # Can only be used when spatial filtering is not used. 
-    update_baseline=False # True if the median and median-based std is updated every "frames_init" frames.
+    update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
     prealloc=False # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
             # Not needed in training.
@@ -108,11 +109,11 @@ if __name__ == '__main__':
 
     # %% set the range of post-processing hyper-parameters to be optimized in
     # minimum area of a neuron (unit: pixels in ABO videos). must be in ascend order
-    list_minArea = list(range(30,85,5)) 
+    list_minArea = list(range(30,85,25)) 
     # average area of a typical neuron (unit: pixels in ABO videos)
     list_avgArea = [177] 
     # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
-    list_thresh_pmap = list(range(130,235,10))
+    list_thresh_pmap = list(range(130,235,30))
     # threshold to binarize the neuron masks. For each mask, 
     # values higher than "thresh_mask" times the maximum value of the mask are set to one.
     thresh_mask = 0.5
@@ -140,16 +141,16 @@ if __name__ == '__main__':
     print(Params_set)
 
 
-    # # pre-processing for training
-    # for Exp_ID in list_Exp_ID: #
-    #     # %% Pre-process video
-    #     video_input, _ = preprocess_video_online(dir_video, Exp_ID, Params, frames_init, dir_network_input, \
-    #         useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, update_baseline=update_baseline, prealloc=prealloc) #
+    # pre-processing for training
+    for Exp_ID in list_Exp_ID: #
+        # %% Pre-process video
+        video_input, _ = preprocess_video_online(dir_video, Exp_ID, Params, frames_init, dir_network_input, \
+            useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, update_baseline=update_baseline, prealloc=prealloc) #
 
-    #     # %% Determine active neurons in all frames using FISSA
-    #     file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
-    #     generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
-    #     del video_input
+        # %% Determine active neurons in all frames using FISSA
+        file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
+        generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
+        del video_input
 
     # %% CNN training
     if cross_validation == "use_all":
@@ -183,7 +184,7 @@ if __name__ == '__main__':
             f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
         f.close()
 
-    # # %% parameter optimization
-    # parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
-    #     (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
-    #     batch_size_eval, useWT=useWT, useMP=useMP, load_exist=load_exist)
+    # %% parameter optimization
+    parameter_optimization_cross_validation_online(cross_validation, list_Exp_ID, frames_init, merge_every, Params_set, \
+        (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
+        batch_size_eval, useWT=useWT, useMP=useMP, load_exist=load_exist)

@@ -18,7 +18,7 @@ from suns.Network.par2 import fastuint
 from suns.Online.parameter_optimization_online import parameter_optimization_online
 
 
-def parameter_optimization_pipeline_online(file_CNN, network_input, dims, \
+def parameter_optimization_pipeline_online(file_CNN, network_input, dims, frames_initf, merge_every, \
         Params_set, filename_GT, batch_size_eval=1, useWT=False, useMP=True, p=None):
     '''The complete parameter optimization pipeline for one video and one CNN model.
         It first infers the probablity map of every frame in "network_input" using the trained CNN model in "file_CNN", 
@@ -30,6 +30,8 @@ def parameter_optimization_pipeline_online(file_CNN, network_input, dims, \
         network_input (3D numpy.ndarray of float32, shape = (T,Lx,Ly)): 
             the SNR video obtained after pre-processing.
         dims (tuplel of int, shape = (2,)): lateral dimension of the raw video.
+        frames_init (int): Number of frames used for initialization.
+        merge_every (int): SUNS online merge the newly segmented frames every "merge_every" frames.
         Params_set (dict): Ranges of post-processing parameters to optimize over.
             Params_set['list_minArea']: (list) Range of minimum area of a valid neuron mask (unit: pixels).
             Params_set['list_avgArea']: (list) Range of  typical neuron area (unit: pixels).
@@ -74,13 +76,14 @@ def parameter_optimization_pipeline_online(file_CNN, network_input, dims, \
     del prob_map, fff
 
     # calculate the recall, precision, and F1 when different post-processing hyper-parameters are used.
-    list_Recall, list_Precision, list_F1 = parameter_optimization_online(pmaps, Params_set, filename_GT, useMP=useMP, useWT=useWT, p=p)
+    list_Recall, list_Precision, list_F1 = parameter_optimization_online(pmaps, frames_initf, merge_every, \
+        Params_set, filename_GT, useMP=useMP, useWT=useWT, p=p)
     return list_Recall, list_Precision, list_F1
 
 
-def parameter_optimization_cross_validation_online(cross_validation, list_Exp_ID, Params_set, \
-        dims, dims1, dir_img, weights_path, dir_GTMasks, dir_temp, dir_output, \
-            batch_size_eval=1, useWT=False, useMP=True, load_exist=False, max_eid=None):
+def parameter_optimization_cross_validation_online(cross_validation, list_Exp_ID, frames_initf, merge_every, \
+        Params_set, dims, dims1, dir_img, weights_path, dir_GTMasks, dir_temp, dir_output, \
+        batch_size_eval=1, useWT=False, useMP=True, load_exist=False, max_eid=None):
     '''The parameter optimization for a complete cross validation.
         For each cross validation, it uses "parameter_optimization_pipeline" to calculate 
         the recall, precision, and F1 of each training video over all parameter combinations from "Params_set",
@@ -94,6 +97,8 @@ def parameter_optimization_cross_validation_online(cross_validation, list_Exp_ID
                 "train_1_test_rest" means training on one video and testing on the other videos;
                 "use_all" means training on all videos and testing on other videos not in the list.
         list_Exp_ID (list of str): The list of file names of all the videos. 
+        frames_init (int): Number of frames used for initialization.
+        merge_every (int): SUNS online merge the newly segmented frames every "merge_every" frames.
         Params_set (dict): Ranges of post-processing parameters to optimize over.
             Params_set['list_minArea']: (list) Range of minimum area of a valid neuron mask (unit: pixels).
             Params_set['list_avgArea']: (list) Range of  typical neuron area (unit: pixels).
@@ -209,7 +214,8 @@ def parameter_optimization_cross_validation_online(cross_validation, list_Exp_ID
                 start = time.time()
                 file_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV))
                 list_Recall, list_Precision, list_F1 = parameter_optimization_pipeline_online(
-                    file_CNN, network_input, (Lx,Ly), Params_set, filename_GT, batch_size_eval, useWT=useWT, useMP=useMP, p=p)
+                    file_CNN, network_input, (Lx,Ly), frames_initf, merge_every, Params_set, \
+                    filename_GT, batch_size_eval, useWT=useWT, useMP=useMP, p=p)
                 
                 Table=np.vstack([array_minArea.ravel(), array_AvgArea.ravel(), array_thresh_pmap.ravel(), array_cons.ravel(), 
                     array_thresh_COM.ravel(), array_thresh_IOU.ravel(), list_Recall.ravel(), list_Precision.ravel(), list_F1.ravel()]).T
