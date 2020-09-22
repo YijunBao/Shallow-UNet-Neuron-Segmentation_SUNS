@@ -151,7 +151,7 @@ if __name__ == '__main__':
                 'cons':Params_post_mat['cons'][0][0,0]}
 
             # The entire process of SUNS online
-            Masks, Masks_2, time_total, time_frame = suns_online(
+            Masks, Masks_2, time_total, time_frame, _ = suns_online(
                 filename_video, filename_CNN, Params_pre, Params_post, \
                 dims, frames_init, merge_every, batch_size_init, \
                 useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \

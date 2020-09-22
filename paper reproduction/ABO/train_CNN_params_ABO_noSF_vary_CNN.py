@@ -149,29 +149,29 @@ if __name__ == '__main__':
     #     generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
     #     del video_input
 
-    # # %% CNN training
-    # for CV in range(0,nvideo):
-    #     if cross_validation == "leave_one_out":
-    #         list_Exp_ID_train = list_Exp_ID.copy()
-    #         list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
-    #     else: # cross_validation == "train_1_test_rest"
-    #         list_Exp_ID_val = list_Exp_ID.copy()
-    #         list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
-    #     if not use_validation:
-    #         list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
-    #     file_CNN = weights_path+'Model_CV{}.h5'.format(CV)
-    #     results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
-    #         BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rowspad, colspad), Params_loss,\
-    #         n_depth=n_depth, n_channel=n_channel, skip=skip, activation=activation, double=double)
+    # %% CNN training
+    for CV in range(0,nvideo):
+        if cross_validation == "leave_one_out":
+            list_Exp_ID_train = list_Exp_ID.copy()
+            list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
+        else: # cross_validation == "train_1_test_rest"
+            list_Exp_ID_val = list_Exp_ID.copy()
+            list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
+        if not use_validation:
+            list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
+        file_CNN = weights_path+'Model_CV{}.h5'.format(CV)
+        results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
+            BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rowspad, colspad), Params_loss,\
+            n_depth=n_depth, n_channel=n_channel, skip=skip, activation=activation, double=double)
 
-    #     # save training and validation loss after each eopch
-    #     f = h5py.File(training_output_path+"training_output_CV{}.h5".format(CV), "w")
-    #     f.create_dataset("loss", data=results.history['loss'])
-    #     f.create_dataset("dice_loss", data=results.history['dice_loss'])
-    #     if use_validation:
-    #         f.create_dataset("val_loss", data=results.history['val_loss'])
-    #         f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
-    #     f.close()
+        # save training and validation loss after each eopch
+        f = h5py.File(training_output_path+"training_output_CV{}.h5".format(CV), "w")
+        f.create_dataset("loss", data=results.history['loss'])
+        f.create_dataset("dice_loss", data=results.history['dice_loss'])
+        if use_validation:
+            f.create_dataset("val_loss", data=results.history['val_loss'])
+            f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
+        f.close()
 
     # %% parameter optimization
     parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \

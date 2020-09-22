@@ -136,8 +136,8 @@ if __name__ == '__main__':
     # pre-processing for training
     for Exp_ID in list_Exp_ID: #
         # %% Pre-process video
-        video_input, _ = preprocess_video_online(dir_video, Exp_ID, Params, dir_network_input, \
-            useSF=useSF, useTF=useTF, useSNR=useSNR, update_baseline=update_baseline, prealloc=prealloc) #
+        video_input, _ = preprocess_video_online(dir_video, Exp_ID, Params, frames_init, dir_network_input, \
+            useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=False, update_baseline=update_baseline, prealloc=prealloc) #
 
         # %% Determine active neurons in all frames using FISSA
         file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks

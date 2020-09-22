@@ -117,7 +117,7 @@ if __name__ == '__main__':
             'cons':Params_post_mat['cons'][0][0,0]}
 
         # The entire process of SUNS online
-        Masks, Masks_2, time_total, time_frame = suns_online_track(
+        Masks, Masks_2, time_total, time_frame, list_time_per = suns_online_track(
             filename_video, filename_CNN, Params_pre, Params_post, \
             dims, frames_init, merge_every, batch_size_init, \
             useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
@@ -130,7 +130,8 @@ if __name__ == '__main__':
         GTMasks_2 = data_GT['GTMasks_2'].transpose()
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks_2':Masks_2})
+        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks_2':Masks_2, \
+            'list_time_per':list_time_per})
 
         # %% Save recall, precision, F1, total processing time, and average processing time per frame
         list_Recall[CV] = Recall

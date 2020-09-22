@@ -120,7 +120,7 @@ if __name__ == '__main__':
             filename_video = os.path.join(dir_video, Exp_ID+'.h5') # The path of the file of the input video.
 
             # The entire process of SUNS online
-            Masks, Masks_2, time_total, time_frame = suns_online(
+            Masks, Masks_2, time_total, time_frame, _ = suns_online(
                 filename_video, filename_CNN, Params_pre, Params_post, \
                 dims, frames_init, merge_every, batch_size_init, \
                 useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \

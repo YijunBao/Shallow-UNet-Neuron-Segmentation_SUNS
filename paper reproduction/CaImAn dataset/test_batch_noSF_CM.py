@@ -41,6 +41,8 @@ if __name__ == '__main__':
     display=True # True if display information about running time 
 
     for ind_video in range(0,4): # [3]: # 
+        if ind_video == 3:
+            time.sleep(15) # Give the program some time to release memory
         name_video = list_name_video[ind_video]
         # file names of the ".h5" files storing the raw videos. 
         list_Exp_ID = [name_video+x for x in ID_part]

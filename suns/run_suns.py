@@ -211,6 +211,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
             for initalization, online processing, and total processing
         time_frame (list of float, shape = (3,)): the average time spent on every frame
             for initalization, online processing, and total processing
+        list_time_per (1D numpy.array of float): Time (s) spend on every frame during online processing
     '''
     if display:
         start = time.time()
@@ -489,7 +490,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
 
     # convert to a 3D array of the segmented neurons
     Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly)).astype('bool')
-    return Masks, Masks_2, time_total, time_frame
+    return Masks, Masks_2, time_total, time_frame, list_time_per
 
 
 def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dims, \
@@ -546,6 +547,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
             for initalization, online processing, and total processing
         time_frame (list of float, shape = (3,)): the average time spent on every frame
             for initalization, online processing, and total processing
+        list_time_per (1D numpy.array of float): Time (s) spend on every frame during online processing
     '''
     if display:
         start = time.time()
@@ -902,4 +904,4 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
 
     # convert to a 3D array of the segmented neurons
     Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly)).astype('bool')
-    return Masks, Masks_2, time_total, time_frame
+    return Masks, Masks_2, time_total, time_frame, list_time_per

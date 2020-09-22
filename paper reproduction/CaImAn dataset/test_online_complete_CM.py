@@ -42,7 +42,9 @@ if __name__ == '__main__':
     show_intermediate=True # True if screen neurons with consecutive frame requirement after every merge
     display=True # True if display information about running time 
 
-    for ind_video in range(0,4): # [3]: # 
+    for ind_video in range(0,4): # [3]: 
+        if ind_video == 3:
+            time.sleep(15) # Give the program some time to release memory
         name_video = list_name_video[ind_video]
         # file names of the ".h5" files storing the raw videos. 
         list_Exp_ID = [name_video+x for x in ID_part]
@@ -113,7 +115,7 @@ if __name__ == '__main__':
                 'cons':Params_post_mat['cons'][0][0,0]}
 
             # The entire process of SUNS online
-            Masks, Masks_2, time_total, time_frame = suns_online(
+            Masks, Masks_2, time_total, time_frame, _ = suns_online(
                 filename_video, filename_CNN, Params_pre, Params_post, \
                 dims, frames_init, merge_every, batch_size_init, \
                 useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
