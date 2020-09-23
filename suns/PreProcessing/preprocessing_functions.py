@@ -208,6 +208,60 @@ def median_calculation(network_input, med_frame2=None, dims=None, median_decimat
     return med_frame3
 
 
+def median_calculation_nopar(network_input, med_frame2=None, dims=None, median_decimate=1, display=True):
+    '''Calculate the median and median-based standard deviation of a video.
+        Does not use parallel computation
+
+    Inputs: 
+        network_input (numpy.ndarray of float32): the input video. 
+        med_frame2 (3D empty numpy.ndarray of float32, default to None): 
+            empty array to store the median and median-based standard deviation.
+        dims (tuple of int, shape = (2,), default to None): lateral dimension of the video
+        median_decimate (int, default to 1): Median and median-based standard deviation are 
+            calculate from every "median_decimate" frames of the video
+        display (bool, default to True): Indicator of whether display the timing information
+
+    Outputs:
+        med_frame3 (3D numpy.ndarray of float32): the median and median-based standard deviation.
+    '''
+    if display:
+        start = time.time()
+    if dims:
+        (rows, cols) = dims
+    else:
+        (_, rows, cols) = network_input.shape
+    if med_frame2 is None:
+        med_frame2 = np.zeros(rows, cols, 2, dtype='float32')
+
+    result = np.copy(network_input[::median_decimate, :rows, :cols].transpose([1, 2, 0]))
+    med_frame2 = np.quantile(result, np.array([0.5, 0.25], dtype='float32'), axis=-1).transpose([1, 2, 0])
+    # med_frame2[:, :, 0] stores the median
+    
+    # Noise is estimated using median-based standard deviation calculated from 
+    # the difference bwtween 0.5 quantile and 0.25 quantile
+    temp_noise = (med_frame2[:, :, 0]-med_frame2[:, :, 1])/(math.sqrt(2)*special.erfinv(0.5))
+    zeronoise = (temp_noise==0)
+    # if the calculated temp_noise is 0 at some pixels, replace the median-based standard deviation 
+    # with conventional stantard deviation
+    if np.any(zeronoise):
+        [x0, y0] = zeronoise.nonzero()
+        for (x,y) in zip(x0, y0):
+            new_noise = np.std(network_input[:, x, y])
+            if new_noise>0:
+                temp_noise[x, y] = new_noise
+            else:
+                temp_noise[x, y] = np.inf
+
+    # med_frame2[:, :, 1] stores the median-based standard deviation
+    med_frame2[:, :, 1] = np.reciprocal(temp_noise).astype('float32')
+    med_frame3 = np.copy(med_frame2.transpose([2,0,1])) # Using copy to avoid computer crashing
+    if display:
+        endmedtime = time.time()
+        print('median computation: {} s'.format(endmedtime - start))
+
+    return med_frame3
+
+
 def SNR_normalization(network_input, med_frame2=None, dims=None, median_decimate=1, display=True):
     '''Normalize the video to be an SNR video.
         network_input(t,x,y) = (network_input(t,x,y) - median(x,y)) / (median_based_standard_deviation(x,y)).

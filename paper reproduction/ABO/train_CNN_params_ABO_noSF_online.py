@@ -48,7 +48,7 @@ if __name__ == '__main__':
             # Achieve faster speed at the cost of higher memory occupation.
             # Not needed in training.
     useWT=False # True if using additional watershed
-    load_exist=False # True if using temp files already saved in the folders
+    load_exist=True # True if using temp files already saved in the folders
     use_validation = True # True to use a validation set outside the training set
     # Cross-validation strategy. Can be "leave_one_out" or "train_1_test_rest"
     cross_validation = "leave_one_out"

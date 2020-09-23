@@ -11,6 +11,7 @@ from scipy import sparse
 
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
+import threading
 
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
@@ -19,13 +20,15 @@ from suns.Online.functions_online import merge_2, merge_2_nocons, merge_complete
     preprocess_online, CNN_online, separate_neuron_online, refine_seperate_cons_online
 from suns.Online.functions_init import init_online, plan_fft2
 from suns.PreProcessing.preprocessing_functions import preprocess_video, \
-    plan_fft, plan_mask2, load_wisdom_txt, SNR_normalization, median_normalization
+    plan_fft, plan_mask2, load_wisdom_txt, SNR_normalization, median_normalization, \
+    median_calculation, median_calculation_nopar
 # from suns.Online.preprocessing_functions_online import preprocess_video_online
 from suns.Network.shallow_unet import get_shallow_unet
 from suns.PostProcessing.par3 import fastthreshold
 from suns.PostProcessing.combine import segs_results, unique_neurons2_simp, \
     group_neurons, piece_neurons_IOU, piece_neurons_consume
 from suns.PostProcessing.complete_post import complete_segment
+# from suns.Online.process_func import normalize_process
 
 
 def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
@@ -359,7 +362,11 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
     # %% Online processing for the following frames
     current_frame = leng_tf+1
     t_merge = frames_initf
+    if update_baseline:
+        waiting_update = False
+        pp = None
     for t in range(frames_initf,nframesf):
+        # print(t)
         if display:
             start_frame = time.time()
         # load the current frame
@@ -372,25 +379,49 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
             past_frames[current_frame-leng_tf:current_frame], mask2, bf, fft_object_b, \
             fft_object_c, Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR, \
             med_subtract=med_subtract, update_baseline=update_baseline)
+        # print('finish pre-processing')
 
         if update_baseline:
             t_past = (t-frames_initf) % frames_init
             video_tf_past[t_past] = frame_tf
-            if t_past == frames_init-1: 
-            # update median and median-based standard deviation every "frames_init" frames
-                if useSNR:
-                    med_frame3 = SNR_normalization(
-                        video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
-                else:
-                    med_frame3 = median_normalization(
-                        video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
+            if t_past == frames_init-1 and not waiting_update: 
+                # print('time to update')
+                start_pp = time.time()
+                # In a separate process, update median and median-based standard deviation every "frames_init" frames
+                # med3_Array = mp.Array('f', med_frame3.size)
+                med3_Array = np.zeros_like(med_frame3)
+                # pp = mp.Process(target=normalize_thread, args=(video_tf_past, med_frame2, med3_Array, (rowspad, colspad)), daemon=True)
+                pp = threading.Thread(target=normalize_thread, args=(video_tf_past, med_frame2, med3_Array, (rowspad, colspad)))
+                pp.setDaemon(True)
+                pp.start()
+                print('pp started, ', time.time()-start_pp)
+                waiting_update = True
+            elif waiting_update:
+                # print(t, 'wait')
+                # if t_past>48:
+                #     pp.join()
+                #     print('join')
+                finish_pp = time.time()
+                if not pp.is_alive():
+                    # print('wait finished')
+                    # time.sleep(2)
+                    # pp.join()
+                    # print('pp finished')
+                    # after the process ends, update "med_frame3" accordingly
+                    waiting_update = False
+                    med_frame3 = np.array(med3_Array[:], dtype='float32').reshape(med_frame3.shape)
+                    # med_frame3 = med3_Array
+                    print('med_frame3 copied', time.time()-finish_pp)
+                # print('wait')
 
         # CNN inference
         frame_prob = CNN_online(frame_SNR, fff, dims)
+        # print('finish CNN')
 
         # first step of post-processing
         segs = separate_neuron_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT)
         segs_all.append(segs)
+        # print('finish post-processing step 1')
 
         # temporal merging 1: combine neurons with COM distance smaller than thresh_COM0
         if ((t + 1 - t_merge) == merge_every) or (t==nframesf-1):
@@ -461,6 +492,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
             list_time_per[t] = end_frame - start_frame
         if t % 1000 == 0:
             print('{} frames has been processed'.format(t))
+        # print('finish merging')
 
     if not show_intermediate:
         Masks_2 = select_cons(tuple_temp)
@@ -733,13 +765,20 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
             t_past = (t-frames_initf) % frames_init
             video_tf_past[t_past] = frame_tf
             if t_past == frames_init-1: 
-            # update median and median-based standard deviation every "frames_init" frames
-                if useSNR:
-                    med_frame3 = SNR_normalization(
-                        video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
-                else:
-                    med_frame3 = median_normalization(
-                        video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
+                # In a separate process, update median and median-based standard deviation every "frames_init" frames
+                # med3_Array = mp.Array('f', med_frame3.size)
+                med3_Array = np.zeros_like(med_frame3)
+                # pp = mp.Process(target=normalize_process, args=(video_tf_past, med_frame2, med3_Array, (rowspad, colspad)))
+                pp = threading.Thread(target=normalize_thread, args=(video_tf_past, \
+                    med_frame2, med3_Array, (rowspad, colspad)))
+                pp.setDaemon(True)
+                pp.start()
+                waiting_update = True
+            elif waiting_update and not pp.is_alive():
+                # after the process ends, update "med_frame3" accordingly
+                waiting_update = False
+                # med_frame3 = np.array(med3_Array[:], dtype='float32').reshape(med_frame3.shape)
+                med_frame3 = med3_Array
 
         # CNN inference
         frame_prob = CNN_online(frame_SNR, fff, dims)
@@ -905,3 +944,18 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
     # convert to a 3D array of the segmented neurons
     Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly)).astype('bool')
     return Masks, Masks_2, time_total, time_frame, list_time_per
+
+
+def normalize_thread(video_tf_past, med_frame2, med3_Array, dims_pad):
+    # video_tf_past = video_tf_past.copy()
+    # med_frame2 = med_frame2.copy()
+    # lock = threading.Lock()
+    # with lock:
+    print('New thread started')
+    med3_Array[:] = median_calculation_nopar(
+        video_tf_past.copy(), med_frame2.copy(), dims_pad, 1, display=True).ravel()
+    print('New thread finished')
+    # med3_Array[:] = med_frame3#.ravel()
+    # del video_tf_past, med_frame2, med_frame3
+    # time.sleep(0.1)
+    # exit
