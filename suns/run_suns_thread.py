@@ -386,7 +386,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
             video_tf_past[t_past] = frame_tf
             if t_past == frames_init-1 and not waiting_update: 
                 # print('time to update')
-                start_pp = time.time()
+                # start_pp = time.time()
                 # In a separate process, update median and median-based standard deviation every "frames_init" frames
                 # med3_Array = mp.Array('f', med_frame3.size)
                 med3_Array = np.zeros_like(med_frame3)
@@ -394,24 +394,24 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
                 pp = threading.Thread(target=normalize_thread, args=(video_tf_past, med_frame2, med3_Array, (rowspad, colspad)))
                 pp.setDaemon(True)
                 pp.start()
-                print('pp started, ', time.time()-start_pp)
+                # print('pp started, ', time.time()-start_pp)
                 waiting_update = True
             elif waiting_update:
                 # print(t, 'wait')
                 # if t_past>48:
                 #     pp.join()
                 #     print('join')
-                finish_pp = time.time()
+                # finish_pp = time.time()
                 if not pp.is_alive():
                     # print('wait finished')
                     # time.sleep(2)
-                    # pp.join()
+                    pp.join()
                     # print('pp finished')
                     # after the process ends, update "med_frame3" accordingly
                     waiting_update = False
-                    med_frame3 = np.array(med3_Array[:], dtype='float32').reshape(med_frame3.shape)
-                    # med_frame3 = med3_Array
-                    print('med_frame3 copied', time.time()-finish_pp)
+                    # med_frame3 = np.array(med3_Array[:], dtype='float32').reshape(med_frame3.shape)
+                    med_frame3 = med3_Array
+                    # print('med_frame3 copied', time.time()-finish_pp)
                 # print('wait')
 
         # CNN inference
@@ -951,10 +951,10 @@ def normalize_thread(video_tf_past, med_frame2, med3_Array, dims_pad):
     # med_frame2 = med_frame2.copy()
     # lock = threading.Lock()
     # with lock:
-    print('New thread started')
+    # print('New thread started')
     med3_Array[:] = median_calculation_nopar(
-        video_tf_past.copy(), med_frame2.copy(), dims_pad, 1, display=True).ravel()
-    print('New thread finished')
+        video_tf_past.copy(), med_frame2.copy(), dims_pad, 1, display=False) #.ravel()
+    # print('New thread finished')
     # med3_Array[:] = med_frame3#.ravel()
     # del video_tf_past, med_frame2, med_frame3
     # time.sleep(0.1)
