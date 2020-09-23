@@ -36,7 +36,7 @@ if __name__ == '__main__':
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
         # Can only be used when spatial filtering is not used. 
-    update_baseline=False # True if the median and median-based std is updated every "frames_init" frames.
+    update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     useWT=False # True if using additional watershed
@@ -122,7 +122,7 @@ if __name__ == '__main__':
             'cons':Params_post_mat['cons'][0][0,0]}
 
         # The entire process of SUNS online
-        Masks, Masks_2, time_total, time_frame, _ = suns_online(
+        Masks, Masks_2, time_total, time_frame, list_time_per = suns_online(
             filename_video, filename_CNN, Params_pre, Params_post, \
             dims, frames_init, merge_every, batch_size_init, \
             useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
@@ -135,7 +135,7 @@ if __name__ == '__main__':
         GTMasks_2 = data_GT['GTMasks_2'].transpose()
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-        savemat(os.path.join(dir_output, 'Output_Masks_{}.mat'.format(Exp_ID)), {'Masks':Masks}, do_compression=True)
+        savemat(os.path.join(dir_output, 'Output_Masks_{}.mat'.format(Exp_ID)), {'Masks':Masks, 'list_time_per':list_time_per}, do_compression=True)
 
         # %% Save recall, precision, F1, total processing time, and average processing time per frame
         list_Recall[CV] = Recall
