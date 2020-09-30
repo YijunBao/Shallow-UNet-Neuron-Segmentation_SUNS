@@ -21,7 +21,7 @@ from suns.PreProcessing.generate_masks import generate_masks_from_traces
 
 # %%
 if __name__ == '__main__':
-    sub_folder = sys.argv[3]
+    sub_folder = sys.argv[3] # e.g. 'noSF'
     # %% setting parameters
     rate_hz = 30 # frame rate of the video
     Dimens = (487,487) # lateral dimensions of the video

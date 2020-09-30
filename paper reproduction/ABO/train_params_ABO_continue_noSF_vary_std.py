@@ -14,11 +14,9 @@ sys.path.insert(1, '..\\..') # the path containing "suns" folder
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
-# from suns.PreProcessing.preprocessing_functions import preprocess_video
-from suns.Online.preprocessing_functions_online import preprocess_video_online
+from suns.PreProcessing.preprocessing_functions import preprocess_video
 from suns.PreProcessing.generate_masks import generate_masks
-from suns.train_CNN_params import train_CNN
-from suns.Online.train_params_online import parameter_optimization_cross_validation_online
+from suns.train_CNN_params import train_CNN, parameter_optimization_cross_validation
 
 
 # %%
@@ -32,18 +30,15 @@ if __name__ == '__main__':
         # Can be slightly smaller than the number of frames of a video
     Mag = 1 # spatial magnification compared to ABO videos.
 
-    thred_std = 6 # SNR threshold used to determine when neurons are active
+    thred_std = int(sys.argv[1]) # SNR threshold used to determine when neurons are active
     num_train_per = 200 # Number of frames per video used for training 
     BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
     batch_size_eval = 200 # batch size in CNN inference
-    frames_init = 30 * rate_hz # number of frames used for initialization
-    merge_every = rate_hz # number of frames every merge
 
     useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
-    update_baseline=False # True if the median and median-based std is updated every "frames_init" frames.
     prealloc=False # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
             # Not needed in training.
@@ -60,15 +55,16 @@ if __name__ == '__main__':
         '510214538','524691284','527048992','531006860','539670003']
     # folder of the raw videos
     dir_video = 'D:\\ABO\\20 percent\\' 
+    dir_sub = 'std{}\\'.format(thred_std)
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
     dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
-    dir_parent = dir_video + 'noSF online\\' # folder to save all the processed data
+    dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
     dir_network_input = dir_parent + 'network_input\\' # folder of the SNR videos
     dir_mask = dir_parent + 'temporal_masks({})\\'.format(thred_std) # foldr to save the temporal masks
-    weights_path = dir_parent + 'Weights\\' # folder to save the trained CNN
-    training_output_path = dir_parent + 'training output\\' # folder to save the loss functions during training
-    dir_output = dir_parent + 'output_masks\\' # folder to save the optimized hyper-parameters
-    dir_temp = dir_parent + 'temp\\' # temporary folder to save the F1 with various hyper-parameters
+    weights_path = dir_parent + dir_sub + 'Weights\\' # folder to save the trained CNN
+    training_output_path = dir_parent + dir_sub + 'training output\\' # folder to save the loss functions during training
+    dir_output = dir_parent + dir_sub + 'output_masks\\' # folder to save the optimized hyper-parameters
+    dir_temp = dir_parent + dir_sub + 'temp\\' # temporary folder to save the F1 with various hyper-parameters
 
     if not os.path.exists(dir_network_input):
         os.makedirs(dir_network_input) 
@@ -136,8 +132,8 @@ if __name__ == '__main__':
     # # pre-processing for training
     # for Exp_ID in list_Exp_ID: #
     #     # %% Pre-process video
-    #     video_input, _ = preprocess_video_online(dir_video, Exp_ID, Params, frames_init, dir_network_input, \
-    #         useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=False, update_baseline=update_baseline, prealloc=prealloc) #
+    #     video_input, _ = preprocess_video(dir_video, Exp_ID, Params, dir_network_input, \
+    #         useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=prealloc) #
 
     #     # %% Determine active neurons in all frames using FISSA
     #     file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
@@ -168,6 +164,6 @@ if __name__ == '__main__':
     #     f.close()
 
     # %% parameter optimization
-    parameter_optimization_cross_validation_online(cross_validation, list_Exp_ID, frames_init, merge_every, Params_set, \
+    parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
         (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
         batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist, max_eid=None)

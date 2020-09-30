@@ -30,7 +30,7 @@ if __name__ == '__main__':
         # Can be slightly smaller than the number of frames of a video
     Mag = 1 # spatial magnification compared to ABO videos.
 
-    thred_std = 7 # SNR threshold used to determine when neurons are active
+    thred_std = 6 # SNR threshold used to determine when neurons are active
     num_train_per = 200 # Number of frames per video used for training 
     BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
