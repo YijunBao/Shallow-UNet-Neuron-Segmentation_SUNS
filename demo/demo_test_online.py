@@ -14,7 +14,7 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
-from suns.run_suns import suns_online
+from suns.run_suns_MedianUpdate import suns_online
 
 # Import tensorflow as tf
 # Config = tf.ConfigProto()

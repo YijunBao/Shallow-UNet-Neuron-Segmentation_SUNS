@@ -18,6 +18,17 @@ from suns.PreProcessing.preprocessing_functions import load_wisdom_txt, \
 
 
 def median_std(result, med_frame2):
+    '''Calculate median and median_based_standard_deviation from the selected video.
+
+    Inputs: 
+        result (numpy.ndarray of float32): the input video. 
+            The temporal dimension is transposed to the first dimension.
+        med_frame2 (3D empty numpy.ndarray of float32): 
+            empty array to store the median and median-based standard deviation.
+
+    Outputs:
+        med_frame3 (3D numpy.ndarray of float32): the median and median-based standard deviation.
+    '''
     fastquant(result, np.array([0.5, 0.25], dtype='float32'), med_frame2)
     # med_frame2[:, :, 0] stores the median
     
@@ -183,7 +194,6 @@ def preprocess_complete_online(bb, dimspad, network_input=None, med_frame2=None,
 
     Outputs:
         network_input (3D numpy.ndarray of float32): the SNR video.
-        med_frame3 (3D numpy.ndarray of float32): the median and median-based standard deviation.
     '''
     (rowspad, colspad) = dimspad
     
