@@ -40,12 +40,12 @@ if __name__ == '__main__':
     thred_std = 3 # SNR threshold used to determine when neurons are active
     num_train_per = 2400 # Number of frames per video used for training 
     BATCH_SIZE = 20 # Batch size for training 
-    NO_OF_EPOCHS = 20 # Number of epoches used for training 
+    NO_OF_EPOCHS = 200 # Number of epoches used for training 
     batch_size_eval = 100 # batch size in CNN inference
     frames_init = 30 * rate_hz # number of frames used for initialization
     merge_every = rate_hz # number of frames every merge
 
-    useSF=True # True if spatial filtering is used in pre-processing.
+    useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     dir_video = 'data' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
     dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
-    dir_parent = os.path.join(dir_video, 'complete online') # folder to save all the processed data
+    dir_parent = os.path.join(dir_video, 'noSF online') # folder to save all the processed data
     dir_network_input = os.path.join(dir_parent, 'network_input') # folder of the SNR videos
     dir_mask = os.path.join(dir_parent, 'temporal_masks({})'.format(thred_std)) # foldr to save the temporal masks
     weights_path = os.path.join(dir_parent, 'Weights') # folder to save the trained CNN

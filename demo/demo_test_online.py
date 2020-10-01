@@ -14,7 +14,7 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
-from suns.run_suns_MedianUpdate import suns_online
+from suns.run_suns import suns_online
 
 # Import tensorflow as tf
 # Config = tf.ConfigProto()
@@ -31,12 +31,12 @@ if __name__ == '__main__':
         # Can be slightly larger than the number of frames of a video
     Mag = 6/8 # spatial magnification compared to ABO videos.
 
-    useSF=True # True if spatial filtering is used in pre-processing.
+    useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
         # Can only be used when spatial filtering is not used. 
-    update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
+    update_baseline=False # True if the median and median-based std is updated every "frames_init" frames.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     useWT=False # True if using additional watershed
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     frames_init = 30 * rate_hz # number of frames used for initialization
     batch_size_init = 100 # batch size in CNN inference during initalization
 
-    dir_parent = os.path.join(dir_video, 'complete') # folder to save all the processed data
+    dir_parent = os.path.join(dir_video, 'noSF') # folder to save all the processed data
     dir_output = os.path.join(dir_parent, 'output_masks online') # folder to save the segmented masks and the performance scores
     dir_params = os.path.join(dir_parent, 'output_masks') # folder of the optimized hyper-parameters
     weights_path = os.path.join(dir_parent, 'Weights') # folder of the trained CNN
