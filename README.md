@@ -51,9 +51,22 @@ conda activate suns
 .\demo_pipeline.bat
 ```
 
-The demo contains four parts: training CNN and hyper-parameters, testing SUNS batch, testing SUNS online, and testing SUNS online with tracking. The output masks of SUNS batch will be in `demo/complete/output_masks`, the output masks of SUNS online will be in `demo/complete/output_masks online`, and the output masks of SUNS online with tracking will be in `demo/complete/output_masks track`. Alternatively, you can also run `demo_pipeline_1to3.bat` instead of `demo_pipeline.bat`. The pipeline `demo_pipeline.bat` does standard leave-one-out cross validation on the four example videos. The pipeline `demo_pipeline_1to3.bat` trains the CNN model and post-processing parameters on one video, and tests on the remaining videos. The expected average F1 scores and example processing time on Windows are shown on the following tables.
+The demo contains four parts: training CNN and hyper-parameters, testing SUNS batch, testing SUNS online, and testing SUNS online with tracking. The output masks of SUNS batch will be in `demo/noSF/output_masks`, the output masks of SUNS online will be in `demo/noSF/output_masks online`, and the output masks of SUNS online with tracking will be in `demo/noSF/output_masks track`. Alternatively, you can also run `demo_pipeline_1to3.bat` instead of `demo_pipeline.bat`. The pipeline `demo_pipeline.bat` does standard leave-one-out cross validation on the four example videos. The pipeline `demo_pipeline_1to3.bat` trains the CNN model and post-processing parameters on one video, and tests on the remaining videos. The expected average F1 scores and example processing time on Windows are shown on the following tables.
 
 Expected average F1 score
+|	|Train	|Batch	|Online	|Track|
+|:------:|:------:|:------:|:------:|:------:|
+|train 3 test 1	|0.77	|0.75	|0.67	|0.65|
+|train 1 test 3	|0.81	|0.72	|0.66	|0.66|
+
+Example running time
+|CPU	|GPU	|Train 3 to 1<br>(total)	|Train 1 to 3<br>(total)	|Batch<br>(average)	|Online<br>average)	|Track<br>(average)|
+|:------:|:------:|:------:|:------:|:------:|:------:|:------:|
+|AMD 1920X<br>12-core	|NVIDIA Titan RTX|1.0 h	|0.4 h	|1.5 s	|18 s	|20s	|
+|Intel i7-6800K<br>6-core	|NVIDIA GTX 1080|1.9 h	|0.7 h	|1.9 s	|19 s	|27 s	|
+|Intel i5-6200U<br>dual-core	|NVIDIA 940MX	|5.1 h	|1.8 h	|4.3 s	|24 s	|28 s|
+
+<!-- Expected average F1 score
 |	|Train	|Batch	|Online	|Track|
 |:------:|:------:|:------:|:------:|:------:|
 |train 3 test 1	|0.77	|0.73	|0.66	|0.68|
@@ -62,11 +75,11 @@ Expected average F1 score
 Example running time
 |CPU	|GPU	|Train 3 to 1<br>(total)	|Train 1 to 3<br>(total)	|Batch<br>(average)	|Online<br>average)	|Track<br>(average)|
 |:------:|:------:|:------:|:------:|:------:|:------:|:------:|
-|AMD 1920X<br>12-core	|NVIDIA Titan RTX|	|	|1.5 s	|20 s	|	|
-|Intel i7-6800K<br>6-core	|NVIDIA GTX 1080|1.9 h	|	|1.9 s	|19 s	|27 s	|
-|Intel i5-6200U<br>dual-core	|NVIDIA 940MX	|5.4 h	|1.9 h	|6.0 s	|35 s	|36 s|
+|AMD 1920X<br>12-core	|NVIDIA Titan RTX|1.0 h	|0.4 h	|1.5 s	|20 s	|	|
+|Intel i7-6800K<br>6-core	|NVIDIA GTX 1080|1.9 h	|0.7 h	|1.9 s	|19 s	|27 s	|
+|Intel i5-6200U<br>dual-core	| -->
 
-When you download this repo, you will see some files and a folder under `demo/data`. The .h5 files are the input videos contained in dataset 'mov' (shape = (3000, 120, 88)). The `GT Masks` folder contains the ground truth masks of each video. `FinalMasks_YST_part??.mat` stores the GT masks in a 3D array (shape = (88, 120, n) in MATLAB), and `FinalMasks_YST_part??_sparse.mat` stores the GT masks in a 2D sparse matrix (shape = (88*120, n) in MATLAB). After running a complete pipeline, the intermediate and output files will be under a new folder `demo/data/complete`. Under this folder, `network_input` stores the SNR videos after pre-processing (in dataset 'network_input'), `FISSA` stores the temporary output of [FISSA](https://github.com/rochefort-lab/fissa), `traces` stores the traces of the GT neurons after decontamination using FISSA, `temporal_masks(3)` stores the temporal masks of active neurons (in dataset 'temporal_masks')used to train CNN, `Weights` stores the trained CNN model, `training output` stores the loss after each training epoch, `temp` stores the recall, precision, and F1 score of all parameter combinations for each video and each cross validation, and `output_masks` stores the optimal hyper-parameters in `Optimization_Info_{}.mat`. The output masks after SUNS batch, SUNS online, and SUNS online with tracking are stored under `output_masks`, `output_masks online`, and `output_masks track`, respectively, as `Output_Masks_{}.mat`. The segmented masks are stored in a 3D array with shape (n, 120, 88) in MATLAB, so you may need to transpose the demensions to match the GT masks. The speed and accuracy scores are stored in the same three folders as `Output_Info_All.mat`. In addition, some text files will appear under `demo/wistom`, which stores the learned wisdom used for spatial filtering. 
+When you download this repo, you will see some files and a folder under `demo/data`. The .h5 files are the input videos contained in dataset 'mov' (shape = (3000, 120, 88)). The `GT Masks` folder contains the ground truth masks of each video. `FinalMasks_YST_part??.mat` stores the GT masks in a 3D array (shape = (88, 120, n) in MATLAB), and `FinalMasks_YST_part??_sparse.mat` stores the GT masks in a 2D sparse matrix (shape = (88*120, n) in MATLAB). After running a complete pipeline, the intermediate and output files will be under a new folder `demo/data/noSF`. Under this folder, `network_input` stores the SNR videos after pre-processing (in dataset 'network_input'), `FISSA` stores the temporary output of [FISSA](https://github.com/rochefort-lab/fissa), `traces` stores the traces of the GT neurons after decontamination using FISSA, `temporal_masks(3)` stores the temporal masks of active neurons (in dataset 'temporal_masks')used to train CNN, `Weights` stores the trained CNN model, `training output` stores the loss after each training epoch, `temp` stores the recall, precision, and F1 score of all parameter combinations for each video and each cross validation, and `output_masks` stores the optimal hyper-parameters in `Optimization_Info_{}.mat`. The output masks after SUNS batch, SUNS online, and SUNS online with tracking are stored under `output_masks`, `output_masks online`, and `output_masks track`, respectively, as `Output_Masks_{}.mat`. The segmented masks are stored in a 3D array with shape (n, 120, 88) in MATLAB, so you may need to transpose the demensions to match the GT masks. The speed and accuracy scores are stored in the same three folders as `Output_Info_All.mat`. In addition, some text files will appear under `demo/wistom`, which stores the learned wisdom used for spatial filtering. 
 
 To run the demo on Linux, launch Anaconda prompt and type the following script 
 ```sh
