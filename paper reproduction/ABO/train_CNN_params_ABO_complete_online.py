@@ -48,7 +48,7 @@ if __name__ == '__main__':
             # Achieve faster speed at the cost of higher memory occupation.
             # Not needed in training.
     useWT=False # True if using additional watershed
-    load_exist=False # True if using temp files already saved in the folders
+    load_exist=True # True if using temp files already saved in the folders
     use_validation = True # True to use a validation set outside the training set
     # Cross-validation strategy. Can be "leave_one_out" or "train_1_test_rest"
     cross_validation = "leave_one_out"
@@ -170,4 +170,4 @@ if __name__ == '__main__':
     # %% parameter optimization
     parameter_optimization_cross_validation_online(cross_validation, list_Exp_ID, frames_init, merge_every, Params_set, \
         (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
-        batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist, max_eid=4)
+        batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist, max_eid=9)

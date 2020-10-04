@@ -294,6 +294,8 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         pmaps_b = np.ones(dims, dtype='uint8')
         if update_baseline:
             video_tf_past = np.ones((frames_init, rowspad, colspad), dtype='float32')        
+            video_tf_past_fix = np.ones((frames_init, rowspad, colspad), dtype='float32')        
+            med_frame3_temp = np.ones((2, rowspad, colspad), dtype='float32')
     else:
         med_frame2 = np.zeros((rowspad, colspad, 2), dtype='float32')
         video_input = np.zeros((frames_initf, rowspad, colspad), dtype='float32')        
@@ -302,6 +304,8 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         pmaps_b = np.zeros(dims, dtype='uint8')
         if update_baseline:
             video_tf_past = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
+            video_tf_past_fix = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
+            med_frame3_temp = np.zeros((2, rowspad, colspad), dtype='float32')
 
     if display:
         time_init = time.time()
@@ -309,12 +313,15 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
 
     if update_baseline: # Set the parameters for median update
         distri_update = False
-        Lu1 = int(np.round(frames_initf / rowspad))
-        px_update = int(np.ceil(colspad / Lu1))
-        Lu2 = rowspad
-        Lu = Lu1 * Lu2
-        start_update = frames_initf + frames_init
-        med_frame2_update = np.ones((1, px_update, 2), dtype='float32')
+        if useSF: # If spatial filtering is used, the padded rows and columns are nonzero
+            cols_max = colspad
+        else: # If spatial filtering is not used, we can ignore the padded rows and columns
+            cols_max = Ly
+        Lu = int(np.ceil(cols_max / frames_init))
+        if prealloc: 
+            med_frame2_update = np.ones((rowspad, Lu, 2), dtype='float32')
+        else:
+            med_frame2_update = np.zeros((rowspad, Lu, 2), dtype='float32')
 
 
     # %% Load raw video
@@ -363,8 +370,8 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
     else:
         (bf, fft_object_b, fft_object_c) = (None, None, None)
         bb=np.zeros(dimspad, dtype='float32')
-    if update_baseline:
-        med_frame3_temp = np.zeros_like(med_frame3)
+    # if update_baseline:
+    #     med_frame3_temp = np.zeros_like(med_frame3)
     
     print('Start frame by frame processing')
     # %% Online processing for the following frames
@@ -390,16 +397,17 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
             video_tf_past[t_past] = frame_tf
             if distri_update:
                 # update median and median-based standard deviation distributedly, row by row
-                nu = (t-start_update) % Lu
-                nu1 = nu // Lu1
-                nu2 = nu % Lu1
-                med_frame3_temp[:,nu1:nu1+1, nu2*px_update:(nu2+1)*px_update] = median_calculation(
-                    video_tf_past[:, nu1:nu1+1, nu2*px_update:(nu2+1)*px_update], \
-                    med_frame2_update, (1, px_update), 1, display=False)
-                if nu == Lu-1:
-                    med_frame3 = med_frame3_temp.copy()
-            elif t >= start_update-1:
+                nu = t_past * Lu
+                if nu < cols_max:
+                    med_frame3_temp[:, :, nu:nu+Lu] = median_calculation(
+                        video_tf_past_fix[:, :, nu:nu+Lu], med_frame2_update, (rowspad, Lu), 1, display=False)
+                if nu+Lu >= cols_max:
+                    # med_frame3 = med_frame3_temp.copy()
+                    (med_frame3, med_frame3_temp) = (med_frame3_temp, med_frame3)
+                    distri_update = False
+            elif t_past >= frames_init-1:
                 distri_update = True
+                (video_tf_past_fix, video_tf_past) = (video_tf_past, video_tf_past_fix)
 
         # CNN inference
         frame_prob = CNN_online(frame_SNR, fff, dims)

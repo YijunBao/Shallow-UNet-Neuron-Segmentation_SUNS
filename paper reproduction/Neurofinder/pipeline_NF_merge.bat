@@ -1,4 +1,4 @@
-python "C:\Matlab Files\timer\timer_start_next.py"
+REM python "C:\Matlab Files\timer\timer_start_next.py"
 
 REM python test_online_NF_noSF_vary_merge.py 10
 python test_online_NF_noSF_vary_merge.py 20
@@ -9,5 +9,6 @@ python test_online_NF_noSF_vary_merge.py 200
 python test_online_NF_noSF_vary_merge.py 300
 python test_online_NF_noSF_vary_merge.py 500
 python test_online_NF_noSF_vary_merge.py 1000
+REM python test_online_NF_noSF.py
 
 python "C:\Matlab Files\timer\timer_stop_2.py"

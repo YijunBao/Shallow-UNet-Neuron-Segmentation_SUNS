@@ -19,7 +19,7 @@ from suns.Online.functions_online import merge_2, merge_2_nocons, merge_complete
     preprocess_online, CNN_online, separate_neuron_online, refine_seperate_cons_online
 from suns.Online.functions_init import init_online, plan_fft2
 from suns.PreProcessing.preprocessing_functions import preprocess_video, \
-    plan_fft, plan_mask2, load_wisdom_txt, SNR_normalization, median_normalization, median_calculation #, 
+    plan_fft, plan_mask2, load_wisdom_txt, SNR_normalization, median_normalization # median_calculation #, 
 # from suns.Online.preprocessing_functions_online import preprocess_video_online
 from suns.Network.shallow_unet import get_shallow_unet
 from suns.PostProcessing.par3 import fastthreshold
@@ -294,7 +294,6 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         pmaps_b = np.ones(dims, dtype='uint8')
         if update_baseline:
             video_tf_past = np.ones((frames_init, rowspad, colspad), dtype='float32')        
-            video_tf_past_fix = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
     else:
         med_frame2 = np.zeros((rowspad, colspad, 2), dtype='float32')
         video_input = np.zeros((frames_initf, rowspad, colspad), dtype='float32')        
@@ -303,24 +302,10 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         pmaps_b = np.zeros(dims, dtype='uint8')
         if update_baseline:
             video_tf_past = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
-            video_tf_past_fix = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
 
     if display:
         time_init = time.time()
         print('Parameter initialization time: {} s'.format(time_init-start))
-
-    if update_baseline: # Set the parameters for median update
-        distri_update = False
-        if useSF: # If spatial filtering is used, the padded rows and columns are nonzero
-            Lu2 = colspad
-        else: # If spatial filtering is not used, we can ignore the padded rows and columns
-            Lu2 = Ly
-        Lu1 = int(np.round(frames_initf / Lu2))
-        px_update = int(np.ceil(rowspad / Lu1))
-        Lu = Lu1 * Lu2
-        start_update = frames_initf + frames_init
-        med_frame2_update = np.ones((px_update, 1, 2), dtype='float32')
-        # med_frame2_update = np.ones((1, px_update, 2), dtype='float32')
 
 
     # %% Load raw video
@@ -369,14 +354,11 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
     else:
         (bf, fft_object_b, fft_object_c) = (None, None, None)
         bb=np.zeros(dimspad, dtype='float32')
-    if update_baseline:
-        med_frame3_temp = np.zeros_like(med_frame3)
     
     print('Start frame by frame processing')
     # %% Online processing for the following frames
     current_frame = leng_tf+1
     t_merge = frames_initf
-
     for t in range(frames_initf,nframesf):
         if display:
             start_frame = time.time()
@@ -394,20 +376,16 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         if update_baseline:
             t_past = (t-frames_initf) % frames_init
             video_tf_past[t_past] = frame_tf
-            if distri_update:
-                # update median and median-based standard deviation distributedly, column by column
-                nu = (t-start_update) % Lu
-                nu1 = nu // Lu1
-                nu2 = nu % Lu1
-                med_frame3_temp[:, nu2*px_update:(nu2+1)*px_update, nu1:nu1+1] = median_calculation(
-                    video_tf_past_fix[:, nu2*px_update:(nu2+1)*px_update, nu1:nu1+1], \
-                    med_frame2_update, (px_update,1), 1, display=False)
-                if nu == Lu-1:
-                    med_frame3 = med_frame3_temp.copy()
-                    (video_tf_past_fix, video_tf_past) = (video_tf_past, video_tf_past_fix)
-            elif t >= start_update-1:
-                distri_update = True
-                (video_tf_past_fix, video_tf_past) = (video_tf_past, video_tf_past_fix)
+            if t_past == frames_init-1: 
+            # update median and median-based standard deviation every "frames_init" frames
+                # med_frame3 = median_calculation(
+                #     video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
+                if useSNR:
+                    med_frame3 = SNR_normalization(
+                        video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
+                else:
+                    med_frame3 = median_normalization(
+                        video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
 
         # CNN inference
         frame_prob = CNN_online(frame_SNR, fff, dims)
@@ -667,15 +645,6 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
         time_init = time.time()
         print('Parameter initialization time: {} s'.format(time_init-start))
 
-    if update_baseline: # Set the parameters for median update
-        distri_update = False
-        Lu1 = int(np.round(frames_initf / rowspad))
-        px_update = int(np.ceil(colspad / Lu1))
-        Lu2 = rowspad
-        Lu = Lu1 * Lu2
-        start_update = frames_initf + frames_init
-        med_frame2_update = np.ones((1, px_update, 2), dtype='float32')
-
 
     # %% Load raw video
     h5_img = h5py.File(filename_video, 'r')
@@ -743,14 +712,11 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
     else:
         (bf, fft_object_b, fft_object_c) = (None, None, None)
         bb=np.zeros(dimspad, dtype='float32')
-    if update_baseline:
-        med_frame3_temp = np.zeros_like(med_frame3)
 
     print('Start frame by frame processing')
     # %% Online processing for the following frames
     current_frame = leng_tf+1
     t_merge = frames_initf
-
     for t in range(frames_initf, nframesf):
         if display:
             start_frame = time.time()
@@ -768,18 +734,16 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
         if update_baseline:
             t_past = (t-frames_initf) % frames_init
             video_tf_past[t_past] = frame_tf
-            if distri_update:
-                # update median and median-based standard deviation distributedly, row by row
-                nu = (t-start_update) % Lu
-                nu1 = nu // Lu1
-                nu2 = nu % Lu1
-                med_frame3_temp[:,nu1:nu1+1, nu2*px_update:(nu2+1)*px_update] = median_calculation(
-                    video_tf_past[:, nu1:nu1+1, nu2*px_update:(nu2+1)*px_update], \
-                    med_frame2_update, (1, px_update), 1, display=False)
-                if nu == Lu-1:
-                    med_frame3 = med_frame3_temp.copy()
-            elif t >= start_update-1:
-                distri_update = True
+            if t_past == frames_init-1: 
+            # update median and median-based standard deviation every "frames_init" frames
+                # med_frame3 = median_calculation(
+                #     video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
+                if useSNR:
+                    med_frame3 = SNR_normalization(
+                        video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
+                else:
+                    med_frame3 = median_normalization(
+                        video_tf_past, med_frame2, (rowspad, colspad), 1, display=False)
 
         # CNN inference
         frame_prob = CNN_online(frame_SNR, fff, dims)

@@ -14,7 +14,7 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
-from suns.run_suns import suns_online
+from suns.run_suns import suns_online_track
 
 
 # %%
@@ -35,14 +35,13 @@ if __name__ == '__main__':
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
         # Can only be used when spatial filtering is not used. 
-    update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
+    update_baseline=False # True if the median and median-based std is updated every "frames_init" frames.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     useWT=False # True if using additional watershed
-    show_intermediate=True # True if screen neurons with consecutive frame requirement after every merge
     display=True # True if display information about running time 
 
-    for ind_video in [3,1,0,2]: # [3]: # 
+    for ind_video in [3]: # 
         # Run YST first, so that the time of releasing memory of large videos is not counted. 
         name_video = list_name_video[ind_video]
         # file names of the ".h5" files storing the raw videos. 
@@ -53,12 +52,12 @@ if __name__ == '__main__':
         dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
         rate_hz = list_rate_hz[ind_video]
-        merge_every = int(sys.argv[1]) # number of frames every merge
+        merge_every = 10 # number of frames every merge
         frames_init = 30 * rate_hz # number of frames used for initialization
         batch_size_init = 100 # batch size in CNN inference during initalization
 
         dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
-        dir_output = dir_parent + 'output_masks online merge{}\\'.format(merge_every) 
+        dir_output = dir_parent + 'output_masks track\\'
         # folder to save the segmented masks and the performance scores
         dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
         weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
@@ -115,12 +114,12 @@ if __name__ == '__main__':
                 'cons':Params_post_mat['cons'][0][0,0]}
 
             # The entire process of SUNS online
-            Masks, Masks_2, time_total, time_frame, _ = suns_online(
+            Masks, Masks_2, time_total, time_frame, _ = suns_online_track(
                 filename_video, filename_CNN, Params_pre, Params_post, \
                 dims, frames_init, merge_every, batch_size_init, \
                 useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
                 update_baseline=update_baseline, useWT=useWT, \
-                show_intermediate=show_intermediate, prealloc=prealloc, display=display, p=p)
+                prealloc=prealloc, display=display, p=p)
 
             # %% Evaluation of the segmentation accuracy compared to manual ground truth
             filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
