@@ -4,7 +4,6 @@ import numpy as np
 import time
 import h5py
 import sys
-from scipy import sparse
 
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
@@ -14,11 +13,19 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
-from suns.run_suns import suns_online
-
+from suns.run_suns_vary_CNN import suns_batch
 
 # %%
 if __name__ == '__main__':
+    n_depth = int(sys.argv[1])
+    n_channel = int(sys.argv[2])
+    skip = eval(sys.argv[3])
+    activation = sys.argv[4]
+    double = eval(sys.argv[5])
+    sub_folder = sys.argv[6]
+    med_subtract = bool(int(sys.argv[7]))
+    folder = sys.argv[8]
+
     # %% setting parameters
     list_neurofinder_train = ['01.00', '01.01', '02.00', '02.01', '04.00', '04.01']
     list_neurofinder_test = [x+'.test' for x in list_neurofinder_train]
@@ -32,13 +39,12 @@ if __name__ == '__main__':
     useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
-    med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
-        # Can only be used when spatial filtering is not used. 
-    update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
+    # med_subtract=True # True if the spatial median of every frame is subtracted before temporal filtering.
+    #     # Can only be used when spatial filtering is not used. 
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
+    batch_size_eval = 200 # batch size in CNN inference
     useWT=False # True if using additional watershed
-    show_intermediate=True # True if screen neurons with consecutive frame requirement after every merge
     display=True # True if display information about running time 
     p = mp.Pool()
 
@@ -61,11 +67,12 @@ if __name__ == '__main__':
         # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
         dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
-        dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
-        dir_parent_train = dir_video_train + 'noSF\\' # folder to save all the processed data
-        dir_output = dir_parent + 'output_masks online update\\' # folder to save the segmented masks and the performance scores
-        dir_params = dir_parent_train + 'output_masks\\' # folder of the optimized hyper-parameters
-        weights_path = dir_parent_train + 'Weights\\' # folder of the trained CNN
+        dir_parent = dir_video + folder + '\\' # folder to save all the processed data
+        dir_parent_train = dir_video_train + folder + '\\' # folder to save all the processed data
+        dir_sub = 'test_CNN\\' + sub_folder + '\\'
+        dir_output = dir_parent + dir_sub + 'output_masks\\' # folder to save the segmented masks and the performance scores
+        dir_params = dir_parent_train + dir_sub + 'output_masks\\' # folder of the optimized hyper-parameters
+        weights_path = dir_parent_train + dir_sub + 'Weights\\' # folder of the trained CNN
         if not os.path.exists(dir_output):
             os.makedirs(dir_output) 
 
@@ -76,8 +83,8 @@ if __name__ == '__main__':
         list_Recall = np.zeros((nvideo, 1))
         list_Precision = np.zeros((nvideo, 1))
         list_F1 = np.zeros((nvideo, 1))
-        list_time = np.zeros((nvideo, 3))
-        list_time_frame = np.zeros((nvideo, 3))
+        list_time = np.zeros((nvideo, 4))
+        list_time_frame = np.zeros((nvideo, 4))
 
         for (ind_video, Exp_ID) in enumerate(list_Exp_ID): # 
             rate_hz = list_rate_hz[ind_video] # frame rate of the video
@@ -89,14 +96,9 @@ if __name__ == '__main__':
             num_total = nframes # number of frames of the video
 
             # %% pre-processing parameters
-            merge_every = 10 # number of frames every merge
-            frames_init = 300 # number of frames used for initialization
-            batch_size_init = 100 # batch size in CNN inference during initalization
-
             nn = nframes
             gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
-            num_median_approx = frames_init # number of frames used to caluclate median and median-based standard deviation
-            # dims = (Lx, Ly) = Dimens # lateral dimensions of the video
+            num_median_approx = 900 # number of frames used to caluclate median and median-based standard deviation
             filename_TF_template = 'GCaMP6s_spike_tempolate_mean.h5' # file name of the temporal filter kernel
 
             if useTF:
@@ -114,7 +116,6 @@ if __name__ == '__main__':
                 Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)].astype('float32')
             else:
                 Poisson_filt=np.array([1])
-
             # dictionary of pre-processing parameters
             Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
                 'nn':nn, 'Poisson_filt': Poisson_filt}
@@ -123,13 +124,12 @@ if __name__ == '__main__':
             # for CV in list_CV:
             Exp_ID_train = list_Exp_ID_train[ind_video]
             print('Video ', Exp_ID)
-            filename_video = dir_video+Exp_ID+'.h5' # The path of the file of the input video.
             filename_CNN = weights_path+'Model_{}.h5'.format(Exp_ID_train) # The path of the CNN model.
 
-            # Load post-processing hyper-parameters
-            filename_params_post = dir_params+'Optimization_Info_{}.mat'.format(Exp_ID_train)
-            Optimization_Info = loadmat(filename_params_post)
+            # load optimal post-processing parameters
+            Optimization_Info = loadmat(dir_params+'Optimization_Info_{}.mat'.format(Exp_ID_train))
             Params_post_mat = Optimization_Info['Params'][0]
+            # dictionary of all optimized post-processing parameters.
             Params_post={
                 # minimum area of a neuron (unit: pixels).
                 'minArea': Params_post_mat['minArea'][0][0,0], 
@@ -150,13 +150,11 @@ if __name__ == '__main__':
                 # minimum consecutive number of frames of active neurons
                 'cons':Params_post_mat['cons'][0][0,0]}
 
-            # The entire process of SUNS online
-            Masks, Masks_2, time_total, time_frame, list_time_per = suns_online(
-                filename_video, filename_CNN, Params_pre, Params_post, \
-                dims, frames_init, merge_every, batch_size_init, \
-                useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
-                update_baseline=update_baseline, useWT=useWT, \
-                show_intermediate=show_intermediate, prealloc=prealloc, display=display, p=p)
+            # The entire process of SUNS batch
+            Masks, Masks_2, time_total, time_frame = suns_batch(
+                dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, batch_size_eval, \
+                useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, useWT=useWT, prealloc=prealloc, display=display, p=p,\
+            n_depth=n_depth, n_channel=n_channel, skip=skip, activation=activation, double=double)
 
             # %% Evaluation of the segmentation accuracy compared to manual ground truth
             filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
@@ -164,8 +162,7 @@ if __name__ == '__main__':
             GTMasks_2 = data_GT['GTMasks_2'].transpose()
             (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
             print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-            savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), \
-            {'Masks':Masks, 'list_time_per':list_time_per}, do_compression=True)
+            savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks_2':Masks_2})
 
             # %% Save recall, precision, F1, total processing time, and average processing time per frame
             list_Recall[ind_video] = Recall

@@ -38,7 +38,7 @@ if __name__ == '__main__':
         # Can be slightly smaller than the number of frames of a video
     Mag = 1 # spatial magnification compared to ABO videos.
 
-    thred_std = 5 # SNR threshold used to determine when neurons are active
+    thred_std = 6 # SNR threshold used to determine when neurons are active
     num_train_per = 200 # Number of frames per video used for training 
     BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     # Cross-validation strategy. Can be "leave_one_out" or "train_1_test_rest"
     cross_validation = "leave_one_out"
     # Params_loss = {'DL':1, 'BCE':0, 'FL':100, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
-    Params_loss = {'DL':1, 'BCE':1, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
+    Params_loss = {'DL':1, 'BCE':20, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
 
     # %% set folders
     # file names of the ".h5" files storing the raw videos. 
@@ -66,14 +66,14 @@ if __name__ == '__main__':
     dir_video = 'D:\\ABO\\20 percent\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
     dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
-    dir_parent = dir_video + 'ShallowUNet\\noSF\\' # folder to save all the processed data
+    dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
     dir_network_input = dir_parent + 'network_input\\' # folder of the SNR videos
     dir_mask = dir_parent + 'temporal_masks({})\\'.format(thred_std) # foldr to save the temporal masks
-    dir_parent = dir_parent + sub_folder + '\\std5_nf200_ne200_bs20\\'
-    weights_path = dir_parent + 'Weights\\' # folder to save the trained CNN
-    training_output_path = dir_parent + 'training output\\' # folder to save the loss functions during training
-    dir_output = dir_parent + 'output_masks\\' # folder to save the optimized hyper-parameters
-    dir_temp = dir_parent + 'temp\\' # temporary folder to save the F1 with various hyper-parameters
+    dir_sub = '\\test_CNN\\' + sub_folder + '\\'
+    weights_path = dir_parent + dir_sub + 'Weights\\' # folder to save the trained CNN
+    training_output_path = dir_parent + dir_sub + 'training output\\' # folder to save the loss functions during training
+    dir_output = dir_parent + dir_sub + 'output_masks\\' # folder to save the optimized hyper-parameters
+    dir_temp = dir_parent + dir_sub + 'temp\\' # temporary folder to save the F1 with various hyper-parameters
 
     if not os.path.exists(dir_network_input):
         os.makedirs(dir_network_input) 
@@ -110,7 +110,8 @@ if __name__ == '__main__':
     # average area of a typical neuron (unit: pixels in ABO videos)
     list_avgArea = [177] 
     # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
-    list_thresh_pmap = list(range(238,254,3))
+    # list_thresh_pmap = list(range(238,254,3))
+    list_thresh_pmap = list(range(205,238,5))
     # threshold to binarize the neuron masks. For each mask, 
     # values higher than "thresh_mask" times the maximum value of the mask are set to one.
     thresh_mask = 0.5

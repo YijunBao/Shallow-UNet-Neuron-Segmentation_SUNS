@@ -16,7 +16,7 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 from suns.PreProcessing.preprocessing_functions import preprocess_video
 from suns.PreProcessing.generate_masks import generate_masks
-from train_CNN_params_vary_CNN import train_CNN, parameter_optimization_cross_validation
+from suns.Network.train_CNN_params_vary_CNN import train_CNN, parameter_optimization_cross_validation
 
 
 # %%
