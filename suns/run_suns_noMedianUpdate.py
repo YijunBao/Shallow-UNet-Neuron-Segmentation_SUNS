@@ -433,7 +433,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
             end_frame = time.time()
             list_time_per[t] = end_frame - start_frame
         if t % 1000 == 0:
-            print('{} frames has been processed'.format(t))
+            print('{} frames have been processed'.format(t))
 
     if not show_intermediate:
         Masks_2 = select_cons(tuple_temp)
@@ -825,7 +825,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
             end_frame = time.time()
             list_time_per[t] = end_frame - start_frame
         if t % 1000 == 0:
-            print('{} frames has been processed'.format(t))
+            print('{} frames have been processed'.format(t))
 
     Masks_cons = select_cons(tuple_temp)
     # final result. Masks_2 is a 2D sparse matrix of the segmented neurons
