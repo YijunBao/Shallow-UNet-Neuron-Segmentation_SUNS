@@ -116,7 +116,7 @@ def get_shallow_unet(size=None, Params_loss=None):
     do3 = tf.keras.layers.Dropout(0.2)(c3)
 
     ct2 = tf.keras.layers.Conv2DTranspose(8, (2, 2), strides=(2, 2), padding='same')(do3)
-    ct2 = tf.keras.layers.concatenate([ct2, do2], axis=3) # The second skip connection
+    # ct2 = tf.keras.layers.concatenate([ct2, do2], axis=3) # The second skip connection
 
     c2 = tf.keras.layers.Conv2D(8, (3, 3), activation=activation, kernel_initializer='he_normal', padding='same')(ct2)
     do2 = tf.keras.layers.Dropout(0.1)(c2)
