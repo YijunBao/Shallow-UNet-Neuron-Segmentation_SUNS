@@ -75,6 +75,21 @@ def fastconv(a,b,f):
                 b[i,j,k]=temp
 
 
+@jit("void(f4[:,:,:],f4[:,:,:])",nopython=True,parallel=True,cache=True)
+def fastmedian(A,b):
+    '''Calculate the medians of the temporal traces of each pixel
+
+    Inputs: 
+        A(numpy.ndarray of float32, shape = (Lx,Ly,T)): the input video
+
+    Outputs:
+        b(numpy.ndarray of float32, shape = (Lx,Ly,1)): the medians of each pixel
+    '''
+    for i in prange(A.shape[0]):
+        for j in prange(A.shape[1]):
+            b[i,j] = np.median(A[i,j,:])
+
+
 @jit("void(f4[:,:,:],f4[:],f4[:,:,:])",nopython=True,parallel=True,cache=True)
 def fastquant(A,q,b):
     '''Calculate the quantiles of the temporal traces of each pixel

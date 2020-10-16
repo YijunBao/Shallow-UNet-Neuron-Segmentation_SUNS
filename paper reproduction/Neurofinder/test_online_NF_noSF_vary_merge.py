@@ -14,7 +14,7 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
-from suns.run_suns import suns_online
+from suns.run_suns_MedianUpdate_v2 import suns_online
 
 
 # %%
@@ -68,7 +68,7 @@ if __name__ == '__main__':
 
         dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
         dir_parent_train = dir_video_train + 'noSF\\' # folder to save all the processed data
-        dir_output = dir_parent + 'output_masks online merge{}\\'.format(merge_every) 
+        dir_output = dir_parent + 'output_masks online v2 merge{}\\'.format(merge_every) 
         # folder to save the segmented masks and the performance scores
         dir_params = dir_parent_train + 'output_masks\\' # folder of the optimized hyper-parameters
         weights_path = dir_parent_train + 'Weights\\' # folder of the trained CNN

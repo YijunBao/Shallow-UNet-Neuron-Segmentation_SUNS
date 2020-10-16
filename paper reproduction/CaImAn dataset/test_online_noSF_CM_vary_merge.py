@@ -14,7 +14,7 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
-from suns.run_suns import suns_online
+from suns.run_suns_MedianUpdate_v2 import suns_online
 
 
 # %%
@@ -58,7 +58,7 @@ if __name__ == '__main__':
         batch_size_init = 100 # batch size in CNN inference during initalization
 
         dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
-        dir_output = dir_parent + 'output_masks online merge{}\\'.format(merge_every) 
+        dir_output = dir_parent + 'output_masks online v2 merge{}\\'.format(merge_every) 
         # folder to save the segmented masks and the performance scores
         dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
         weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
