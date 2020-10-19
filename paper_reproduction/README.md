@@ -4,6 +4,7 @@
   - [CaImAn dataset](#caiman-dataset)
 - [Convert manual labels into sparse matrices](#convert-manual-labels-into-sparse-matrices)
 - [Generate convolution kernel for temporal filtering](#generate-convolution-kernel-for-temporal-filtering)
+- [Reproduce the results in our paper](#reproduce-the-results-in-our-paper)
 
 
 # Get raw videos and GT masks from public dataset
@@ -30,3 +31,7 @@ All the manual labels are now stored in the form of a 3D array. For convenience 
 
 # Generate convolution kernel for temporal filtering
 We generated the temporal filter kernel by averaging fluorescence responses of the GT neurons to calcium transients with moderate peak SNR between 5 and 8 aligned to their peaks. The generated filter kernels are provided in `paper reproduction/Generalization_test` as ".h5" files. Alternatively, you can also use the code under `utils/temporal filter` to regenerate them. After setting the folders, run `calculate_traces_bgtraces_ABO.m` and `temporal_filter_ABO.m` to obtain the filter kernel for the ABO dataset. Run other similar functions to obtain the filter kernels for Neurofinder (NF) and CaImAn (CM) datasets. 
+
+
+# Reproduce the results in our paper
+We used the conda environment exported as `installation\environment_suns_test.yml` to run all of our tests. The major results in our paper can be reproduced by running the `.bat` files under the sub folders `ABO`, `Neurofinder`, and `CaImAn dataset`. Some module versions are older than the latest versions installed from `installation\environment_suns.yml`. We showed all of our trained CNNs and optimized postprocessing hyperparameters in `training results`. We showed all of our output masks, together with the output masks of the peer algorithms, in `output masks all methods`. The results of SUNS were saved in Python using C order, while the results of the other methods were saved in MATLAB using F order, so a permutation/transpose is required to align their dimensions (i.e., `permute(Masks,[3,2,1])` in MATLAB, or `np.transpose(Masks,[2,1,0])` in Python). 

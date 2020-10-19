@@ -1,3 +1,7 @@
+REM Prepare for FFT-based spatial filtering
+python learn_wisdom_ABO.py
+python learn_wisdom_2d_ABO.py
+
 REM leave-one-out cross validation
 REM Training pipeline. The post-processing will slow down after running many times, 
 REM so I split the parameter search into two scripts.

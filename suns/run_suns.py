@@ -401,11 +401,11 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
                 med_frame3_temp[:, nu2*px_update:(nu2+1)*px_update, nu1:nu1+1] = median_calculation(
                     video_tf_past_fix[:, nu2*px_update:(nu2+1)*px_update, nu1:nu1+1], \
                     med_frame2_update, (px_update,1), 1, display=False)
-                if nu == Lu-1:
+                if nu == Lu-1: # update the baseline, noise, and buffer of recent frames
                     med_frame3 = med_frame3_temp.copy()
                     (video_tf_past_fix, video_tf_past) = (video_tf_past, video_tf_past_fix)
             elif t >= start_update-1:
-                distri_update = True
+                distri_update = True # start distributed baseline and noise update
                 (video_tf_past_fix, video_tf_past) = (video_tf_past, video_tf_past_fix)
 
         # CNN inference
@@ -778,11 +778,11 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
                 med_frame3_temp[:, nu2*px_update:(nu2+1)*px_update, nu1:nu1+1] = median_calculation(
                     video_tf_past_fix[:, nu2*px_update:(nu2+1)*px_update, nu1:nu1+1], \
                     med_frame2_update, (px_update,1), 1, display=False)
-                if nu == Lu-1:
+                if nu == Lu-1: # update the baseline, noise, and buffer of recent frames
                     med_frame3 = med_frame3_temp.copy()
                     (video_tf_past_fix, video_tf_past) = (video_tf_past, video_tf_past_fix)
             elif t >= start_update-1:
-                distri_update = True
+                distri_update = True # start distributed baseline and noise update
                 (video_tf_past_fix, video_tf_past) = (video_tf_past, video_tf_past_fix)
 
         # CNN inference

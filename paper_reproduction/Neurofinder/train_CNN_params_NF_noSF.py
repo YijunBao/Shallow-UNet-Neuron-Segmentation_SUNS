@@ -35,7 +35,7 @@ if __name__ == '__main__':
     num_train_per = 1800 # Number of frames per video used for training 
     BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
-    batch_size_eval = 100 # batch size in CNN inference
+    batch_size_eval = 200 # batch size in CNN inference
 
     useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
@@ -157,7 +157,6 @@ if __name__ == '__main__':
 
 
             # pre-processing for training
-            # Exp_ID = list_Exp_ID[ind_video]
             # %% Pre-process video
             video_input, _ = preprocess_video(dir_video, Exp_ID, Params, dir_network_input, \
                 useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=prealloc) #
@@ -167,24 +166,6 @@ if __name__ == '__main__':
             generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
             del video_input
 
-            # %% CNN training
-            # if cross_validation == "use_all":
-            #     list_CV = [nvideo]
-            # else: 
-            #     list_CV = list(range(0,nvideo))
-            # for CV in list_CV:
-            #     if cross_validation == "leave_one_out":
-            #         list_Exp_ID_train = list_Exp_ID.copy()
-            #         list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
-            #     elif cross_validation == "train_1_test_rest":
-            #         list_Exp_ID_val = list_Exp_ID.copy()
-            #         list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
-            #     elif cross_validation == "use_all":
-            #         list_Exp_ID_val = None
-            #         list_Exp_ID_train = list_Exp_ID.copy() 
-            #     else:
-            #         raise('wrong "cross_validation"')
-            #     if not use_validation:
             list_Exp_ID_train = [Exp_ID]
             list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
             file_CNN = weights_path+'Model_{}.h5'.format(Exp_ID)
@@ -207,7 +188,5 @@ if __name__ == '__main__':
                 (Lx, Ly), (rows, cols), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
                 batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist)
             # rename 'Optimization_Info_{}.mat'
-            # Info_dict = loadmat(dir_output+'Optimization_Info_{}.mat'.format(0))
-            # savemat(dir_output+'Optimization_Info_{}.mat'.format(Exp_ID), Info_dict)
             copyfile(dir_output+'Optimization_Info_{}.mat'.format(0), dir_output+'Optimization_Info_{}.mat'.format(Exp_ID))
 
