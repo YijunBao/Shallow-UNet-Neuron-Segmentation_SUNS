@@ -20,7 +20,7 @@ from suns.PostProcessing.complete_post import parameter_optimization
 
 
 def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
-    BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, dims, Params_loss=None):
+    BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, dims, Params_loss=None, exist_model=None):
     '''Train a CNN model using SNR images in "dir_img" and the corresponding temporal masks in "dir_mask" 
         identified for each video in "list_Exp_ID_train" using tensorflow generater formalism.
         The output are the trained CNN model saved in "file_CNN" and "results" containing loss. 
@@ -45,6 +45,7 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
             Params_loss['FL'](float): Coefficient of focal loss in the total loss
             Params_loss['gamma'] (float): first parameter of focal loss
             Params_loss['alpha'] (float): second parameter of focal loss
+        exist_model (str, default to None): the path of existing model for transfer learning 
 
     Outputs:
         results: the training results containing the loss information.
@@ -113,10 +114,12 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
         val_gen = None
         NO_OF_VAL_IMAGES = 0
 
-
     fff = get_shallow_unet(size=None, Params_loss=Params_loss)
     # The alternative line has more options to choose
     # fff = get_shallow_unet_more(size=None, n_depth=3, n_channel=4, skip=[1], activation='elu', Params_loss=Params_loss)
+    if exist_model is not None:
+        fff.load_weights(exist_model)
+
 
     class LossAndErrorPrintingCallback(tf.keras.callbacks.Callback):
         def on_epoch_end(self, epoch, logs=None):

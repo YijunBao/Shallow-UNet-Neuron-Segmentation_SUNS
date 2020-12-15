@@ -21,6 +21,7 @@ from suns.train_CNN_params import train_CNN, parameter_optimization_cross_valida
 # import tensorflow as tf
 # config = tf.ConfigProto()
 # config.gpu_options.allow_growth = True
+# # tf_config.gpu_options.per_process_gpu_memory_fraction = 0.5
 # sess = tf.Session(config = config)
 
 
