@@ -24,10 +24,12 @@ if __name__ == '__main__':
     list_neurofinder_test = [x+'.test' for x in list_neurofinder_train]
     px_um = [1/0.8, 1/0.8, 1/1.15, 1/1.15, 0.8, 1.25]
     list_Mag = [x*0.78 for x in px_um]
-    list_rate_hz = [7.5, 7.5, 8, 8, 6.75, 3] # [3] * 6 # 
+    list_rate_hz = [3] * 6 # [7.5, 7.5, 8, 8, 6.75, 3] # 
     Dimens = [(504,504), (504,504), (464,504), (464,504), (416,480), (416,480)] # lateral dimension of the video
-    list_nframes_train = [2250, 1825, 8000, 8000, 3000, 3000]
-    list_nframes_test = [2250, 5000, 8000, 8000, 3000, 3000]
+    # list_nframes_train = [2250, 1825, 8000, 8000, 3000, 3000]
+    # list_nframes_test = [2250, 5000, 8000, 8000, 3000, 3000]
+    list_nframes_train = [750, 608, 2666, 2666, 1500, 3000]
+    list_nframes_test = [750, 1666, 2666, 2666, 1500, 3000]
 
     useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
@@ -42,7 +44,7 @@ if __name__ == '__main__':
     display=True # True if display information about running time 
     p = mp.Pool()
 
-    for trainset_type in {'train', 'test'}: # 
+    for trainset_type in {'train'}: # , 'test'
         testset_type = list({'train','test'}-{trainset_type})[0]
         # %% set folders
         if trainset_type == 'train':
@@ -56,17 +58,16 @@ if __name__ == '__main__':
 
         # file names of the ".h5" files storing the raw videos. 
         # folder of the raw videos
-        dir_video = 'E:\\NeuroFinder\\{} videos\\'.format(testset_type)
-        dir_video_train = 'E:\\NeuroFinder\\{} videos\\'.format(trainset_type)
+        dir_video = 'E:\\NeuroFinder\\bin3\\{} videos\\'.format(testset_type)
+        dir_video_train = 'E:\\NeuroFinder\\bin3\\{} videos\\'.format(trainset_type)
         # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
         dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
         dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
         dir_parent_train = dir_video_train + 'noSF\\' # folder to save all the processed data
-        dir_sub = 'test_CNN\\1skip_1\\'
-        dir_output = dir_parent + dir_sub + 'output_masks online\\' # folder to save the segmented masks and the performance scores
-        dir_params = dir_parent_train + dir_sub + 'output_masks\\' # folder of the optimized hyper-parameters
-        weights_path = dir_parent_train + dir_sub + 'Weights\\' # folder of the trained CNN
+        dir_output = dir_parent + 'output_masks online\\' # folder to save the segmented masks and the performance scores
+        dir_params = dir_parent_train + 'output_masks\\' # folder of the optimized hyper-parameters
+        weights_path = dir_parent_train + 'Weights\\' # folder of the trained CNN
         if not os.path.exists(dir_output):
             os.makedirs(dir_output) 
 
@@ -122,28 +123,29 @@ if __name__ == '__main__':
 
 
             # for CV in list_CV:
+            CV = len(list_Exp_ID)
             Exp_ID_train = list_Exp_ID_train[ind_video]
             print('Video ', Exp_ID)
             filename_video = dir_video+Exp_ID+'.h5' # The path of the file of the input video.
-            filename_CNN = weights_path+'Model_{}.h5'.format(Exp_ID_train) # The path of the CNN model.
+            filename_CNN = weights_path+'Model_{}.h5'.format(CV) # The path of the CNN model.
 
             # Load post-processing hyper-parameters
-            filename_params_post = dir_params+'Optimization_Info_{}.mat'.format(Exp_ID_train)
+            filename_params_post = dir_params+'Optimization_Info_{}.mat'.format(CV)
             Optimization_Info = loadmat(filename_params_post)
             Params_post_mat = Optimization_Info['Params'][0]
             Params_post={
                 # minimum area of a neuron (unit: pixels).
-                'minArea': Params_post_mat['minArea'][0][0,0], 
+                'minArea': np.round(Params_post_mat['minArea'][0][0,0] * Mag**2), 
                 # average area of a typical neuron (unit: pixels) 
-                'avgArea': Params_post_mat['avgArea'][0][0,0],
+                'avgArea': np.round(Params_post_mat['avgArea'][0][0,0] * Mag**2),
                 # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
                 'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
                 # values higher than "thresh_mask" times the maximum value of the mask are set to one.
                 'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
                 # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels)
-                'thresh_COM0': Params_post_mat['thresh_COM0'][0][0,0], 
+                'thresh_COM0': np.round(Params_post_mat['thresh_COM0'][0][0,0] * Mag), 
                 # maximum COM distance of two masks to be considered the same neuron (unit: pixels)
-                'thresh_COM': Params_post_mat['thresh_COM'][0][0,0], 
+                'thresh_COM': np.round(Params_post_mat['thresh_COM'][0][0,0] * Mag), 
                 # minimum IoU of two masks to be considered the same neuron
                 'thresh_IOU': Params_post_mat['thresh_IOU'][0][0,0], 
                 # minimum consume ratio of two masks to be considered the same neuron

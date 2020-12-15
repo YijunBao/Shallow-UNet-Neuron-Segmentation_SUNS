@@ -19,7 +19,9 @@ from suns.run_suns import suns_online
 
 # %%
 if __name__ == '__main__':
-    sub_folder = '1skip'
+    sub_folder = sys.argv[1] # '1skip'
+    update_baseline = bool(int(sys.argv[2]))
+    med_subtract = bool(int(sys.argv[3]))
 
     # %% setting parameters
     rate_hz = 30 # frame rate of the video
@@ -31,9 +33,9 @@ if __name__ == '__main__':
     useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
-    med_subtract=True # True if the spatial median of every frame is subtracted before temporal filtering.
-        # Can only be used when spatial filtering is not used. 
-    update_baseline=False # True if the median and median-based std is updated every "frames_init" frames.
+    # med_subtract=True # True if the spatial median of every frame is subtracted before temporal filtering.
+    #     # Can only be used when spatial filtering is not used. 
+    # update_baseline=False # True if the median and median-based std is updated every "frames_init" frames.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     useWT=False # True if using additional watershed
@@ -52,9 +54,15 @@ if __name__ == '__main__':
     frames_init = 30 * rate_hz # number of frames used for initialization
     batch_size_init = 100 # batch size in CNN inference during initalization
 
-    dir_parent = dir_video + 'noSF subtract\\' # folder to save all the processed data
+    if med_subtract:
+        dir_parent = dir_video + 'noSF_subtract\\' # folder to save all the processed data
+    else:
+        dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
     dir_sub = '\\test_CNN\\' + sub_folder + '\\'
-    dir_output = dir_parent + dir_sub + 'output_masks online\\' # folder to save the segmented masks and the performance scores
+    if update_baseline:
+        dir_output = dir_parent + dir_sub + 'output_masks online update\\' # folder to save the segmented masks and the performance scores
+    else:
+        dir_output = dir_parent + dir_sub + 'output_masks online\\' # folder to save the segmented masks and the performance scores
     dir_params = dir_parent + dir_sub + 'output_masks\\' # folder of the optimized hyper-parameters
     weights_path = dir_parent + dir_sub + 'Weights\\' # folder of the trained CNN
     if not os.path.exists(dir_output):

@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
         dir_parent = dir_video + 'noSF_subtract\\' # folder to save all the processed data
         dir_parent_train = dir_video_train + 'noSF_subtract\\' # folder to save all the processed data
-        dir_sub = 'test_CNN\\2skip_1\\'
+        dir_sub = 'test_CNN\\1skip_1\\'
         dir_output = dir_parent + dir_sub + 'output_masks online\\' # folder to save the segmented masks and the performance scores
         dir_params = dir_parent_train + dir_sub + 'output_masks\\' # folder of the optimized hyper-parameters
         weights_path = dir_parent_train + dir_sub + 'Weights\\' # folder of the trained CNN

@@ -16,11 +16,14 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 from suns.PreProcessing.preprocessing_functions import preprocess_video
 from suns.PreProcessing.generate_masks import generate_masks
-from suns.train_CNN_params import train_CNN, parameter_optimization_cross_validation
+from train_CNN_params_separable import train_CNN, parameter_optimization_cross_validation
 
 
 # %%
 if __name__ == '__main__':
+    sub_folder = 'separable'
+    max_eid = int(sys.argv[1])
+
     # %% setting parameters
     rate_hz = 30 # frame rate of the video
     Dimens = (487,487) # lateral dimensions of the video
@@ -30,24 +33,24 @@ if __name__ == '__main__':
         # Can be slightly smaller than the number of frames of a video
     Mag = 1 # spatial magnification compared to ABO videos.
 
-    thred_std = 7 # SNR threshold used to determine when neurons are active
+    thred_std = 6 # SNR threshold used to determine when neurons are active
     num_train_per = 200 # Number of frames per video used for training 
     BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
     batch_size_eval = 200 # batch size in CNN inference
 
-    useSF=True # True if spatial filtering is used in pre-processing.
+    useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     prealloc=False # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
             # Not needed in training.
     useWT=False # True if using additional watershed
-    load_exist=False # True if using temp files already saved in the folders
+    load_exist=True # True if using temp files already saved in the folders
     use_validation = True # True to use a validation set outside the training set
     # Cross-validation strategy. Can be "leave_one_out" or "train_1_test_rest"
     cross_validation = "leave_one_out"
-    Params_loss = {'DL':1, 'BCE':0, 'FL':100, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
+    Params_loss = {'DL':1, 'BCE':20, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
 
     # %% set folders
     # file names of the ".h5" files storing the raw videos. 
@@ -57,13 +60,14 @@ if __name__ == '__main__':
     dir_video = 'D:\\ABO\\20 percent\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
     dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
-    dir_parent = dir_video + 'complete\\' # folder to save all the processed data
+    dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
     dir_network_input = dir_parent + 'network_input\\' # folder of the SNR videos
     dir_mask = dir_parent + 'temporal_masks({})\\'.format(thred_std) # foldr to save the temporal masks
-    weights_path = dir_parent + 'Weights\\' # folder to save the trained CNN
-    training_output_path = dir_parent + 'training output\\' # folder to save the loss functions during training
-    dir_output = dir_parent + 'output_masks\\' # folder to save the optimized hyper-parameters
-    dir_temp = dir_parent + 'temp\\' # temporary folder to save the F1 with various hyper-parameters
+    dir_sub = '\\test_CNN\\' + sub_folder + '\\'
+    weights_path = dir_parent + dir_sub + 'Weights\\' # folder to save the trained CNN
+    training_output_path = dir_parent + dir_sub + 'training output\\' # folder to save the loss functions during training
+    dir_output = dir_parent + dir_sub + 'output_masks\\' # folder to save the optimized hyper-parameters
+    dir_temp = dir_parent + dir_sub + 'temp\\' # temporary folder to save the F1 with various hyper-parameters
 
     if not os.path.exists(dir_network_input):
         os.makedirs(dir_network_input) 
@@ -96,16 +100,14 @@ if __name__ == '__main__':
 
     # %% set the range of post-processing hyper-parameters to be optimized in
     # minimum area of a neuron (unit: pixels in ABO videos). must be in ascend order
-    # list_minArea = list(range(80,135,10)) 
-    list_minArea = list(range(70,145,10)) 
+    list_minArea = list(range(80,135,10)) 
     # average area of a typical neuron (unit: pixels in ABO videos)
     list_avgArea = [177] 
     # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
-    # list_thresh_pmap = list(range(165,210,5))
-    list_thresh_pmap = list(range(140,240,10))
+    list_thresh_pmap = list(range(238,254,3))
     # threshold to binarize the neuron masks. For each mask, 
     # values higher than "thresh_mask" times the maximum value of the mask are set to one.
-    thresh_mask = 0.3
+    thresh_mask = 0.5
     # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels in ABO videos)
     thresh_COM0 = 2
     # maximum COM distance of two masks to be considered the same neuron (unit: pixels in ABO videos)
@@ -167,4 +169,4 @@ if __name__ == '__main__':
     # %% parameter optimization
     parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
         (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
-        batch_size_eval, useWT=useWT, useMP=True, load_exist=True, max_eid=9)
+        batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist, max_eid=max_eid)

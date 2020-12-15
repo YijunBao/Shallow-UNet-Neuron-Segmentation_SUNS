@@ -31,7 +31,7 @@ if __name__ == '__main__':
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
         # Can only be used when spatial filtering is not used. 
-    update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
+    update_baseline=False # True if the median and median-based std is updated every "frames_init" frames.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     useWT=False # True if using additional watershed
@@ -94,9 +94,9 @@ if __name__ == '__main__':
         Exp_ID = list_Exp_ID[CV]
         print('Video ', Exp_ID)
         filename_video = dir_video+Exp_ID+'.h5' # The path of the file of the input video.
-        filename_CNN = weights_path+'Model_CV{}.h5'.format(CV) # The path of the CNN model.
+        filename_CNN = weights_path+'Model_CV{}.h5'.format(10) # The path of the CNN model.
         # Load post-processing hyper-parameters
-        filename_params_post = dir_params+'Optimization_Info_{}.mat'.format(CV)
+        filename_params_post = dir_params+'Optimization_Info_{}.mat'.format(10)
         Optimization_Info = loadmat(filename_params_post)
         Params_post_mat = Optimization_Info['Params'][0]
         Params_post={

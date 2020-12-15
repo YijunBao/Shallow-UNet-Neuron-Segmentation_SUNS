@@ -28,7 +28,7 @@ if __name__ == '__main__':
     useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
-    med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
+    med_subtract=True # True if the spatial median of every frame is subtracted before temporal filtering.
         # Can only be used when spatial filtering is not used. 
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
@@ -44,7 +44,7 @@ if __name__ == '__main__':
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
     dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
-    dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
+    dir_parent = dir_video + 'noSF_subtract\\' # folder to save all the processed data
     dir_sub = '\\test_CNN\\' + sub_folder + '\\'
     dir_output = dir_parent + dir_sub + 'output_masks\\' # folder to save the segmented masks and the performance scores
     dir_params = dir_parent + dir_sub + 'output_masks\\' # folder of the optimized hyper-parameters

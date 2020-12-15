@@ -17,13 +17,14 @@ from suns.run_suns import suns_batch
 
 # %%
 if __name__ == '__main__':
+    simulation = sys.argv[1]
     # %% setting parameters
     Dimens = (487,487) # lateral dimensions of the video
     nframes = 23200 # number of frames used for preprocessing. 
         # Can be slightly larger than the number of frames of a video
     Mag = 1 # spatial magnification compared to ABO videos.
 
-    useSF=True # True if spatial filtering is used in pre-processing.
+    useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
@@ -33,16 +34,16 @@ if __name__ == '__main__':
     display=True # True if display information about running time 
 
     # file names of the ".h5" files storing the raw videos. 
-    list_Exp_ID = ['501271265', '501704220','501836392', '502115959', '502205092', \
-                    '504637623', '510514474', '510517131','540684467', '545446482']
+    list_Exp_ID = ['501484643','501574836','501729039','502608215','503109347',
+        '510214538','524691284','527048992','531006860','539670003']
     # folder of the raw videos
-    dir_video = 'E:\\ABO 175\\20 percent\\' 
+    dir_video = 'D:\\ABO\\20 percent\\{}\\' .format(simulation)
     dir_video_train = 'D:\\ABO\\20 percent\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
+    dir_GTMasks = dir_video_train + 'GT Masks\\FinalMasks_' 
 
-    dir_parent = dir_video + 'complete\\' # folder to save all the processed data
-    dir_parent_train = dir_video_train + 'complete\\' # folder to save all the processed data
+    dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
+    dir_parent_train = dir_video_train + 'noSF\\' # folder to save all the processed data
     dir_output = dir_parent + 'output_masks\\' # folder to save the segmented masks and the performance scores
     dir_params = dir_parent_train + 'output_masks\\' # folder of the optimized hyper-parameters
     weights_path = dir_parent_train + 'Weights\\' # folder of the trained CNN

@@ -11,7 +11,7 @@ import multiprocessing as mp
 
 sys.path.insert(1, '..\\..') # the path containing "suns" folder
 os.environ['KERAS_BACKEND'] = 'tensorflow'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
 from suns.run_suns import suns_online
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
         # Can only be used when spatial filtering is not used. 
-    update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
+    update_baseline=False # True if the median and median-based std is updated every "frames_init" frames.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     useWT=False # True if using additional watershed
@@ -52,7 +52,7 @@ if __name__ == '__main__':
     batch_size_init = 100 # batch size in CNN inference during initalization
 
     dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
-    dir_parent_train = dir_video_train + 'complete\\' # folder to save all the processed data
+    dir_parent_train = dir_video_train + 'noSF\\' # folder to save all the processed data
     dir_output = dir_parent + 'output_masks online\\' # folder to save the segmented masks and the performance scores
     dir_params = dir_parent_train + 'output_masks\\' # folder of the optimized hyper-parameters
     weights_path = dir_parent_train + 'Weights\\' # folder of the trained CNN
@@ -94,9 +94,9 @@ if __name__ == '__main__':
         Exp_ID = list_Exp_ID[CV]
         print('Video ', Exp_ID)
         filename_video = dir_video+Exp_ID+'.h5' # The path of the file of the input video.
-        filename_CNN = weights_path+'Model_CV{}.h5'.format(CV) # The path of the CNN model.
+        filename_CNN = weights_path+'Model_CV{}.h5'.format(10) # The path of the CNN model.
         # Load post-processing hyper-parameters
-        filename_params_post = dir_params+'Optimization_Info_{}.mat'.format(CV)
+        filename_params_post = dir_params+'Optimization_Info_{}.mat'.format(10)
         Optimization_Info = loadmat(filename_params_post)
         Params_post_mat = Optimization_Info['Params'][0]
         Params_post={

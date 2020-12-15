@@ -31,7 +31,7 @@ if __name__ == '__main__':
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
         # Can only be used when spatial filtering is not used. 
-    update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
+    update_baseline=False # True if the median and median-based std is updated every "frames_init" frames.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     useWT=False # True if using additional watershed
@@ -50,8 +50,8 @@ if __name__ == '__main__':
     frames_init = 30 * rate_hz # number of frames used for initialization
     batch_size_init = 100 # batch size in CNN inference during initalization
 
-    dir_parent = dir_video + 'noSF\\1skip SNR=6\\' # folder to save all the processed data
-    dir_output = dir_parent + 'output_masks online update_v1\\' # folder to save the segmented masks and the performance scores
+    dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
+    dir_output = dir_parent + 'output_masks online\\' # folder to save the segmented masks and the performance scores
     dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
     weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
     if not os.path.exists(dir_output):
@@ -129,7 +129,7 @@ if __name__ == '__main__':
         filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
         data_GT=loadmat(filename_GT)
         GTMasks_2 = data_GT['GTMasks_2'].transpose()
-        (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
+        (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.7)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
         savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks':Masks, \
             'list_time_per':list_time_per}, do_compression=True)

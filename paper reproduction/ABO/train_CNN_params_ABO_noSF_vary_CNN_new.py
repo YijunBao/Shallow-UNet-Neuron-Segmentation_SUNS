@@ -153,7 +153,7 @@ if __name__ == '__main__':
     #     del video_input
 
     # %% CNN training
-    for CV in [1]: # range(0,nvideo):
+    for CV in [6]: # range(0,nvideo):
         if cross_validation == "leave_one_out":
             list_Exp_ID_train = list_Exp_ID.copy()
             list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
@@ -176,8 +176,8 @@ if __name__ == '__main__':
             f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
         f.close()
 
-    # # %% parameter optimization
-    # parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
-    #     (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
-    #     batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist, max_eid=max_eid,\
-    #     n_depth=n_depth, n_channel=n_channel, skip=skip, activation=activation, double=double)
+    # %% parameter optimization
+    parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
+        (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
+        batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist, max_eid=max_eid,\
+        n_depth=n_depth, n_channel=n_channel, skip=skip, activation=activation, double=double)

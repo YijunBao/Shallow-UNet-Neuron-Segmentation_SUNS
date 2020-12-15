@@ -54,7 +54,6 @@ if __name__ == '__main__':
     weights_path = dir_parent + dir_sub + 'Weights\\' # folder to save the trained CNN
     dir_output = dir_parent + dir_sub + 'output_masks\\' # folder to save the segmented masks and the performance scores
     dir_params = dir_parent + dir_sub + 'output_masks\\' # folder of the optimized hyper-parameters
-    weights_path = dir_parent + dir_sub + 'Weights\\' # folder of the trained CNN
     if not os.path.exists(dir_output):
         os.makedirs(dir_output) 
 

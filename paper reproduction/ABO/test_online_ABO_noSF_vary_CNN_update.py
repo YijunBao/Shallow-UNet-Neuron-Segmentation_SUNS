@@ -19,7 +19,9 @@ from suns.run_suns import suns_online
 
 # %%
 if __name__ == '__main__':
-    sub_folder = '1skip'
+    sub_folder = sys.argv[0] # '1skip'
+    update_baseline = bool(int(sys.argv[1]))
+    med_subtract = bool(int(sys.argv[2]))
 
     # %% setting parameters
     rate_hz = 30 # frame rate of the video
@@ -31,9 +33,9 @@ if __name__ == '__main__':
     useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
-    med_subtract=True # True if the spatial median of every frame is subtracted before temporal filtering.
+    # med_subtract=True # True if the spatial median of every frame is subtracted before temporal filtering.
         # Can only be used when spatial filtering is not used. 
-    update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
+    # update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     useWT=False # True if using additional watershed

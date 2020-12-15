@@ -96,14 +96,16 @@ if __name__ == '__main__':
 
     # %% set the range of post-processing hyper-parameters to be optimized in
     # minimum area of a neuron (unit: pixels in ABO videos). must be in ascend order
-    list_minArea = list(range(80,135,10)) 
+    # list_minArea = list(range(80,135,10)) 
+    list_minArea = list(range(70,145,10)) 
     # average area of a typical neuron (unit: pixels in ABO videos)
     list_avgArea = [177] 
     # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
-    list_thresh_pmap = list(range(165,210,5))
+    # list_thresh_pmap = list(range(165,210,5))
+    list_thresh_pmap = list(range(140,240,10))
     # threshold to binarize the neuron masks. For each mask, 
     # values higher than "thresh_mask" times the maximum value of the mask are set to one.
-    thresh_mask = 0.5
+    thresh_mask = 0.3
     # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels in ABO videos)
     thresh_COM0 = 2
     # maximum COM distance of two masks to be considered the same neuron (unit: pixels in ABO videos)
@@ -165,4 +167,4 @@ if __name__ == '__main__':
     # %% parameter optimization
     parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
         (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
-        batch_size_eval, useWT=useWT, useMP=True, load_exist=True)
+        batch_size_eval, useWT=useWT, useMP=True, load_exist=True, max_eid=9)
