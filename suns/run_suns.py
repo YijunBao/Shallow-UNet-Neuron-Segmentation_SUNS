@@ -653,6 +653,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
         pmaps_b = np.ones(dims, dtype='uint8')
         if update_baseline:
             video_tf_past = np.ones((frames_init, rowspad, colspad), dtype='float32')        
+            video_tf_past_fix = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
     else:
         med_frame2 = np.zeros((rowspad, colspad, 2), dtype='float32')
         video_input = np.zeros((frames_initf, rowspad, colspad), dtype='float32')        
@@ -661,6 +662,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
         pmaps_b = np.zeros(dims, dtype='uint8')
         if update_baseline:
             video_tf_past = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
+            video_tf_past_fix = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
 
     if display:
         time_init = time.time()
@@ -948,4 +950,4 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
 
     # convert to a 3D array of the segmented neurons
     Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly)).astype('bool')
-    return Masks, Masks_2, time_total, time_frame, list_time_per, times_temp
+    return Masks, Masks_2, time_total, time_frame, list_time_per # , times_temp

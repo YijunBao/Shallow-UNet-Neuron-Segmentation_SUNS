@@ -69,7 +69,7 @@ if __name__ == '__main__':
         dir_parent = dir_video + 'complete\\' # folder to save all the processed data
         dir_network_input = dir_parent + 'network_input\\' # folder of the SNR videos
         dir_mask = dir_parent + 'temporal_masks({})\\'.format(thred_std) # foldr to save the temporal masks
-        dir_sub = 'transfer\\'
+        dir_sub = 'transfer1e-4\\'
         weights_path = dir_parent + dir_sub + 'Weights\\' # folder to save the trained CNN
         training_output_path = dir_parent + dir_sub + 'training output\\' # folder to save the loss functions during training
         dir_output = dir_parent + dir_sub + 'output_masks\\' # folder to save the optimized hyper-parameters
