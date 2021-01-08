@@ -39,7 +39,7 @@ if __name__ == '__main__':
     display=True # True if display information about running time 
     p = mp.Pool()
 
-    for trainset_type in {'train'}: # , 'test'
+    for trainset_type in {'test'}: # 'train', 
         testset_type = list({'train','test'}-{trainset_type})[0]
         # %% set folders
         if trainset_type == 'train':

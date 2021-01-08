@@ -38,6 +38,7 @@ if __name__ == '__main__':
     BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
     batch_size_eval = 100 # batch size in CNN inference
+    num_total = min(list_nframes_train)
 
     useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     cross_validation = "use_all"
     Params_loss = {'DL':1, 'BCE':1, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
 
-    for trainset_type in {'train'}: # , 'test'
+    for trainset_type in {'test'}: # 'train', 
         # valset_type = list({'train','test'}-{trainset_type})[0]
         # %% set folders
         if trainset_type == 'train':

@@ -1,10 +1,14 @@
-python "C:\Matlab Files\timer\timer_start_next_2.py"
-python test_batch_ABO_simulation_noSF.py motion2
-python test_batch_ABO_simulation_complete.py motion2
-python test_online_ABO_simulation_noSF.py motion2
-python test_online_ABO_simulation_complete.py motion2
+python "C:\Matlab Files\timer\timer_start_next.py"
+python test_batch_ABO_simulation_noSF.py motion4
+python test_batch_ABO_simulation_complete.py motion4
+python test_online_ABO_simulation_noSF.py motion4
+python test_online_ABO_simulation_complete.py motion4
+python test_batch_ABO_simulation_noSF.py noise6
+python test_batch_ABO_simulation_complete.py noise6
+python test_online_ABO_simulation_noSF.py noise6
+python test_online_ABO_simulation_complete.py noise6
 
-python "C:\Matlab Files\timer\timer_stop.py"
+python "C:\Matlab Files\timer\timer_stop_2.py"
 
 @echo off
 REM python test_online_ABO_noSF_vary_CNN.py 1skip_1 0 1

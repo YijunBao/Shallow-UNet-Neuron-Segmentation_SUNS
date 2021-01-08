@@ -54,7 +54,7 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
     (rows, cols) = dims
     nvideo_train = len(list_Exp_ID_train) # Number of training videos
     # set how to choose training images
-    train_every = num_total//num_train_per
+    train_every = max(1,num_total//num_train_per)
     start_frame_train = random.randint(0,train_every-1)
     NO_OF_TRAINING_IMAGES = num_train_per * nvideo_train
     
@@ -84,12 +84,17 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
     # select a frame every "train_every" frames, totally "train_val_per" frames  
     for cnt, Exp_ID in enumerate(list_Exp_ID_train):
         h5_img = h5py.File(os.path.join(dir_img, Exp_ID+'.h5'), 'r')
-        train_imgs[cnt*num_train_per:(cnt+1)*num_train_per,:,:] \
-            = np.array(h5_img['network_input'][start_frame_train:train_every*num_train_per:train_every])
-        h5_img.close()
         h5_mask = h5py.File(os.path.join(dir_mask, Exp_ID+'.h5'), 'r')
-        train_masks[cnt*num_train_per:(cnt+1)*num_train_per,:,:] \
-            = np.array(h5_mask['temporal_masks'][start_frame_train:train_every*num_train_per:train_every])
+        num_frame = h5_img['network_input'].shape[0]
+        if num_frame >= num_train_per:
+            train_imgs[cnt*num_train_per:(cnt+1)*num_train_per,:,:] \
+                = np.array(h5_img['network_input'][start_frame_train:train_every*num_train_per:train_every])
+            train_masks[cnt*num_train_per:(cnt+1)*num_train_per,:,:] \
+                = np.array(h5_mask['temporal_masks'][start_frame_train:train_every*num_train_per:train_every])
+        else:
+            train_imgs = np.array(h5_img['network_input'])
+            train_masks = np.array(h5_mask['temporal_masks'])
+        h5_img.close()
         h5_mask.close()
 
     if list_Exp_ID_val is not None:

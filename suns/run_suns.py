@@ -820,7 +820,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
                     belongs = possible_masks1[IOUs.argmax()]
                     # merge the mask and active frame index
                     list_masks_old[belongs].append(masks_t2)
-                    times_active_old[belongs].append(t + frames_initf)
+                    times_active_old[belongs].append(t) 
                     # This old neurons is active in the current frame
                     active_old[belongs] = True 
                 else: # The new mask can not merge to any old neuron.
@@ -948,4 +948,4 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
 
     # convert to a 3D array of the segmented neurons
     Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly)).astype('bool')
-    return Masks, Masks_2, time_total, time_frame, list_time_per
+    return Masks, Masks_2, time_total, time_frame, list_time_per, times_temp

@@ -38,6 +38,7 @@ if __name__ == '__main__':
     BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
     batch_size_eval = 100 # batch size in CNN inference
+    num_total = min(list_nframes_train)
 
     useSF=True # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     cross_validation = "use_all"
     Params_loss = {'DL':1, 'BCE':1, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
 
-    for trainset_type in {'train'}: # , 'test'
+    for trainset_type in {'test'}: # 'train', 
         # valset_type = list({'train','test'}-{trainset_type})[0]
         # %% set folders
         if trainset_type == 'train':
@@ -89,70 +90,70 @@ if __name__ == '__main__':
 
         nvideo = len(list_Exp_ID) # number of videos used for cross validation
 
-        # for (ind_video, Exp_ID) in enumerate(list_Exp_ID): # 
-        #     rate_hz = list_rate_hz[ind_video] # frame rate of the video
-        #     nframes = list_nframes[ind_video] # number of frames for each video
-        #     Mag = list_Mag[ind_video] # spatial magnification compared to ABO videos.
-        #     # thred_std = list_thred_std[ind_video] # SNR threshold used to determine when neurons are active
-        #     # (rows, cols) = Dimens[ind_video] # size of the network input and output
-        #     # (Lx, Ly) = (rows, cols) # size of the original video
+        for (ind_video, Exp_ID) in enumerate(list_Exp_ID): # 
+            rate_hz = list_rate_hz[ind_video] # frame rate of the video
+            nframes = list_nframes[ind_video] # number of frames for each video
+            Mag = list_Mag[ind_video] # spatial magnification compared to ABO videos.
+            # thred_std = list_thred_std[ind_video] # SNR threshold used to determine when neurons are active
+            # (rows, cols) = Dimens[ind_video] # size of the network input and output
+            # (Lx, Ly) = (rows, cols) # size of the original video
 
-        #     # %% set pre-processing parameters
-        #     nn = nframes
-        #     gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
-        #     num_median_approx = 900 # number of frames used to caluclate median and median-based standard deviation
-        #     list_thred_ratio = [thred_std] # A list of SNR threshold used to determine when neurons are active.
-        #     filename_TF_template = 'GCaMP6s_spike_tempolate_mean.h5'
+            # %% set pre-processing parameters
+            nn = nframes
+            gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
+            num_median_approx = 900 # number of frames used to caluclate median and median-based standard deviation
+            list_thred_ratio = [thred_std] # A list of SNR threshold used to determine when neurons are active.
+            filename_TF_template = 'GCaMP6s_spike_tempolate_mean.h5'
 
-        #     if useTF:
-        #         h5f = h5py.File(filename_TF_template,'r')
-        #         # Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
-        #         # Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
-        #         fs_template = 3
-        #         Poisson_template = np.array(h5f['filter_tempolate']).squeeze()
-        #         h5f.close()
-        #         peak = Poisson_template.argmax()
-        #         length = Poisson_template.shape
-        #         xp = np.arange(-peak,length-peak,1)/fs_template
-        #         x = np.arange(np.round(-peak*rate_hz/fs_template), np.round(length-peak*rate_hz/fs_template), 1)/rate_hz
-        #         Poisson_filt = np.interp(x,xp,Poisson_template)
-        #         Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)].astype('float32')
-        #     else:
-        #         Poisson_filt=np.array([1])
-        #     # dictionary of pre-processing parameters
-        #     Params = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
-        #         'nn':nn, 'Poisson_filt': Poisson_filt}
-        #     num_total = nframes - len(Poisson_filt) + 1 # number of frames of the video
-
-
-        #     # pre-processing for training
-        #     # Exp_ID = list_Exp_ID[ind_video]
-        #     # %% Pre-process video
-        #     video_input, _ = preprocess_video(dir_video, Exp_ID, Params, dir_network_input, \
-        #         useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=prealloc) #
-
-        #     # %% Determine active neurons in all frames using FISSA
-        #     file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
-        #     generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
-        #     del video_input
+            if useTF:
+                h5f = h5py.File(filename_TF_template,'r')
+                # Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
+                # Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+                fs_template = 3
+                Poisson_template = np.array(h5f['filter_tempolate']).squeeze()
+                h5f.close()
+                peak = Poisson_template.argmax()
+                length = Poisson_template.shape
+                xp = np.arange(-peak,length-peak,1)/fs_template
+                x = np.arange(np.round(-peak*rate_hz/fs_template), np.round(length-peak*rate_hz/fs_template), 1)/rate_hz
+                Poisson_filt = np.interp(x,xp,Poisson_template)
+                Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)].astype('float32')
+            else:
+                Poisson_filt=np.array([1])
+            # dictionary of pre-processing parameters
+            Params = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
+                'nn':nn, 'Poisson_filt': Poisson_filt}
+            num_total = nframes - len(Poisson_filt) + 1 # number of frames of the video
 
 
-        # # %% CNN training
-        # CV = len(list_Exp_ID)
-        # list_Exp_ID_train = list_Exp_ID.copy()
-        # list_Exp_ID_val = None # get rid of validation steps
-        # file_CNN = weights_path+'Model_{}.h5'.format(CV)
-        # results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
-        #     BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, Params_loss)
+            # pre-processing for training
+            # Exp_ID = list_Exp_ID[ind_video]
+            # %% Pre-process video
+            video_input, _ = preprocess_video(dir_video, Exp_ID, Params, dir_network_input, \
+                useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=prealloc) #
 
-        # # save training and validation loss after each eopch
-        # f = h5py.File(training_output_path+"training_output_CV{}.h5".format(CV), "w")
-        # f.create_dataset("loss", data=results.history['loss'])
-        # f.create_dataset("dice_loss", data=results.history['dice_loss'])
-        # if use_validation:
-        #     f.create_dataset("val_loss", data=results.history['val_loss'])
-        #     f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
-        # f.close()
+            # %% Determine active neurons in all frames using FISSA
+            file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
+            generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
+            del video_input
+
+
+        # %% CNN training
+        CV = len(list_Exp_ID)
+        list_Exp_ID_train = list_Exp_ID.copy()
+        list_Exp_ID_val = None # get rid of validation steps
+        file_CNN = weights_path+'Model_{}.h5'.format(CV)
+        results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
+            BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, Params_loss)
+
+        # save training and validation loss after each eopch
+        f = h5py.File(training_output_path+"training_output_CV{}.h5".format(CV), "w")
+        f.create_dataset("loss", data=results.history['loss'])
+        f.create_dataset("dice_loss", data=results.history['dice_loss'])
+        if use_validation:
+            f.create_dataset("val_loss", data=results.history['val_loss'])
+            f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
+        f.close()
 
         # %% parameter optimization
         # for (ind_video, Exp_ID) in enumerate(list_Exp_ID): # 

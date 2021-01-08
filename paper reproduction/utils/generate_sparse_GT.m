@@ -1,5 +1,6 @@
 % Set the path of the 'GT Masks' folder, which contains the manual labels in 3D arrays.
-dir_data = 'C:\Users\baoyi\Documents\GitHub\Shallow-UNet-Neuron-Segmentation_SUNS\demo\data\GT Masks\';
+% dir_data = 'C:\Users\baoyi\Documents\GitHub\Shallow-UNet-Neuron-Segmentation_SUNS\demo\data\GT Masks\';
+dir_data = 'C:\Matlab Files\STNeuroNet-master\Markings\ABO\Layer275\Grader4\';
 
 %%
 dir_all = dir(fullfile(dir_data,'*FinalMasks*.mat'));

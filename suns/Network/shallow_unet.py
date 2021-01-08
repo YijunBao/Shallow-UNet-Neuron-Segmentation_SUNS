@@ -99,6 +99,7 @@ def get_shallow_unet(size=None, Params_loss=None):
         model: the CNN model. 
     '''
     activation=tf.keras.activations.elu
+    # activation=tf.keras.activations.relu
     inputs = tf.keras.layers.Input((size, size, 1))
 
     c1 = tf.keras.layers.Conv2D(4, (3, 3), activation=activation, kernel_initializer='he_normal', padding='same')(inputs)
@@ -138,6 +139,7 @@ def get_shallow_unet(size=None, Params_loss=None):
 
     model = tf.keras.Model(inputs=[inputs], outputs=[outputs])
     model.compile(optimizer='adam', loss=loss_func, metrics=[dice_loss])
+    # model.compile(optimizer=tf.keras.optimizers.Adam(lr=1e-4), loss=loss_func, metrics=[dice_loss])
     return model
 
 
@@ -326,5 +328,6 @@ def get_shallow_unet_more_equal(size=None, n_depth=3, n_channel=4, skip=[1], act
 
 
 if __name__ == '__main__':
-    model = get_shallow_unet_more(n_depth=3, n_channel=4)
+    # model = get_shallow_unet_more(n_depth=3, n_channel=4)
+    model = get_shallow_unet()
     model.summary()

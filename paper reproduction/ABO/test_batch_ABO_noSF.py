@@ -41,7 +41,7 @@ if __name__ == '__main__':
     dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
     dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
-    dir_output = dir_parent + 'output_masks\\' # folder to save the segmented masks and the performance scores
+    dir_output = dir_parent + 'output_masks tf2\\' # folder to save the segmented masks and the performance scores
     dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
     weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
     if not os.path.exists(dir_output):
@@ -111,7 +111,7 @@ if __name__ == '__main__':
         filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
         data_GT=loadmat(filename_GT)
         GTMasks_2 = data_GT['GTMasks_2'].transpose()
-        (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.7)
+        (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
         savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks_2':Masks_2})
 
