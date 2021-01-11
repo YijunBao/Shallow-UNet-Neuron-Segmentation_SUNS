@@ -98,6 +98,12 @@ if __name__ == '__main__':
     Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
     Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
     Poisson_filt = Poisson_filt/Poisson_filt.sum()
+    # # Alternative temporal filter kernel using a single exponential decay function
+    # decay = 0.8 # decay time constant (unit: second)
+    # leng_tf = np.ceil(rate_hz*decay)+1
+    # Poisson_filt = np.exp(-np.arange(leng_tf)/rate_hz/decay)
+    # Poisson_filt = (Poisson_filt / Poisson_filt.sum()).astype('float32')
+
     # dictionary of pre-processing parameters
     Params = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
         'nn':nn, 'Poisson_filt': Poisson_filt}
