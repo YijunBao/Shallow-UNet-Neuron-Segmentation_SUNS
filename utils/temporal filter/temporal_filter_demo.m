@@ -9,6 +9,8 @@ fs=10; % frame rate
 before=15; % number of frames before spike peak
 after=60; % number of frames after spike peak
 list_d=[4:7]; % two element array showing the minimum and maximum allowed SNR
+h5_name = 'YST_spike_tempolate.h5';
+
 doesplot=true;
 num_dff=length(list_d)-1;
 [array_tau,array_tau2]=deal(zeros(length(list_Exp_ID),num_dff));
@@ -48,7 +50,6 @@ fprintf('Decay time from 1/2 peak: %f +- %f\n',tau2_s_mean,tau2_s_std);
 
 %% Save the filter template
 % save('YST_spike_tempolate_mean.mat','filter_tempolate');
-h5_name = 'YST_spike_tempolate.h5';
 if exist(h5_name, 'file')
     delete(h5_name)
 end

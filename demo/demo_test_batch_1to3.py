@@ -15,15 +15,43 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
 from suns.run_suns import suns_batch
 
+# import tensorflow as tf
+# config = tf.ConfigProto()
+# config.gpu_options.allow_growth = True
+# # tf_config.gpu_options.per_process_gpu_memory_fraction = 0.5
+# sess = tf.Session(config = config)
+
+
 # %%
 if __name__ == '__main__':
-    # %% setting parameters
-    rate_hz = 10 # frame rate of the video
-    Dimens = (120,88) # lateral dimensions of the video
-    nn = 3000 # number of frames used for preprocessing. 
-        # Can be slightly larger than the number of frames of a video
-    Mag = 6/8 # spatial magnification compared to ABO videos.
+    #-------------- Start user-defined parameters --------------#
+    # %% set folders
+    # file names of the ".h5" files storing the raw videos. 
+    list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
+    # folder of the raw videos
+    dir_video = 'data' 
+    # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
+    dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
 
+    # %% set video parameters
+    rate_hz = 10 # frame rate of the video
+    Mag = 6/8 # spatial magnification compared to ABO videos (0.785 um/pixel). # Mag = 0.785 / pixel_size
+
+    # %% set pre-processing parameters
+    gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
+    num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
+    filename_TF_template = 'YST_spike_tempolate.h5' # File name storing the temporal filter kernel
+    h5f = h5py.File(filename_TF_template,'r')
+    Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
+    Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+    Poisson_filt = Poisson_filt/Poisson_filt.sum()
+    # # Alternative temporal filter kernel using a single exponential decay function
+    # decay = 0.8 # decay time constant (unit: second)
+    # leng_tf = np.ceil(rate_hz*decay)+1
+    # Poisson_filt = np.exp(-np.arange(leng_tf)/rate_hz/decay)
+    # Poisson_filt = (Poisson_filt / Poisson_filt.sum()).astype('float32')
+
+    # %% Set processing options
     useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
@@ -35,12 +63,12 @@ if __name__ == '__main__':
     useWT=False # True if using additional watershed
     display=True # True if display information about running time 
 
-    # file names of the ".h5" files storing the raw videos. 
-    list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
-    # folder of the raw videos
-    dir_video = 'data' 
-    # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
-    dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
+    # %% Set video dimensions. Should automatically read the dimensions in future update
+    Dimens = (120,88) # lateral dimensions of the video
+    nn = 3000 # number of frames used for preprocessing. 
+        # Can be slightly larger than the number of frames of a video
+    dims = (Lx, Ly) = Dimens # lateral dimensions of the video
+    #-------------- End user-defined parameters --------------#
 
     dir_parent = os.path.join(dir_video, 'noSF 1to3') # folder to save all the processed data
     dir_output = os.path.join(dir_parent, 'output_masks') # folder to save the segmented masks and the performance scores
@@ -48,23 +76,7 @@ if __name__ == '__main__':
     weights_path = os.path.join(dir_parent, 'Weights') # folder of the trained CNN
     if not os.path.exists(dir_output):
         os.makedirs(dir_output) 
-
-    # %% pre-processing parameters
-    gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
-    num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
-    dims = (Lx, Ly) = Dimens # lateral dimensions of the video
-    filename_TF_template = 'YST_spike_tempolate.h5' # file name of the temporal filter kernel
-
-    h5f = h5py.File(filename_TF_template,'r')
-    Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
-    Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
-    Poisson_filt = Poisson_filt/Poisson_filt.sum()
-    # # Alternative temporal filter kernel using a single exponential decay function
-    # decay = 0.8 # decay time constant (unit: second)
-    # leng_tf = np.ceil(rate_hz*decay)+1
-    # Poisson_filt = np.exp(-np.arange(leng_tf)/rate_hz/decay)
-    # Poisson_filt = (Poisson_filt / Poisson_filt.sum()).astype('float32')
-
+        
     # dictionary of pre-processing parameters
     Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
         'nn':nn, 'Poisson_filt': Poisson_filt}

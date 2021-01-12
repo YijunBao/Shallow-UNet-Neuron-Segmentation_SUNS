@@ -11,7 +11,7 @@ dir_wisdom = 'wisdom'
 if not os.path.exists(dir_wisdom):
     os.makedirs(dir_wisdom) 
 Dimens = (120,88) # lateral dimensions of the video
-Nframes = 3000 # number of frames of the video
+Nframes = 3000 # larger than or equal to the number of frames of the video
 
 start = time.time()
 rows, cols = Dimens

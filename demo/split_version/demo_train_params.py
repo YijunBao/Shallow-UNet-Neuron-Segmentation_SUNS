@@ -21,26 +21,67 @@ from suns.train_CNN_params import train_CNN, parameter_optimization_cross_valida
 # import tensorflow as tf
 # config = tf.ConfigProto()
 # config.gpu_options.allow_growth = True
+# # tf_config.gpu_options.per_process_gpu_memory_fraction = 0.5
 # sess = tf.Session(config = config)
 
 
 # %%
 if __name__ == '__main__':
-    # %% setting parameters
+    #-------------- Start user-defined parameters --------------#
+    # %% set folders
+    # file names of the ".h5" files storing the raw videos. 
+    list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
+    # folder of the raw videos
+    dir_video = 'data' 
+    # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
+    dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
+    
+    # %% set video parameters
     rate_hz = 10 # frame rate of the video
-    Dimens = (120,88) # lateral dimensions of the video
-    nn = 3000 # number of frames used for preprocessing. 
-        # Can be slightly larger than the number of frames of a video
-    num_total = 2980 # number of frames used for CNN training. 
-        # Can be slightly smaller than the number of frames of a video after temporal filtering
-    Mag = 6/8 # spatial magnification compared to ABO videos.
+    Mag = 6/8 # spatial magnification compared to ABO videos (0.785 um/pixel). # Mag = 0.785 / pixel_size
 
+    # %% set the range of post-processing hyper-parameters to be optimized in
+    # minimum area of a neuron (unit: pixels in ABO videos). must be in ascend order
+    list_minArea = list(range(30,85,5)) 
+    # average area of a typical neuron (unit: pixels in ABO videos)
+    list_avgArea = [177] 
+    # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
+    list_thresh_pmap = list(range(130,235,10))
+    # threshold to binarize the neuron masks. For each mask, 
+    # values higher than "thresh_mask" times the maximum value of the mask are set to one.
+    thresh_mask = 0.5
+    # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels in ABO videos)
+    thresh_COM0 = 2
+    # maximum COM distance of two masks to be considered the same neuron (unit: pixels in ABO videos)
+    list_thresh_COM = list(np.arange(4, 9, 1)) 
+    # minimum IoU of two masks to be considered the same neuron
+    list_thresh_IOU = [0.5] 
+    # minimum consecutive number of frames of active neurons
+    list_cons = list(range(1, 8, 1)) 
+
+    # %% set pre-processing parameters
+    gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
+    num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
+    filename_TF_template = 'YST_spike_tempolate.h5' # File name storing the temporal filter kernel
+    h5f = h5py.File(filename_TF_template,'r')
+    Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
+    Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+    Poisson_filt = Poisson_filt/Poisson_filt.sum()
+    # # Alternative temporal filter kernel using a single exponential decay function
+    # decay = 0.8 # decay time constant (unit: second)
+    # leng_tf = np.ceil(rate_hz*decay)+1
+    # Poisson_filt = np.exp(-np.arange(leng_tf)/rate_hz/decay)
+    # Poisson_filt = (Poisson_filt / Poisson_filt.sum()).astype('float32')
+
+    # %% set training parameters
     thred_std = 3 # SNR threshold used to determine when neurons are active
     num_train_per = 2400 # Number of frames per video used for training 
     BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
     batch_size_eval = 100 # batch size in CNN inference
+    list_thred_ratio = [thred_std] # A list of SNR threshold used to determine when neurons are active.
 
+    # %% Set processing options
     useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
@@ -57,13 +98,15 @@ if __name__ == '__main__':
     cross_validation = "leave_one_out"
     Params_loss = {'DL':1, 'BCE':20, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
 
-    # %% set folders
-    # file names of the ".h5" files storing the raw videos. 
-    list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
-    # folder of the raw videos
-    dir_video = 'data' 
-    # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
-    dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
+    # %% Set video dimensions. Should automatically read the dimensions in future update
+    Dimens = (120,88) # lateral dimensions of the video
+    nn = 3000 # number of frames used for preprocessing. 
+        # Can be slightly larger than the number of frames of a video
+    num_total = 2980 # number of frames used for CNN training. 
+        # Can be slightly smaller than the number of frames of a video after temporal filtering
+    #-------------- End user-defined parameters --------------#
+
+
     dir_parent = os.path.join(dir_video, 'noSF') # folder to save all the processed data
     dir_network_input = os.path.join(dir_parent, 'network_input') # folder of the SNR videos
     dir_mask = os.path.join(dir_parent, 'temporal_masks({})'.format(thred_std)) # foldr to save the temporal masks
@@ -88,45 +131,6 @@ if __name__ == '__main__':
     rowspad = math.ceil(rows/8)*8  # size of the network input and output
     colspad = math.ceil(cols/8)*8
 
-    # %% set pre-processing parameters
-    gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
-    num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
-    list_thred_ratio = [thred_std] # A list of SNR threshold used to determine when neurons are active.
-    filename_TF_template = 'YST_spike_tempolate.h5'
-
-    h5f = h5py.File(filename_TF_template,'r')
-    Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
-    Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
-    Poisson_filt = Poisson_filt/Poisson_filt.sum()
-    # # Alternative temporal filter kernel using a single exponential decay function
-    # decay = 0.8 # decay time constant (unit: second)
-    # leng_tf = np.ceil(rate_hz*decay)+1
-    # Poisson_filt = np.exp(-np.arange(leng_tf)/rate_hz/decay)
-    # Poisson_filt = (Poisson_filt / Poisson_filt.sum()).astype('float32')
-
-    # dictionary of pre-processing parameters
-    Params = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
-        'nn':nn, 'Poisson_filt': Poisson_filt}
-
-    # %% set the range of post-processing hyper-parameters to be optimized in
-    # minimum area of a neuron (unit: pixels in ABO videos). must be in ascend order
-    list_minArea = list(range(30,85,5)) 
-    # average area of a typical neuron (unit: pixels in ABO videos)
-    list_avgArea = [177] 
-    # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
-    list_thresh_pmap = list(range(130,235,10))
-    # threshold to binarize the neuron masks. For each mask, 
-    # values higher than "thresh_mask" times the maximum value of the mask are set to one.
-    thresh_mask = 0.5
-    # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels in ABO videos)
-    thresh_COM0 = 2
-    # maximum COM distance of two masks to be considered the same neuron (unit: pixels in ABO videos)
-    list_thresh_COM = list(np.arange(4, 9, 1)) 
-    # minimum IoU of two masks to be considered the same neuron
-    list_thresh_IOU = [0.5] 
-    # minimum consecutive number of frames of active neurons
-    list_cons = list(range(1, 8, 1)) 
-
     # adjust the units of the hyper-parameters to pixels in the test videos according to relative magnification
     list_minArea= list(np.round(np.array(list_minArea) * Mag**2))
     list_avgArea= list(np.round(np.array(list_avgArea) * Mag**2))
@@ -135,6 +139,9 @@ if __name__ == '__main__':
     # adjust the minimum consecutive number of frames according to different frames rates between ABO videos and the test videos
     # list_cons=list(np.round(np.array(list_cons) * rate_hz/30).astype('int'))
 
+    # dictionary of pre-processing parameters
+    Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
+        'nn':nn, 'Poisson_filt': Poisson_filt}
     # dictionary of all fixed and searched post-processing parameters.
     Params_set = {'list_minArea': list_minArea, 'list_avgArea': list_avgArea, 'list_thresh_pmap': list_thresh_pmap,
             'thresh_COM0': thresh_COM0, 'list_thresh_COM': list_thresh_COM, 'list_thresh_IOU': list_thresh_IOU,
@@ -145,7 +152,7 @@ if __name__ == '__main__':
     # # pre-processing for training
     # for Exp_ID in list_Exp_ID: #
     #     # %% Pre-process video
-    #     video_input, _ = preprocess_video(dir_video, Exp_ID, Params, dir_network_input, \
+    #     video_input, _ = preprocess_video(dir_video, Exp_ID, Params_pre, dir_network_input, \
     #         useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, prealloc=prealloc) #
 
     #     # %% Determine active neurons in all frames using FISSA
