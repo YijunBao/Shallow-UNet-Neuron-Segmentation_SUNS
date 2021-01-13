@@ -18,6 +18,7 @@ from suns.Online.par_online import fastlog_2, fastmask_2, fastexp_2, \
 from suns.PostProcessing.seperate_neurons import separate_neuron
 from suns.PostProcessing.combine import segs_results, unique_neurons2_simp, \
     group_neurons, piece_neurons_IOU, piece_neurons_consume
+from suns.PostProcessing.refine_cons import refine_seperate
 
 
 def spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2):
@@ -417,7 +418,7 @@ def merge_2_nocons(tuple1, tuple2, dims, Params):
         tuple2 (tuple, shape = (5,)): Segmented masks with statistics for the new frames.
             tuple1 and tuple2 have the save format of the output tuple
         dims (tuple of int, shape = (2,)): lateral dimension of the image.
-        Params_post (dict): Parameters for post-processing.
+        Params (dict): Parameters for post-processing.
             Params['thresh_mask']: Threashold to binarize the real-number mask.
             Params['thresh_IOU']: Threshold of IOU used for merging neurons.
             Params['thresh_consume']: Threshold of consume ratio used for merging neurons.
@@ -537,3 +538,49 @@ def merge_2_nocons(tuple1, tuple2, dims, Params):
 
         return (Masksb_merge, masks_merge, times_merge, area_merge, have_cons_merge)
 
+
+def final_merge(tuple_temp, Params):
+    '''Merge newly segmented masks to previously segmented masks
+        that do not satisfy consecutive frame requirement.
+        The output are the merged neuron masks and their statistics 
+        (acitve frame indices, areas, whether satisfy consecutive activation).
+
+    Inputs: 
+        tuple_temp (tuple, shape = (5,)): Segmented masks with statistics for the previous frames.
+        Params (dict): Parameters for post-processing.
+            Params['thresh_mask']: Threashold to binarize the real-number mask.
+            Params['thresh_IOU']: Threshold of IOU used for merging neurons.
+            Params['thresh_consume']: Threshold of consume ratio used for merging neurons.
+            Params['cons']: Minimum number of consecutive frames that a neuron should be active for.
+            Params['avgArea']: The typical neuron area (unit: pixels).
+
+    Outputs:
+        Masksb_merge (list of sparse.csr_matrix of bool, shape = (1,Lx*Ly)): 
+            2D representation of each segmented binary mask.
+        masks_merge (list of sparse.csr_matrix of float32, shape = (1,Lx*Ly)): 
+            2D representation of each segmented real-number mask.
+        times_merge (list of 1D numpy.ndarray of int): 
+            indices of frames when each neuron is active.
+        area_merge (1D numpy.ndarray of float32): areas of each mask.
+        have_cons_merge (1D numpy.ndarray of bool): 
+            indices of whether each neuron satisfy consecutive frame requirement.
+        The above outputs are often grouped into a tuple (shape = (5,)): 
+            Segmented masks with statistics after update.
+    '''
+    _, masks, times, _, _ = tuple_temp
+    if len(masks)==0: # If no masks is found, the output is tuple_temp
+        return tuple_temp
+    # if area.ndim==0:
+    #     area = np.expand_dims(area, axis=0)
+    thresh_mask = Params['thresh_mask']
+    thresh_IOU = Params['thresh_IOU']
+    thresh_consume = Params['thresh_consume']
+    cons = Params['cons']
+    avgArea = Params['avgArea']
+    masks = sparse.vstack(masks)
+
+    masks_1, times_1 = piece_neurons_IOU(masks, thresh_mask, thresh_IOU, times)
+    masks_final_2, times_final = piece_neurons_consume(masks_1, avgArea, thresh_mask, thresh_consume, times_1)
+    Masks_2b = refine_seperate(masks_final_2, times_final, cons, thresh_mask)
+
+    return Masks_2b #, times_final

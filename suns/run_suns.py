@@ -16,7 +16,7 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.Online.functions_online import merge_2, merge_2_nocons, merge_complete, select_cons, \
-    preprocess_online, CNN_online, separate_neuron_online, refine_seperate_cons_online
+    preprocess_online, CNN_online, separate_neuron_online, refine_seperate_cons_online, final_merge
 from suns.Online.functions_init import init_online, plan_fft2
 from suns.PreProcessing.preprocessing_functions import preprocess_video, \
     plan_fft, plan_mask2, load_wisdom_txt, SNR_normalization, median_normalization, median_calculation #, 
@@ -485,13 +485,14 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
         if t % 1000 == 0:
             print('{} frames have been processed'.format(t))
 
-    if not show_intermediate:
-        Masks_2 = select_cons(tuple_temp)
-    # final result. Masks_2 is a 2D sparse matrix of the segmented neurons
-    if len(Masks_2):
-        Masks_2 = sparse.vstack(Masks_2)
-    else:
-        Masks_2 = sparse.csc_matrix((0,dims[0]*dims[1]))
+    Masks_2 = final_merge(tuple_temp, Params_post)
+    # if not show_intermediate:
+    #     Masks_2 = select_cons(tuple_temp)
+    # # final result. Masks_2 is a 2D sparse matrix of the segmented neurons
+    # if len(Masks_2):
+    #     Masks_2 = sparse.vstack(Masks_2)
+    # else:
+    #     Masks_2 = sparse.csc_matrix((0,dims[0]*dims[1]))
 
     if display:
         end_online = time.time()
@@ -923,12 +924,13 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
         if t % 1000 == 0:
             print('{} frames have been processed'.format(t))
 
-    Masks_cons = select_cons(tuple_temp)
-    # final result. Masks_2 is a 2D sparse matrix of the segmented neurons
-    if len(Masks_cons):
-        Masks_2 = sparse.vstack(Masks_cons)
-    else:
-        Masks_2 = sparse.csc_matrix((0,dims[0]*dims[1]))
+    Masks_2 = final_merge(tuple_temp, Params_post)
+    # Masks_cons = select_cons(tuple_temp)
+    # # final result. Masks_2 is a 2D sparse matrix of the segmented neurons
+    # if len(Masks_cons):
+    #     Masks_2 = sparse.vstack(Masks_cons)
+    # else:
+    #     Masks_2 = sparse.csc_matrix((0,dims[0]*dims[1]))
 
     if display:
         end_online = time.time()

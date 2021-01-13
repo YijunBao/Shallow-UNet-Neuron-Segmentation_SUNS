@@ -128,7 +128,7 @@ def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, d
                 .format('Total time', end_all - start_all, (end_all - start_all) / nframes * 1000),\
                     '{:6d} segmented neurons.'.format(len(times_final)))
 
-    return Masks_2
+    return Masks_2 # times_final
 
 
 # %%
