@@ -8,15 +8,17 @@ import sys
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
 
-sys.path.insert(1, '..\\..') # the path containing "suns" folder
+sys.path.insert(1, 'C:\\Matlab Files\\neuron_post') # the path containing "suns" folder
 os.environ['KERAS_BACKEND'] = 'tensorflow'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
+os.environ['CUDA_VISIBLE_DEVICES'] = '1' # Set which GPU to use. '-1' uses only CPU.
 
-from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
-from suns.run_suns import suns_batch
+from evaluate_post import GetPerformance_Jaccard_2
+# from run_suns_heavy import suns_batch
 
 # %%
 if __name__ == '__main__':
+    sub_folder = 'heavy'
+    
     # %% setting parameters
     Dimens = (487,487) # lateral dimensions of the video
     nframes = 23200 # number of frames used for preprocessing. 
@@ -28,7 +30,7 @@ if __name__ == '__main__':
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
-    batch_size_eval = 200 # batch size in CNN inference
+    batch_size_eval = 20 # batch size in CNN inference
     useWT=False # True if using additional watershed
     display=True # True if display information about running time 
 
@@ -38,12 +40,11 @@ if __name__ == '__main__':
     # folder of the raw videos
     dir_video = 'D:\\ABO\\20 percent\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = 'C:\\Matlab Files\\STNeuroNet-master\\Markings\\ABO\\Layer275\\Grader4\\FinalMasks_' 
-    # dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
+    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
-    dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
-    dir_parent = dir_parent + 'Grader3\\'
-    dir_output = dir_parent + 'output_masks\\' # folder to save the segmented masks and the performance scores
+    dir_parent = dir_video + 'ShallowUNet\\noSF\\' # folder to save all the processed data
+    dir_parent = dir_parent + sub_folder + '\\std6_nf200_ne200_bs10\\'
+    dir_output = dir_parent + 'output_masks revisit\\' # folder to save the segmented masks and the performance scores
     dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
     weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
     if not os.path.exists(dir_output):
@@ -104,29 +105,31 @@ if __name__ == '__main__':
             # minimum consecutive number of frames of active neurons
             'cons':Params_post_mat['cons'][0][0,0]}
 
-        # The entire process of SUNS batch
-        Masks, Masks_2, time_total, time_frame = suns_batch(
-            dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, batch_size_eval, \
-            useSF=useSF, useTF=useTF, useSNR=useSNR, useWT=useWT, prealloc=prealloc, display=display, p=p)
+        # # The entire process of SUNS batch
+        # Masks, Masks_2, time_total, time_frame = suns_batch(
+        #     dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, batch_size_eval, \
+        #     useSF=useSF, useTF=useTF, useSNR=useSNR, useWT=useWT, prealloc=prealloc, display=display, p=p)
 
         # %% Evaluation of the segmentation accuracy compared to manual ground truth
+        saved_Masks = loadmat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID))
+        Masks_2 = saved_Masks['Masks_2']
         filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
         data_GT=loadmat(filename_GT)
         GTMasks_2 = data_GT['GTMasks_2'].transpose()
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks_2':Masks_2})
+        # savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks_2':Masks_2})
 
         # %% Save recall, precision, F1, total processing time, and average processing time per frame
         list_Recall[CV] = Recall
         list_Precision[CV] = Precision
         list_F1[CV] = F1
-        list_time[CV] = time_total
-        list_time_frame[CV] = time_frame
+        list_time[CV] = time_total = np.zeros(4)
+        list_time_frame[CV] = time_frame = np.zeros(4)
 
         Info_dict = {'list_Recall':list_Recall, 'list_Precision':list_Precision, 'list_F1':list_F1, 
             'list_time':list_time, 'list_time_frame':list_time_frame}
-        savemat(dir_output+'Output_Info_All.mat', Info_dict)
+        savemat(dir_output+'Output_Info_All_oldF1.mat', Info_dict)
 
     p.close()
 

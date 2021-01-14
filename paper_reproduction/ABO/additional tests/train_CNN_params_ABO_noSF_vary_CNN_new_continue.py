@@ -16,11 +16,19 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 from suns.PreProcessing.preprocessing_functions import preprocess_video
 from suns.PreProcessing.generate_masks import generate_masks
-from suns.train_CNN_params import train_CNN, parameter_optimization_cross_validation
+from suns.Network.train_CNN_params_vary_CNN import train_CNN, parameter_optimization_cross_validation
 
 
 # %%
 if __name__ == '__main__':
+    n_depth = int(sys.argv[1])
+    n_channel = int(sys.argv[2])
+    skip = eval(sys.argv[3])
+    activation = sys.argv[4]
+    double = eval(sys.argv[5])
+    sub_folder = sys.argv[6]
+    max_eid = int(sys.argv[7])
+
     # %% setting parameters
     rate_hz = 30 # frame rate of the video
     Dimens = (487,487) # lateral dimensions of the video
@@ -43,11 +51,12 @@ if __name__ == '__main__':
             # Achieve faster speed at the cost of higher memory occupation.
             # Not needed in training.
     useWT=False # True if using additional watershed
-    load_exist=False # True if using temp files already saved in the folders
+    load_exist=True # True if using temp files already saved in the folders
     use_validation = True # True to use a validation set outside the training set
     # Cross-validation strategy. Can be "leave_one_out" or "train_1_test_rest"
     cross_validation = "leave_one_out"
-    Params_loss = {'DL':1, 'BCE':0, 'FL':100, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
+    # Params_loss = {'DL':1, 'BCE':0, 'FL':100, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
+    Params_loss = {'DL':1, 'BCE':20, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
 
     # %% set folders
     # file names of the ".h5" files storing the raw videos. 
@@ -56,16 +65,15 @@ if __name__ == '__main__':
     # folder of the raw videos
     dir_video = 'D:\\ABO\\20 percent\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = 'C:\\Matlab Files\\STNeuroNet-master\\Markings\\ABO\\Layer275\\Grader4\\FinalMasks_' 
-    # dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
+    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
     dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
     dir_network_input = dir_parent + 'network_input\\' # folder of the SNR videos
-    dir_parent = dir_parent + 'Grader3\\'
     dir_mask = dir_parent + 'temporal_masks({})\\'.format(thred_std) # foldr to save the temporal masks
-    weights_path = dir_parent + 'Weights\\' # folder to save the trained CNN
-    training_output_path = dir_parent + 'training output\\' # folder to save the loss functions during training
-    dir_output = dir_parent + 'output_masks\\' # folder to save the optimized hyper-parameters
-    dir_temp = dir_parent + 'temp\\' # temporary folder to save the F1 with various hyper-parameters
+    dir_sub = '\\test_CNN\\' + sub_folder + '\\'
+    weights_path = dir_parent + dir_sub + 'Weights\\' # folder to save the trained CNN
+    training_output_path = dir_parent + dir_sub + 'training output\\' # folder to save the loss functions during training
+    dir_output = dir_parent + dir_sub + 'output_masks\\' # folder to save the optimized hyper-parameters
+    dir_temp = dir_parent + dir_sub + 'temp\\' # temporary folder to save the F1 with various hyper-parameters
 
     if not os.path.exists(dir_network_input):
         os.makedirs(dir_network_input) 
@@ -102,7 +110,8 @@ if __name__ == '__main__':
     # average area of a typical neuron (unit: pixels in ABO videos)
     list_avgArea = [177] 
     # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
-    list_thresh_pmap = list(range(165,210,5))
+    # list_thresh_pmap = list(range(238,254,3))
+    list_thresh_pmap = list(range(205,238,5))
     # threshold to binarize the neuron masks. For each mask, 
     # values higher than "thresh_mask" times the maximum value of the mask are set to one.
     thresh_mask = 0.5
@@ -130,43 +139,43 @@ if __name__ == '__main__':
     print(Params_set)
 
 
-    # pre-processing for training
-    for Exp_ID in list_Exp_ID: #
-        # # %% Pre-process video
-        # video_input, _ = preprocess_video(dir_video, Exp_ID, Params, dir_network_input, \
-        #     useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=prealloc) #
-        h5_img = h5py.File(dir_network_input+Exp_ID+'.h5', 'r')
-        video_input = np.array(h5_img['network_input'])
+    # # pre-processing for training
+    # for Exp_ID in list_Exp_ID: #
+    #     # %% Pre-process video
+    #     video_input, _ = preprocess_video(dir_video, Exp_ID, Params, dir_network_input, \
+    #         useSF=useSF, useTF=useTF, useSNR=useSNR, prealloc=prealloc) #
 
-        # %% Determine active neurons in all frames using FISSA
-        file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
-        generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
-        del video_input
+    #     # %% Determine active neurons in all frames using FISSA
+    #     file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
+    #     generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
+    #     del video_input
 
-    # %% CNN training
-    for CV in range(0,nvideo):
-        if cross_validation == "leave_one_out":
-            list_Exp_ID_train = list_Exp_ID.copy()
-            list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
-        else: # cross_validation == "train_1_test_rest"
-            list_Exp_ID_val = list_Exp_ID.copy()
-            list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
-        if not use_validation:
-            list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
-        file_CNN = weights_path+'Model_CV{}.h5'.format(CV)
-        results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
-            BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rowspad, colspad), Params_loss)
+    # # %% CNN training
+    # for CV in range(0,nvideo):
+    #     if cross_validation == "leave_one_out":
+    #         list_Exp_ID_train = list_Exp_ID.copy()
+    #         list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
+    #     else: # cross_validation == "train_1_test_rest"
+    #         list_Exp_ID_val = list_Exp_ID.copy()
+    #         list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
+    #     if not use_validation:
+    #         list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
+    #     file_CNN = weights_path+'Model_CV{}.h5'.format(CV)
+    #     results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
+    #         BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rowspad, colspad), Params_loss,\
+    #         n_depth=n_depth, n_channel=n_channel, skip=skip, activation=activation, double=double)
 
-        # save training and validation loss after each eopch
-        f = h5py.File(training_output_path+"training_output_CV{}.h5".format(CV), "w")
-        f.create_dataset("loss", data=results.history['loss'])
-        f.create_dataset("dice_loss", data=results.history['dice_loss'])
-        if use_validation:
-            f.create_dataset("val_loss", data=results.history['val_loss'])
-            f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
-        f.close()
+    #     # save training and validation loss after each eopch
+    #     f = h5py.File(training_output_path+"training_output_CV{}.h5".format(CV), "w")
+    #     f.create_dataset("loss", data=results.history['loss'])
+    #     f.create_dataset("dice_loss", data=results.history['dice_loss'])
+    #     if use_validation:
+    #         f.create_dataset("val_loss", data=results.history['val_loss'])
+    #         f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
+    #     f.close()
 
     # %% parameter optimization
     parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
         (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
-        batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist, max_eid=4)
+        batch_size_eval, useWT=useWT, useMP=True, load_exist=load_exist, max_eid=max_eid,\
+        n_depth=n_depth, n_channel=n_channel, skip=skip, activation=activation, double=double)

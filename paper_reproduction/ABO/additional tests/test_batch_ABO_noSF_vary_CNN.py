@@ -13,10 +13,17 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
-from suns.run_suns import suns_batch
+from suns.run_suns_vary_CNN import suns_batch
 
 # %%
 if __name__ == '__main__':
+    n_depth = int(sys.argv[1])
+    n_channel = int(sys.argv[2])
+    skip = eval(sys.argv[3])
+    activation = sys.argv[4]
+    double = eval(sys.argv[5])
+    sub_folder = sys.argv[6]
+    
     # %% setting parameters
     Dimens = (487,487) # lateral dimensions of the video
     nframes = 23200 # number of frames used for preprocessing. 
@@ -26,6 +33,8 @@ if __name__ == '__main__':
     useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
+    med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
+        # Can only be used when spatial filtering is not used. 
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     batch_size_eval = 200 # batch size in CNN inference
@@ -38,14 +47,13 @@ if __name__ == '__main__':
     # folder of the raw videos
     dir_video = 'D:\\ABO\\20 percent\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = 'C:\\Matlab Files\\STNeuroNet-master\\Markings\\ABO\\Layer275\\Grader4\\FinalMasks_' 
-    # dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
+    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
     dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
-    dir_parent = dir_parent + 'Grader3\\'
-    dir_output = dir_parent + 'output_masks\\' # folder to save the segmented masks and the performance scores
-    dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
-    weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
+    dir_sub = '\\test_CNN\\' + sub_folder + '\\'
+    weights_path = dir_parent + dir_sub + 'Weights\\' # folder to save the trained CNN
+    dir_output = dir_parent + dir_sub + 'output_masks\\' # folder to save the segmented masks and the performance scores
+    dir_params = dir_parent + dir_sub + 'output_masks\\' # folder of the optimized hyper-parameters
     if not os.path.exists(dir_output):
         os.makedirs(dir_output) 
 
@@ -107,7 +115,8 @@ if __name__ == '__main__':
         # The entire process of SUNS batch
         Masks, Masks_2, time_total, time_frame = suns_batch(
             dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, batch_size_eval, \
-            useSF=useSF, useTF=useTF, useSNR=useSNR, useWT=useWT, prealloc=prealloc, display=display, p=p)
+            useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, useWT=useWT, prealloc=prealloc, display=display, p=p,\
+            n_depth=n_depth, n_channel=n_channel, skip=skip, activation=activation, double=double)
 
         # %% Evaluation of the segmentation accuracy compared to manual ground truth
         filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
@@ -115,7 +124,7 @@ if __name__ == '__main__':
         GTMasks_2 = data_GT['GTMasks_2'].transpose()
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks_2':Masks_2})
+        savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), {'Masks':Masks}, do_compression=True)
 
         # %% Save recall, precision, F1, total processing time, and average processing time per frame
         list_Recall[CV] = Recall

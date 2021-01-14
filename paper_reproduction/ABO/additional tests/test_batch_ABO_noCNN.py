@@ -13,19 +13,21 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
-from suns.run_suns import suns_batch
+from run_suns_noCNN import suns_batch
 
 # %%
 if __name__ == '__main__':
+    sub_folder = sys.argv[4]
+    
     # %% setting parameters
     Dimens = (487,487) # lateral dimensions of the video
     nframes = 23200 # number of frames used for preprocessing. 
         # Can be slightly larger than the number of frames of a video
     Mag = 1 # spatial magnification compared to ABO videos.
 
-    useSF=False # True if spatial filtering is used in pre-processing.
-    useTF=True # True if temporal filtering is used in pre-processing.
-    useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
+    useSF=bool(int(sys.argv[1])) # True if spatial filtering is used in pre-processing.
+    useTF=bool(int(sys.argv[2])) # True if temporal filtering is used in pre-processing.
+    useSNR=bool(int(sys.argv[3])) # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
             # Achieve faster speed at the cost of higher memory occupation.
     batch_size_eval = 200 # batch size in CNN inference
@@ -38,12 +40,11 @@ if __name__ == '__main__':
     # folder of the raw videos
     dir_video = 'D:\\ABO\\20 percent\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = 'C:\\Matlab Files\\STNeuroNet-master\\Markings\\ABO\\Layer275\\Grader4\\FinalMasks_' 
-    # dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
+    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
-    dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
-    dir_parent = dir_parent + 'Grader3\\'
-    dir_output = dir_parent + 'output_masks\\' # folder to save the segmented masks and the performance scores
+    dir_parent = dir_video + 'ShallowUNet\\' # folder to save all the processed data
+    dir_parent = dir_parent + sub_folder + '\\noCNN\\'
+    dir_output = dir_parent + 'output_masks revisit\\' # folder to save the segmented masks and the performance scores
     dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
     weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
     if not os.path.exists(dir_output):

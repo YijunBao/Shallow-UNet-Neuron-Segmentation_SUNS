@@ -13,10 +13,12 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
-from suns.run_suns import suns_batch
+from run_suns_separable import suns_batch
 
 # %%
 if __name__ == '__main__':
+    sub_folder = 'separable'
+    
     # %% setting parameters
     Dimens = (487,487) # lateral dimensions of the video
     nframes = 23200 # number of frames used for preprocessing. 
@@ -38,14 +40,13 @@ if __name__ == '__main__':
     # folder of the raw videos
     dir_video = 'D:\\ABO\\20 percent\\' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices
-    dir_GTMasks = 'C:\\Matlab Files\\STNeuroNet-master\\Markings\\ABO\\Layer275\\Grader4\\FinalMasks_' 
-    # dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
+    dir_GTMasks = dir_video + 'GT Masks\\FinalMasks_' 
 
     dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
-    dir_parent = dir_parent + 'Grader3\\'
-    dir_output = dir_parent + 'output_masks\\' # folder to save the segmented masks and the performance scores
-    dir_params = dir_parent + 'output_masks\\' # folder of the optimized hyper-parameters
-    weights_path = dir_parent + 'Weights\\' # folder of the trained CNN
+    dir_sub = '\\test_CNN\\' + sub_folder + '\\'
+    weights_path = dir_parent + dir_sub + 'Weights\\' # folder to save the trained CNN
+    dir_output = dir_parent + dir_sub + 'output_masks\\' # folder to save the segmented masks and the performance scores
+    dir_params = dir_parent + dir_sub + 'output_masks\\' # folder of the optimized hyper-parameters
     if not os.path.exists(dir_output):
         os.makedirs(dir_output) 
 
