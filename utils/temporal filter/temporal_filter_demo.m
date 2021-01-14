@@ -8,7 +8,7 @@ list_Exp_ID={'YST_part11';'YST_part12';'YST_part21';'YST_part22'};
 fs=10; % frame rate
 before=15; % number of frames before spike peak
 after=60; % number of frames after spike peak
-list_d=[4:7]; % two element array showing the minimum and maximum allowed SNR
+list_d=[4,7]; % two element array showing the minimum and maximum allowed SNR
 h5_name = 'YST_spike_tempolate.h5';
 
 doesplot=true;
