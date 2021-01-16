@@ -62,12 +62,6 @@ if __name__ == '__main__':
     batch_size_eval = 200 # batch size in CNN inference
     useWT=False # True if using additional watershed
     display=True # True if display information about running time 
-
-    # %% Set video dimensions. Should automatically read the dimensions in future update
-    Dimens = (120,88) # lateral dimensions of the video
-    nn = 3000 # number of frames used for preprocessing. 
-        # Can be slightly larger than the number of frames of a video
-    dims = (Lx, Ly) = Dimens # lateral dimensions of the video
     #-------------- End user-defined parameters --------------#
 
     dir_parent = os.path.join(dir_video, 'noSF 1to3') # folder to save all the processed data
@@ -79,7 +73,7 @@ if __name__ == '__main__':
         
     # dictionary of pre-processing parameters
     Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
-        'nn':nn, 'Poisson_filt': Poisson_filt}
+        'Poisson_filt': Poisson_filt}
 
     p = mp.Pool()
     nvideo = len(list_Exp_ID)
@@ -127,7 +121,7 @@ if __name__ == '__main__':
 
             # The entire process of SUNS batch
             Masks, Masks_2, time_total, time_frame = suns_batch(
-                dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, batch_size_eval, \
+                dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, batch_size_eval, \
                 useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
                 useWT=useWT, prealloc=prealloc, display=display, p=p)
 

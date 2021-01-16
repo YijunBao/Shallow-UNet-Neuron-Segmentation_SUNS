@@ -66,12 +66,6 @@ if __name__ == '__main__':
     useWT=False # True if using additional watershed
     display=True # True if display information about running time 
     merge_every = rate_hz # number of frames every merge
-
-    # %% Set video dimensions. Should automatically read the dimensions in future update
-    Dimens = (120,88) # lateral dimensions of the video
-    nn = 3000 # number of frames used for preprocessing. 
-        # Can be slightly larger than the number of frames of a video
-    dims = (Lx, Ly) = Dimens # lateral dimensions of the video
     #-------------- End user-defined parameters --------------#
 
 
@@ -86,7 +80,7 @@ if __name__ == '__main__':
     if not useTF:
         Poisson_filt=np.array([1])
     Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
-        'nn':nn, 'Poisson_filt': Poisson_filt}
+        'Poisson_filt': Poisson_filt}
 
     p = mp.Pool()
     nvideo = len(list_Exp_ID)
@@ -135,7 +129,7 @@ if __name__ == '__main__':
             # The entire process of SUNS online
             Masks, Masks_2, time_total, time_frame, list_time_per = suns_online_track(
                 filename_video, filename_CNN, Params_pre, Params_post, \
-                dims, frames_init, merge_every, batch_size_init, \
+                frames_init, merge_every, batch_size_init, \
                 useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
                 update_baseline=update_baseline, useWT=useWT, \
                 prealloc=prealloc, display=display, p=p)

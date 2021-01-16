@@ -463,7 +463,6 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
         start (float): the starting time of the pipline (after the data is loaded into memory)
         In addition, the SNR video is saved in "dir_network_input" as a "(Exp_ID).h5" file containing a dataset "network_input".
     '''
-    nn = Params['nn']
     if useSF:
         gauss_filt_size = Params['gauss_filt_size']
     Poisson_filt = Params['Poisson_filt']
@@ -476,7 +475,11 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     rowspad = math.ceil(rows/8)*8 
     colspad = math.ceil(cols/8)*8
     # Only keep the first "nn" frames to process
-    nframes = min(nframes,nn)
+    if 'nn' in Params.keys():
+        nn = Params['nn']
+        nframes = min(nframes,nn)
+    else:
+        nn = nframes
     
     if useSF:
         # lateral dimensions slightly larger than the raw video but faster for FFT
