@@ -97,13 +97,6 @@ if __name__ == '__main__':
     # Cross-validation strategy. Can be "leave_one_out", "train_1_test_rest", or "use_all"
     cross_validation = "train_1_test_rest"
     Params_loss = {'DL':1, 'BCE':20, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
-
-    # %% Set video dimensions. Should automatically read the dimensions in future update
-    Dimens = (120,88) # lateral dimensions of the video
-    nn = 3000 # number of frames used for preprocessing. 
-        # Can be slightly larger than the number of frames of a video
-    num_total = 2980 # number of frames used for CNN training. 
-        # Can be slightly smaller than the number of frames of a video after temporal filtering
     #-------------- End user-defined parameters --------------#
 
 
@@ -127,9 +120,28 @@ if __name__ == '__main__':
         os.makedirs(dir_temp) 
 
     nvideo = len(list_Exp_ID) # number of videos used for cross validation
-    (rows, cols) = Dimens # size of the original video
+    # Get and check the dimensions of all the videos
+    list_Dimens = np.zeros((nvideo, 3),dtype='uint16')
+    for (eid,Exp_ID) in enumerate(list_Exp_ID):
+        h5_video = os.path.join(dir_video, Exp_ID + '.h5')
+        h5_file = h5py.File(h5_video,'r')
+        list_Dimens[eid] = h5_file['mov'].shape
+        h5_file.close()
+
+    nframes = np.unique(list_Dimens[:,0])
+    Lx = np.unique(list_Dimens[:,1])
+    Ly = np.unique(list_Dimens[:,2])
+    if len(Lx) * len(Ly) !=1:
+        ValueError('''The lateral dimensions of all the training videos must be the same in this version.
+        Use another version if training videos have different dimensions''')
+    nframes = nframes.min()
+    rows = Lx[0]
+    cols = Ly[0]
+
     rowspad = math.ceil(rows/8)*8  # size of the network input and output
     colspad = math.ceil(cols/8)*8
+    num_total = nframes - Poisson_filt.size + 1 # number of frames used for CNN training. 
+        # Can be slightly smaller than the number of frames of a video after temporal filtering
 
     # adjust the units of the hyper-parameters to pixels in the test videos according to relative magnification
     list_minArea= list(np.round(np.array(list_minArea) * Mag**2))
@@ -141,7 +153,7 @@ if __name__ == '__main__':
 
     # dictionary of pre-processing parameters
     Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
-        'nn':nn, 'Poisson_filt': Poisson_filt}
+        'Poisson_filt': Poisson_filt}
     # dictionary of all fixed and searched post-processing parameters.
     Params_set = {'list_minArea': list_minArea, 'list_avgArea': list_avgArea, 'list_thresh_pmap': list_thresh_pmap,
             'thresh_COM0': thresh_COM0, 'list_thresh_COM': list_thresh_COM, 'list_thresh_IOU': list_thresh_IOU,

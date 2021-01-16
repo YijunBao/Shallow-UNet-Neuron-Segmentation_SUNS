@@ -97,13 +97,6 @@ if __name__ == '__main__':
     # Cross-validation strategy. Can be "leave_one_out", "train_1_test_rest", or "use_all"
     cross_validation = "leave_one_out"
     Params_loss = {'DL':1, 'BCE':20, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
-
-    # %% Set video dimensions. Should automatically read the dimensions in future update
-    Dimens = (120,88) # lateral dimensions of the video
-    nn = 3000 # number of frames used for preprocessing. 
-        # Can be slightly larger than the number of frames of a video
-    num_total = 2980 # number of frames used for CNN training. 
-        # Can be slightly smaller than the number of frames of a video after temporal filtering
     #-------------- End user-defined parameters --------------#
 
 
@@ -127,9 +120,28 @@ if __name__ == '__main__':
         os.makedirs(dir_temp) 
 
     nvideo = len(list_Exp_ID) # number of videos used for cross validation
-    (rows, cols) = Dimens # size of the original video
+    # Get and check the dimensions of all the videos
+    list_Dimens = np.zeros((nvideo, 3),dtype='uint16')
+    for (eid,Exp_ID) in enumerate(list_Exp_ID):
+        h5_video = os.path.join(dir_video, Exp_ID + '.h5')
+        h5_file = h5py.File(h5_video,'r')
+        list_Dimens[eid] = h5_file['mov'].shape
+        h5_file.close()
+
+    nframes = np.unique(list_Dimens[:,0])
+    Lx = np.unique(list_Dimens[:,1])
+    Ly = np.unique(list_Dimens[:,2])
+    if len(Lx) * len(Ly) !=1:
+        ValueError('''The lateral dimensions of all the training videos must be the same in this version.
+        Use another version if training videos have different dimensions''')
+    nframes = nframes.min()
+    rows = Lx[0]
+    cols = Ly[0]
+
     rowspad = math.ceil(rows/8)*8  # size of the network input and output
     colspad = math.ceil(cols/8)*8
+    num_total = nframes - Poisson_filt.size + 1 # number of frames used for CNN training. 
+        # Can be slightly smaller than the number of frames of a video after temporal filtering
 
     # adjust the units of the hyper-parameters to pixels in the test videos according to relative magnification
     list_minArea= list(np.round(np.array(list_minArea) * Mag**2))
@@ -141,7 +153,7 @@ if __name__ == '__main__':
 
     # dictionary of pre-processing parameters
     Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
-        'nn':nn, 'Poisson_filt': Poisson_filt}
+        'Poisson_filt': Poisson_filt}
     # dictionary of all fixed and searched post-processing parameters.
     Params_set = {'list_minArea': list_minArea, 'list_avgArea': list_avgArea, 'list_thresh_pmap': list_thresh_pmap,
             'thresh_COM0': thresh_COM0, 'list_thresh_COM': list_thresh_COM, 'list_thresh_IOU': list_thresh_IOU,
@@ -149,48 +161,48 @@ if __name__ == '__main__':
     print(Params_set)
 
 
-    # pre-processing for training
-    for Exp_ID in list_Exp_ID: #
-        # %% Pre-process video
-        video_input, _ = preprocess_video(dir_video, Exp_ID, Params_pre, dir_network_input, \
-            useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, prealloc=prealloc) #
+    # # pre-processing for training
+    # for Exp_ID in list_Exp_ID: #
+    #     # %% Pre-process video
+    #     video_input, _ = preprocess_video(dir_video, Exp_ID, Params_pre, dir_network_input, \
+    #         useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, prealloc=prealloc) #
 
-        # %% Determine active neurons in all frames using FISSA
-        file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
-        generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
-        del video_input
+    #     # %% Determine active neurons in all frames using FISSA
+    #     file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
+    #     generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
+    #     del video_input
 
-    # %% CNN training
-    if cross_validation == "use_all":
-        list_CV = [nvideo]
-    else: 
-        list_CV = list(range(0,nvideo))
-    for CV in list_CV:
-        if cross_validation == "leave_one_out":
-            list_Exp_ID_train = list_Exp_ID.copy()
-            list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
-        elif cross_validation == "train_1_test_rest":
-            list_Exp_ID_val = list_Exp_ID.copy()
-            list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
-        elif cross_validation == "use_all":
-            list_Exp_ID_val = None
-            list_Exp_ID_train = list_Exp_ID.copy() 
-        else:
-            raise('wrong "cross_validation"')
-        if not use_validation:
-            list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
-        file_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV))
-        results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
-            BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rowspad, colspad), Params_loss)
+    # # %% CNN training
+    # if cross_validation == "use_all":
+    #     list_CV = [nvideo]
+    # else: 
+    #     list_CV = list(range(0,nvideo))
+    # for CV in list_CV:
+    #     if cross_validation == "leave_one_out":
+    #         list_Exp_ID_train = list_Exp_ID.copy()
+    #         list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
+    #     elif cross_validation == "train_1_test_rest":
+    #         list_Exp_ID_val = list_Exp_ID.copy()
+    #         list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
+    #     elif cross_validation == "use_all":
+    #         list_Exp_ID_val = None
+    #         list_Exp_ID_train = list_Exp_ID.copy() 
+    #     else:
+    #         raise('wrong "cross_validation"')
+    #     if not use_validation:
+    #         list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
+    #     file_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV))
+    #     results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
+    #         BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rowspad, colspad), Params_loss)
 
-        # save training and validation loss after each eopch
-        f = h5py.File(os.path.join(training_output_path, "training_output_CV{}.h5".format(CV)), "w")
-        f.create_dataset("loss", data=results.history['loss'])
-        f.create_dataset("dice_loss", data=results.history['dice_loss'])
-        if use_validation:
-            f.create_dataset("val_loss", data=results.history['val_loss'])
-            f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
-        f.close()
+    #     # save training and validation loss after each eopch
+    #     f = h5py.File(os.path.join(training_output_path, "training_output_CV{}.h5".format(CV)), "w")
+    #     f.create_dataset("loss", data=results.history['loss'])
+    #     f.create_dataset("dice_loss", data=results.history['dice_loss'])
+    #     if use_validation:
+    #         f.create_dataset("val_loss", data=results.history['val_loss'])
+    #         f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
+    #     f.close()
 
     # %% parameter optimization
     parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \

@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     rowspad = math.ceil(rows/8)*8  # size of the network input and output
     colspad = math.ceil(cols/8)*8
-    num_total = nframes - Poisson_filt + 1 # number of frames used for CNN training. 
+    num_total = nframes - Poisson_filt.size + 1 # number of frames used for CNN training. 
         # Can be slightly smaller than the number of frames of a video after temporal filtering
 
     # adjust the units of the hyper-parameters to pixels in the test videos according to relative magnification
