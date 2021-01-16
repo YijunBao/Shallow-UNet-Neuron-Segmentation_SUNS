@@ -76,7 +76,6 @@ if __name__ == '__main__':
     # %% set training parameters
     thred_std = 3 # SNR threshold used to determine when neurons are active
     num_train_per = 2400 # Number of frames per video used for training 
-    BATCH_SIZE = 20 # Batch size for training 
     NO_OF_EPOCHS = 200 # Number of epoches used for training 
     batch_size_eval = 100 # batch size in CNN inference
     list_thred_ratio = [thred_std] # A list of SNR threshold used to determine when neurons are active.
@@ -94,7 +93,8 @@ if __name__ == '__main__':
     load_exist=False # True if using temp files already saved in the folders
     use_validation = True # True to use a validation set outside the training set
     useMP = True # True to use multiprocessing to speed up
-    # Cross-validation strategy. Can be "leave_one_out" or "train_1_test_rest"
+    BATCH_SIZE = 20 # Batch size for training 
+    # Cross-validation strategy. Can be "leave_one_out", "train_1_test_rest", or "use_all"
     cross_validation = "train_1_test_rest"
     Params_loss = {'DL':1, 'BCE':20, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
 

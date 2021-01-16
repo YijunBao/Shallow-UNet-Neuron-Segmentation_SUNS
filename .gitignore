@@ -16,3 +16,4 @@ suns/run_suns copy.py
 paper reproduction/ABO/demo_train_pre.py
 paper reproduction/ABO/pipeline_ABO.bat
 *.lprof
+*.zip
