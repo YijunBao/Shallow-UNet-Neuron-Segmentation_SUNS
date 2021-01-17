@@ -11,5 +11,7 @@ for ind = 1:length(dir_all)
         [Lx,Ly,ncells]=size(FinalMasks);
         GTMasks_2=sparse(reshape(logical(FinalMasks),Lx*Ly,ncells));
         save(fullfile(dir_Masks,[filename(1:end-4),'_sparse.mat']),'GTMasks_2','-v7');
+        % Please do not save them in 'v7.3' format, otherwise, 
+        % you may need to use h5sparese to read the files in python.
     end
 end

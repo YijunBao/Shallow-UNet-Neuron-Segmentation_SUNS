@@ -125,13 +125,8 @@ if __name__ == '__main__':
 
         # %% Evaluation of the segmentation accuracy compared to manual ground truth
         filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
-        try: # If the ".mat" file is saved in '-v7.3' format
-            data_GT = h5py.File(filename_GT,'r')
-            GTMasks_2 = np.array(data_GT['GTMasks_2'])#.astype('bool')
-            data_GT.close()
-        except OSError: # If the ".mat" file is not saved in '-v7.3' format
-            data_GT=loadmat(filename_GT)
-            GTMasks_2 = data_GT['GTMasks_2'].transpose().astype('bool')
+        data_GT=loadmat(filename_GT)
+        GTMasks_2 = data_GT['GTMasks_2'].transpose().astype('bool')
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
         savemat(os.path.join(dir_output, 'Output_Masks_{}.mat'.format(Exp_ID)), {'Masks':Masks}, do_compression=True)
