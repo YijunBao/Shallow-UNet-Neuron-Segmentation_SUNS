@@ -67,12 +67,6 @@ if __name__ == '__main__':
     show_intermediate=True # True if screen neurons with consecutive frame requirement after every merge
     display=True # True if display information about running time 
     merge_every = rate_hz # number of frames every merge
-
-    # %% Set video dimensions. Should automatically read the dimensions in future update
-    Dimens = (120,88) # lateral dimensions of the video
-    nn = 3000 # number of frames used for preprocessing. 
-        # Can be slightly larger than the number of frames of a video
-    dims = (Lx, Ly) = Dimens # lateral dimensions of the video
     #-------------- End user-defined parameters --------------#
 
 
@@ -87,7 +81,7 @@ if __name__ == '__main__':
     if not useTF:
         Poisson_filt=np.array([1])
     Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
-        'nn':nn, 'Poisson_filt': Poisson_filt}
+        'Poisson_filt': Poisson_filt}
 
     p = mp.Pool()
     nvideo = len(list_Exp_ID)
@@ -133,15 +127,20 @@ if __name__ == '__main__':
         # The entire process of SUNS online
         Masks, Masks_2, time_total, time_frame, list_time_per = suns_online(
             filename_video, filename_CNN, Params_pre, Params_post, \
-            dims, frames_init, merge_every, batch_size_init, \
+            frames_init, merge_every, batch_size_init, \
             useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
             update_baseline=update_baseline, useWT=useWT, \
             show_intermediate=show_intermediate, prealloc=prealloc, display=display, p=p)
 
         # %% Evaluation of the segmentation accuracy compared to manual ground truth
         filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
-        data_GT=loadmat(filename_GT)
-        GTMasks_2 = data_GT['GTMasks_2'].transpose()
+        try: # If the ".mat" file is saved in '-v7.3' format
+            data_GT = h5py.File(filename_GT,'r')
+            GTMasks_2 = np.array(data_GT['GTMasks_2']).astype('bool')
+            data_GT.close()
+        except OSError: # If the ".mat" file is not saved in '-v7.3' format
+            data_GT=loadmat(filename_GT)
+            GTMasks_2 = data_GT['GTMasks_2'].transpose().astype('bool')
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
         savemat(os.path.join(dir_output, 'Output_Masks_{}.mat'.format(Exp_ID)), \

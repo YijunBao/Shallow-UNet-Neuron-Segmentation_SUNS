@@ -10,6 +10,6 @@ for ind = 1:length(dir_all)
         load(fullfile(dir_Masks,filename),'FinalMasks');
         [Lx,Ly,ncells]=size(FinalMasks);
         GTMasks_2=sparse(reshape(logical(FinalMasks),Lx*Ly,ncells));
-        save(fullfile(dir_Masks,[filename(1:end-4),'_sparse_test.mat']),'GTMasks_2');
+        save(fullfile(dir_Masks,[filename(1:end-4),'_sparse.mat']),'GTMasks_2','-v7');
     end
 end

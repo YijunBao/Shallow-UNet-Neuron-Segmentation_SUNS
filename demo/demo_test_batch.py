@@ -62,12 +62,6 @@ if __name__ == '__main__':
     batch_size_eval = 200 # batch size in CNN inference
     useWT=False # True if using additional watershed
     display=True # True if display information about running time 
-
-    # %% Set video dimensions. Should automatically read the dimensions in future update
-    Dimens = (120,88) # lateral dimensions of the video
-    nn = 3000 # number of frames used for preprocessing. 
-        # Can be slightly larger than the number of frames of a video
-    dims = (Lx, Ly) = Dimens # lateral dimensions of the video
     #-------------- End user-defined parameters --------------#
 
 
@@ -80,7 +74,7 @@ if __name__ == '__main__':
 
     # dictionary of pre-processing parameters
     Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
-        'nn':nn, 'Poisson_filt': Poisson_filt}
+        'Poisson_filt': Poisson_filt}
 
     p = mp.Pool()
     nvideo = len(list_Exp_ID)
@@ -125,14 +119,19 @@ if __name__ == '__main__':
 
         # The entire process of SUNS batch
         Masks, Masks_2, time_total, time_frame = suns_batch(
-            dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, batch_size_eval, \
+            dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, batch_size_eval, \
             useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
             useWT=useWT, prealloc=prealloc, display=display, p=p)
 
         # %% Evaluation of the segmentation accuracy compared to manual ground truth
         filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
-        data_GT=loadmat(filename_GT)
-        GTMasks_2 = data_GT['GTMasks_2'].transpose()
+        try: # If the ".mat" file is saved in '-v7.3' format
+            data_GT = h5py.File(filename_GT,'r')
+            GTMasks_2 = np.array(data_GT['GTMasks_2'])#.astype('bool')
+            data_GT.close()
+        except OSError: # If the ".mat" file is not saved in '-v7.3' format
+            data_GT=loadmat(filename_GT)
+            GTMasks_2 = data_GT['GTMasks_2'].transpose().astype('bool')
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
         savemat(os.path.join(dir_output, 'Output_Masks_{}.mat'.format(Exp_ID)), {'Masks':Masks}, do_compression=True)

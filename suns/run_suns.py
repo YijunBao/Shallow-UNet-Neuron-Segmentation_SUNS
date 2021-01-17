@@ -28,7 +28,7 @@ from suns.PostProcessing.combine import segs_results, unique_neurons2_simp, \
 from suns.PostProcessing.complete_post import complete_segment
 
 
-def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
+def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, \
         batch_size_eval=1, useSF=True, useTF=True, useSNR=True, med_subtract=False, \
         useWT=False, prealloc=True, display=True, useMP=True, p=None):
     '''The complete SUNS batch procedure.
@@ -58,7 +58,6 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
             Params_post['thresh_IOU']: Threshold of IOU used for merging neurons.
             Params_post['thresh_consume']: Threshold of consume ratio used for merging neurons.
             Params_post['cons']: Minimum number of consecutive frames that a neuron should be active for.
-        dims (tuplel of int, shape = (2,)): lateral dimension of the raw video.
         batch_size_eval (int, default to 1): batch size of CNN inference.
         useSF (bool, default to True): True if spatial filtering is used.
         useTF (bool, default to True): True if temporal filtering is used.
@@ -82,7 +81,11 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
     '''
     if display:
         start = time.time()
-    (Lx, Ly) = dims
+    # Read the dimensions of the video
+    h5_video = os.path.join(dir_video, Exp_ID + '.h5')
+    h5_file = h5py.File(h5_video,'r')
+    (nframes, Lx, Ly) = h5_file['mov'].shape
+    h5_file.close()
     rowspad = math.ceil(Lx/8)*8
     colspad = math.ceil(Ly/8)*8
     # load CNN model
@@ -105,7 +108,6 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
     # pre-processing including loading data
     video_input, start = preprocess_video(dir_video, Exp_ID, Params_pre, \
         useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, prealloc=prealloc, display=display)
-    nframes = video_input.shape[0]
     if display:
         end_pre = time.time()
         time_pre = end_pre-start
@@ -155,7 +157,7 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, dims, \
     return Masks, Masks_2, time_total, time_frame
 
 
-def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
+def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
         frames_init, merge_every, batch_size_init=1, useSF=True, useTF=True, useSNR=True, \
         med_subtract=False, update_baseline=False, \
         useWT=False, show_intermediate=True, prealloc=True, display=True, useMP=True, p=None):
@@ -185,7 +187,6 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
             Params_post['thresh_IOU']: Threshold of IOU used for merging neurons.
             Params_post['thresh_consume']: Threshold of consume ratio used for merging neurons.
             Params_post['cons']: Minimum number of consecutive frames that a neuron should be active for.
-        dims (tuplel of int, shape = (2,)): lateral dimension of the raw video.
         frames_init (int): Number of frames used for initialization.
         merge_every (int): SUNS online merge the newly segmented frames every "merge_every" frames.
         batch_size_init (int, default to 1): batch size of CNN inference for initialization frames.
@@ -215,7 +216,11 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
     '''
     if display:
         start = time.time()
-    (Lx, Ly) = dims
+    # Read the dimensions of the video
+    h5_file = h5py.File(filename_video, 'r')
+    (nframes, Lx, Ly) = h5_file['mov'].shape
+    h5_file.close()
+    dims = (Lx, Ly)
     # zero-pad the lateral dimensions to multiples of 8, suitable for CNN
     rowspad = math.ceil(Lx/8)*8
     colspad = math.ceil(Ly/8)*8
@@ -223,10 +228,14 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
 
     Poisson_filt = Params_pre['Poisson_filt']
     gauss_filt_size = Params_pre['gauss_filt_size']
-    nn = Params_pre['nn']
+    if 'nn' in Params_pre.keys():
+        nn = Params_pre['nn']
+        nframes = min(nframes,nn)
+    else:
+        nn = nframes
     leng_tf = Poisson_filt.size
     leng_past = 2*leng_tf # number of past frames stored for temporal filtering
-    list_time_per = np.zeros(nn)
+    list_time_per = np.zeros(nframes)
 
     # Load CNN model
     fff = get_shallow_unet()
@@ -323,9 +332,9 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
 
 
     # %% Load raw video
-    h5_img = h5py.File(filename_video, 'r')
-    video_raw = np.array(h5_img['mov'])
-    h5_img.close()
+    h5_file = h5py.File(filename_video, 'r')
+    video_raw = np.array(h5_file['mov'])
+    h5_file.close()
     nframes = video_raw.shape[0]
     nframesf = nframes - leng_tf + 1
     bb[:, :Lx, :Ly] = video_raw[:frames_init]
@@ -517,7 +526,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, dims, \
     return Masks, Masks_2, time_total, time_frame, list_time_per
 
 
-def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dims, \
+def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
         frames_init, merge_every, batch_size_init=1, useSF=True, useTF=True, useSNR=True, \
         med_subtract=False, update_baseline=False, \
         useWT=False, prealloc=True, display=True, useMP=True, p=None):
@@ -547,7 +556,6 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
             Params_post['thresh_IOU']: Threshold of IOU used for merging neurons.
             Params_post['thresh_consume']: Threshold of consume ratio used for merging neurons.
             Params_post['cons']: Minimum number of consecutive frames that a neuron should be active for.
-        dims (tuplel of int, shape = (2,)): lateral dimension of the raw video.
         frames_init (int): Number of frames used for initialization.
         merge_every (int): SUNS online merge the newly segmented frames every "merge_every" frames.
         batch_size_init (int, default to 1): batch size of CNN inference for initialization frames.
@@ -575,7 +583,11 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
     '''
     if display:
         start = time.time()
-    (Lx, Ly) = dims
+    # Read the dimensions of the video
+    h5_file = h5py.File(filename_video, 'r')
+    (nframes, Lx, Ly) = h5_file['mov'].shape
+    h5_file.close()
+    dims = (Lx, Ly)
     # zero-pad the lateral dimensions to multiples of 8, suitable for CNN
     rowspad = math.ceil(Lx/8)*8
     colspad = math.ceil(Ly/8)*8
@@ -583,10 +595,14 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
 
     Poisson_filt = Params_pre['Poisson_filt']
     gauss_filt_size = Params_pre['gauss_filt_size']
-    nn = Params_pre['nn']
+    if 'nn' in Params_pre.keys():
+        nn = Params_pre['nn']
+        nframes = min(nframes,nn)
+    else:
+        nn = nframes
     leng_tf = Poisson_filt.size
     leng_past = 2*leng_tf # number of past frames stored for temporal filtering
-    list_time_per = np.zeros(nn)
+    list_time_per = np.zeros(nframes)
 
     # Load CNN model
     fff = get_shallow_unet()
@@ -683,9 +699,9 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, dim
 
 
     # %% Load raw video
-    h5_img = h5py.File(filename_video, 'r')
-    video_raw = np.array(h5_img['mov'])
-    h5_img.close()
+    h5_file = h5py.File(filename_video, 'r')
+    video_raw = np.array(h5_file['mov'])
+    h5_file.close()
     nframes = video_raw.shape[0]
     nframesf = nframes - leng_tf + 1
     bb[:, :Lx, :Ly] = video_raw[:frames_init]
