@@ -1,13 +1,13 @@
 clear;
-tasks = {'train','test'};
-for tid = 1:2
+tasks = {'train'};
+for tid = 1:length(tasks)
     task = tasks{tid};
     % folder of the raw video
-    dir_video=['E:\NeuroFinder\',task,' videos\'];
+    dir_video=['E:\NeuroFinder\web\',task,' videos\'];
     % folder of the GT Masks
     dir_GTMasks=fullfile(dir_video,'GT Masks');
     % name of the videos
-    list_Exp_ID={'04.01'}; % '01.00', '01.01', '02.00', '02.01', '04.00', 
+    list_Exp_ID={'01.00', '01.01'};
 
     for vid=1:length(list_Exp_ID)
         Exp_ID = list_Exp_ID{vid};
@@ -21,7 +21,7 @@ for tid = 1:2
         toc;
 
         % Load ground truth masks
-        load(fullfile(dir_GTMasks,['FinalMasks_',Exp_ID([2,4,5]),'.mat']),'FinalMasks');
+        load(fullfile(dir_GTMasks,['FinalMasks_',Exp_ID,'.mat']),'FinalMasks');
         ROIs=logical(FinalMasks);
         clear FinalMasks;
 
@@ -32,6 +32,10 @@ for tid = 1:2
         traces_bg_exclude=generate_bgtraces_from_masks_exclude(video_raw,ROIs);
         toc;
 
-        save(['raw and bg traces ',Exp_ID,'.mat'],'traces_raw','traces_bg_exclude');
+        dir_trace = fullfile(dir_video,'traces');
+        if ~exist(dir_trace)
+            mkdir(dir_trace)
+        end
+        save(fullfile(dir_trace,['raw and bg traces ',Exp_ID,'.mat']),'traces_raw','traces_bg_exclude');
     end
 end

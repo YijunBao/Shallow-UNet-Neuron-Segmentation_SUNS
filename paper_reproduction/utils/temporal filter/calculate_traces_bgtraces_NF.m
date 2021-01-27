@@ -5,7 +5,7 @@ for tid = 1:2
     % folder of the raw video
     dir_video=['E:\NeuroFinder\',task,' videos\'];
     % folder of the GT Masks
-    dir_GTMasks=['C:\Matlab Files\STNeuroNet-master\Markings\Neurofinder\',task,'\Grader1\'];
+    dir_GTMasks=fullfile(dir_video,'GT Masks');
     % name of the videos
     list_Exp_ID={'04.01'}; % '01.00', '01.01', '02.00', '02.01', '04.00', 
 

@@ -2,7 +2,7 @@ clear;
 % folder of the raw video
 dir_video='D:\ABO\20 percent\'; 
 % folder of the GT Masks
-dir_GTMasks='C:\Matlab Files\STNeuroNet-master\Markings\ABO\Layer275\FinalGT\';
+dir_GTMasks=fullfile(dir_video,'GT Masks');
 % name of the videos
 list_Exp_ID={'501484643';'501574836';'501729039';'502608215';'503109347';...
              '510214538';'524691284';'527048992';'531006860';'539670003'};
