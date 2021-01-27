@@ -155,7 +155,7 @@ We determined `avgArea` according to the typical neuron area reported in the lit
 * `useTF` indicates whether temporal filtering is used in pre-processing (True in demo);
 * `BATCH_SIZE` is the batch size in CNN training; `batch_size_eval` is the batch size in CNN inference in SUNS batch; `batch_size_init` is the batch size in CNN inference in the initialization stage of SUNS online and SUNS online with tracking. You can adjust these values according to the GPU memory capacity of your computer; 
 * `thred_std` is SNR threshold used to determine when neurons are active to create temporal masks for training (3 in demo). When the video is longer or have higher signal to noise quality, you can increase this value;
-* `cross_validation` determines the cross-validation strategy ("leave-one-out" means training on all but one video and testing on that one video, "train_1_test_rest" means training on one video and testing on the other videos, and "use_all" means training on all videos and testing on other videos not in the list);
+* `cross_validation` determines the cross-validation strategy: "leave-one-out" means training on all but one video and testing on that one video, "train_1_test_rest" means training on one video and testing on the other videos, and "use_all" means training on all videos and not doing cross validation (testing on other videos not in the list);
 * `use_validation` indicates if a validation set outside the training set is used in training CNN for validation purpose (True in demo); it does not affect the training result;
 * `update_baseline` indicates whether the baseline and noise are updated every a few frames during the online processing (False in demo).
 
