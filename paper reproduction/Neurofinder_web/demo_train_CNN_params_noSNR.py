@@ -37,7 +37,7 @@ if __name__ == '__main__':
     list_rate_hz = [7, 7.5, 8, 7.5, 6.75, 3]
     list_px_um = [1/1.15, 1/0.8, 1/1.15, 1.17, 0.8, 1.25]
 
-    for ind_set in [0]: # [0,1,2,3,4,5]: # 
+    for ind_set in [0,1,2,3,4,5]: # [0]: # 
         # %% set video parameters
         list_Exp_ID = list_Exp_ID_full[ind_set]
         rate_hz = list_rate_hz[ind_set] # frame rate of the video
@@ -49,11 +49,12 @@ if __name__ == '__main__':
 
         # %% set the range of post-processing hyper-parameters to be optimized in
         # minimum area of a neuron (unit: pixels in ABO videos). must be in ascend order
-        list_minArea = list(range(80,225,10)) 
+        list_minArea = list(range(80,225,20)) 
         # average area of a typical neuron (unit: pixels in ABO videos)
         list_avgArea = [177] 
         # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
-        list_thresh_pmap = list(range(90,235,10))
+        # list_thresh_pmap = list(range(20,135,10))
+        list_thresh_pmap = list(range(20,235,20))
         # threshold to binarize the neuron masks. For each mask, 
         # values higher than "thresh_mask" times the maximum value of the mask are set to one.
         thresh_mask = 0.5
@@ -89,8 +90,8 @@ if __name__ == '__main__':
 
         # %% Set processing options
         useSF=True # True if spatial filtering is used in pre-processing.
-        useTF=False # True if temporal filtering is used in pre-processing.
-        useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
+        useTF=True # True if temporal filtering is used in pre-processing.
+        useSNR=False # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
         med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
             # Can only be used when spatial filtering is not used. 
         prealloc=False # True if pre-allocate memory space for large variables in pre-processing. 
@@ -107,7 +108,7 @@ if __name__ == '__main__':
         #-------------- End user-defined parameters --------------#
 
 
-        dir_parent = os.path.join(dir_video, 'noTF') # folder to save all the processed data
+        dir_parent = os.path.join(dir_video, 'noSNR') # folder to save all the processed data
         dir_network_input = os.path.join(dir_parent, 'network_input') # folder of the SNR videos
         dir_mask = os.path.join(dir_parent, 'temporal_masks({})'.format(thred_std)) # foldr to save the temporal masks
         weights_path = os.path.join(dir_parent, 'Weights') # folder to save the trained CNN

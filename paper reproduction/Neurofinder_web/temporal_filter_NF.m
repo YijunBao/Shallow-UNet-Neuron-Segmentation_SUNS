@@ -1,16 +1,21 @@
 %%
 list_rate_hz = [7, 7.5, 8, 7.5, 6.75, 3];
-% name of the videos. Only use 04.01 and 04.01.test. 
-list_Exp_ID = {'01.00','01.01'};
-rate_hz = list_rate_hz(2); % frame rate
+list_list_Exp_ID={{'00.00', '00.01', '00.02', '00.03', '00.04', '00.05', ...
+            '00.06', '00.07', '00.08', '00.09', '00.10', '00.11'}, ...
+            {'01.00', '01.01'}, {'02.00', '02.01'}, ...
+            {'03.00'}, {'04.00'}, {'05.00'}};
+
+lid = 5;
+list_Exp_ID = list_list_Exp_ID{lid};
+rate_hz = list_rate_hz(lid); % frame rate
          
-before=15; % number of frames before spike peak
-after=40; % number of frames after spike peak
+before=10; % number of frames before spike peak
+after=30; % number of frames after spike peak
 list_d=[6,8]; % two element array showing the minimum and maximum allowed SNR
 doesplot=true;
 num_dff=length(list_d)-1;
-[array_tau_s,array_tau2_s]=deal(2,num_dff);
-spikes_avg_all=nan(2, before+after+1);
+[array_tau_s,array_tau2_s]=deal(length(list_Exp_ID),num_dff);
+spikes_avg_all=nan(length(list_Exp_ID), before+after+1);
 time_frame = -before:after;
 
 figure(97);
@@ -19,8 +24,8 @@ set(gcf,'Position',[100,100,500,400]);
 hold on;
 
 %%
-tasks = 'train'; % {'train','test'};
-dir_video=['E:\NeuroFinder\web\',task,' videos\'];
+task = 'train'; % {'train','test'};
+dir_video=['E:\NeuroFinder\web\',task,' videos\',list_Exp_ID{1}(1:2),'\'];
 dir_trace = fullfile(dir_video,'traces');
 dir_GTMasks = fullfile(dir_video,'GT Masks');
 
@@ -56,7 +61,7 @@ figure(97);
 legend(list_Exp_ID);
 
 %% print the mean decay time
-filter_tempolate=mean(spikes_avg_all);
+filter_tempolate=mean(spikes_avg_all,1);
 tau_s_mean=mean(array_tau_s);
 tau2_s_mean=mean(array_tau2_s);
 tau_s_std=std(array_tau_s,1);

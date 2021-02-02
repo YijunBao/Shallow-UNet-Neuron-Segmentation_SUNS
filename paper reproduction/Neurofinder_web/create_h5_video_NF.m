@@ -3,14 +3,14 @@
 % Released under a GPL v2 license.
 
 %% 
-opt.type = 'train'; %{'train','test'}
+opt.type = 'test'; %{'train','test'}
 
+name = {'00.00', '00.01', '01.00', '01.01', '02.00', '02.01', '03.00', '04.00', '05.00'};
 % name = {'00.00', '00.01', '00.02', '00.03', '00.04', '00.05', ...
 %     '00.06', '00.07', '00.08', '00.09', '00.10', '00.11', ...
 %     '01.00', '01.01', '02.00', '02.01', '03.00', '04.00', '05.00'};
-name = {'01.00', '01.01'};
 DirData_full = ['E:\NeuroFinder\',opt.type,' videos\']; % folder of the original videos
-DirData = ['E:\NeuroFinder\web\',opt.type,' videos\']; % folder of the cropped videos
+DirSave = ['E:\NeuroFinder\web\',opt.type,' videos\']; % folder of the cropped videos
 
 if strcmp(opt.type, 'train')
     apd = '';
@@ -22,11 +22,11 @@ end
 for i = 1:length(name)
     opt.ID = name{i};
     disp(opt.ID);
-    dataFile = fullfile(DirData,[name{i},apd,'.h5']);
+    dataFile = fullfile(DirSave,opt.ID(1:2),[name{i},apd,'.h5']);
     if ~exist(dataFile)
         disp(['Create h5 raw video for ',opt.ID]);
         tic;
-        vid = prepareNeurofinder(opt, DirData_full, DirData);
+        vid = prepareNeurofinder(opt, DirData_full, fullfile(DirSave,opt.ID(1:2)));
         toc;
     end
 end

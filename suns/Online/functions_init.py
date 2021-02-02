@@ -39,7 +39,7 @@ def plan_fft2(dims1):
     return bb, bf, fft_object_b, fft_object_c
 
 
-def init_online(bb, dims, network_input, pmaps_b, fff, thresh_pmap_float, Params_post, med_frame2=None, mask2=None, \
+def init_online(bb, dims, dimsnb, network_input, pmaps_b, fff, thresh_pmap_float, Params_post, med_frame2=None, mask2=None, \
         bf=None, fft_object_b=None, fft_object_c=None, Poisson_filt=np.array([1]), \
         useSF=True, useTF=True, useSNR=True, med_subtract=False, useMP=True, useWT=False, batch_size_init=1, p=None):
     '''Process the initial part of a video into a list of segmented masks for every frame with statistics.
@@ -51,6 +51,7 @@ def init_online(bb, dims, network_input, pmaps_b, fff, thresh_pmap_float, Params
     Inputs: 
         bb(3D numpy.ndarray of float32): array storing the raw video.
         dims (tuplel of int, shape = (2,)): lateral dimension of the raw images.
+        dimsnb (tuplel of int, shape = (2,)): lateral dimension of the padded images for numba calculation in pre-processing.
         network_input (3D empty numpy.ndarray of float32): empty array to store the SNR video of the inital video.
         pmaps_b(3D empty numpy.ndarray of uint8): array to store the probablity map of the inital video.
         fff(tf.keras.Model): CNN model.
@@ -86,18 +87,21 @@ def init_online(bb, dims, network_input, pmaps_b, fff, thresh_pmap_float, Params
     rowspad = math.ceil(Lx/8)*8
     colspad = math.ceil(Ly/8)*8
     dimspad = (rowspad, colspad)
+    (rowsnb, colsnb) = dimsnb
 
     # PreProcessing
-    network_input, med_frame3 = preprocess_complete(bb, dimspad, network_input, med_frame2, \
+    network_input, med_frame3 = preprocess_complete(bb, dimspad, dimsnb, network_input, med_frame2, \
         Poisson_filt, mask2, bf, fft_object_b, fft_object_c, median_decimate=1, \
         useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, prealloc=True)
+    # network_input = network_input[:, :rowsnb, :colsnb]
+    # med_frame3 = med_frame3[:, :rowsnb, :colsnb]
     if useTF==True: # store the reacent frames, used in futher temporal filtering.
-        recent_frames = bb[-(Poisson_filt.size):, :rowspad, :colspad]
+        recent_frames = bb[-(Poisson_filt.size):, :rowsnb, :colsnb]
     else:
         recent_frames = None
 
     # Network inference
-    network_input = np.expand_dims(network_input, axis=-1)
+    network_input = np.expand_dims(network_input[:, :rowspad, :colspad], axis=-1)
     prob_map = fff.predict(network_input, batch_size=batch_size_init)
     prob_map = prob_map.squeeze()[:, :Lx, :Ly]
     

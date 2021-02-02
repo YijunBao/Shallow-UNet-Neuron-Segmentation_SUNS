@@ -43,7 +43,7 @@ def spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2):
     fastexp_2(bb)
 
 
-def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = None, \
+def preprocess_online(bb, dimspad, dimsnb, med_frame3, frame_SNR=None, past_frames = None, \
         mask2=None, bf=None, fft_object_b=None, fft_object_c=None, Poisson_filt=np.array([1]), \
         useSF=True, useTF=True, useSNR=True, med_subtract=False, update_baseline=False):
     '''Pre-process the registered image in "bb" into an SNR image "frame_SNR" 
@@ -53,11 +53,11 @@ def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = Non
 
     Inputs: 
         bb(3D numpy.ndarray of float32): array storing the raw image.
-        dimspad (tuplel of int, shape = (2,)): lateral dimension of the padded images.
+        dimspad (tuplel of int, shape = (2,)): lateral dimension of the padded images to be multiples of 8.
+        dimsnb (tuplel of int, shape = (2,)): lateral dimension of the padded images for numba calculation in pre-processing.
         frame_SNR (2D empty numpy.ndarray of float32): empty array to store the SNR image.
-        pmaps_b(3D empty numpy.ndarray of uint8): array to store the probablity map of the inital video.
-        med_frame3 (3D empty numpy.ndarray of float32): median and median-based standard deviation from initial frames.
-        recent_frames (3D numpy.ndarray of float32, shape=(Lt,Lx,Ly)): the images from the last "Lt" frames.
+        med_frame3 (3D numpy.ndarray of float32): median and median-based standard deviation from initial frames.
+        past_frames (3D numpy.ndarray of float32, shape=(Lt,Lx,Ly)): the images from the last "Lt" frames.
             Theese images are after spatial fitering but before temporal filtering.
         mask2 (2D numpy.ndarray of float32): 2D mask for spatial filtering.
         bf(3D numpy.ndarray of complex64, default to None): array to store the complex spectrum for FFT.
@@ -77,19 +77,20 @@ def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = Non
             if update_baseline==False, then this is just 0, because it is not used later. 
     '''
     (rowspad, colspad) = dimspad
+    (rowsnb, colsnb) = dimsnb
     
     if useSF: # Homomorphic spatial filtering
         spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2)
 
     if useTF: # Temporal filtering
-        past_frames[-1] = bb[:rowspad, :colspad]
-        fastconv_2(past_frames, frame_SNR, Poisson_filt)
+        past_frames[-1] = bb[:rowsnb, :colsnb]
+        fastconv_2(past_frames[:rowspad, :colspad], frame_SNR[:rowspad, :colspad], Poisson_filt)
     else:
-        frame_SNR = bb[:rowspad, :colspad]
+        frame_SNR = bb[:rowsnb, :colsnb]
 
     if med_subtract and not useSF: # Subtract every frame with its median.
-        temp = np.zeros(frame_SNR.shape[:1], dtype = 'float32')
-        fastmediansubtract_2(frame_SNR, temp, 2)
+        temp = np.zeros(frame_SNR.shape[:2], dtype = 'float32')
+        fastmediansubtract_2(frame_SNR[:, :rowspad, :colspad], temp[:, :rowspad], 2)
 
     if update_baseline: # keep the temporally filtered frame, 
         # used for updating median and median-based standard deviation
@@ -99,9 +100,9 @@ def preprocess_online(bb, dimspad, med_frame3, frame_SNR=None, past_frames = Non
 
     # Median computation and normalization
     if useSNR:
-        fastnormf_2(frame_SNR, med_frame3)
+        fastnormf_2(frame_SNR[:rowspad, :colspad], med_frame3[:, :rowspad, :colspad])
     else:
-        fastnormback_2(frame_SNR, max(1, med_frame3[0,:,:].mean()))
+        fastnormback_2(frame_SNR[:rowspad, :colspad], max(1, med_frame3[0,:colspad,:colspad].mean()))
 
     return frame_SNR, frame_tf
 
@@ -112,7 +113,7 @@ def CNN_online(frame_SNR, fff, dims=None):
     Inputs: 
         frame_SNR (2D empty numpy.ndarray of float32): SNR image.
         fff(tf.keras.Model): CNN model.
-        dims (tuplel of int, shape = (2,), default to None): lateral dimension of the image.
+        dims (tuplel of int, shape = (2,), default to None): lateral dimension of the output image.
 
     Outputs:
         frame_prob (2D empty numpy.ndarray of float32): probability map.

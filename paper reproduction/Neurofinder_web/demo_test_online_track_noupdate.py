@@ -14,7 +14,7 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
-from suns.run_suns import suns_online
+from suns.run_suns import suns_online_track
 
 # import tensorflow as tf
 # config = tf.ConfigProto()
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     list_rate_hz = [7, 7.5, 8, 7.5, 6.75, 3]
     list_px_um = [1/1.15, 1/0.8, 1/1.15, 1.17, 0.8, 1.25]
 
-    for ind_set in [0,1,2,3,4,5]:# [4]: # 
+    for ind_set in [0,1,2,3,4,5]: # [4]: # 
         # %% set video parameters
         list_Exp_ID = list_Exp_ID_full[ind_set]
         rate_hz = list_rate_hz[ind_set] # frame rate of the video
@@ -66,19 +66,18 @@ if __name__ == '__main__':
         useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
         med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
             # Can only be used when spatial filtering is not used. 
-        update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
+        update_baseline=False # True if the median and median-based std is updated every "frames_init" frames.
         prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
                 # Achieve faster speed at the cost of higher memory occupation.
         batch_size_init = 100 # batch size in CNN inference during initalization
         useWT=False # True if using additional watershed
-        show_intermediate=True # True if screen neurons with consecutive frame requirement after every merge
         display=True # True if display information about running time 
         merge_every = rate_hz # number of frames every merge
         #-------------- End user-defined parameters --------------#
 
 
         dir_parent = os.path.join(dir_video, 'noTF') # folder to save all the processed data
-        dir_output = os.path.join(dir_parent, 'output_masks online') # folder to save the segmented masks and the performance scores
+        dir_output = os.path.join(dir_parent, 'output_masks track no_update') # folder to save the segmented masks and the performance scores
         dir_params = os.path.join(dir_parent, 'output_masks') # folder of the optimized hyper-parameters
         weights_path = os.path.join(dir_parent, 'Weights') # folder of the trained CNN
         if not os.path.exists(dir_output):
@@ -132,17 +131,17 @@ if __name__ == '__main__':
                 'cons':Params_post_mat['cons'][0][0,0]}
 
             # The entire process of SUNS online
-            Masks, Masks_2, time_total, time_frame, list_time_per = suns_online(
+            Masks, Masks_2, time_total, time_frame, list_time_per = suns_online_track(
                 filename_video, filename_CNN, Params_pre, Params_post, \
                 frames_init, merge_every, batch_size_init, \
                 useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
                 update_baseline=update_baseline, useWT=useWT, \
-                show_intermediate=show_intermediate, prealloc=prealloc, display=display, p=p)
+                prealloc=prealloc, display=display, p=p)
 
             # %% Evaluation of the segmentation accuracy compared to manual ground truth
             filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
             data_GT=loadmat(filename_GT)
-            GTMasks_2 = data_GT['GTMasks_2'].transpose().astype('bool')
+            GTMasks_2 = data_GT['GTMasks_2'].transpose()
             (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
             print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
             savemat(os.path.join(dir_output, 'Output_Masks_{}.mat'.format(Exp_ID)), \

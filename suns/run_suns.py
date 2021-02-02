@@ -8,6 +8,7 @@ import time
 import h5py
 import pyfftw
 from scipy import sparse
+from cpuinfo import get_cpu_info
 
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
@@ -225,6 +226,16 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
     rowspad = math.ceil(Lx/8)*8
     colspad = math.ceil(Ly/8)*8
     dimspad = (rowspad, colspad)
+    
+    rowsnb = rowspad
+    colsnb = colspad
+    if 'win' in sys.platform.lower() and 'AMD' in get_cpu_info()['brand_raw'].upper():
+        # Avoid crashing
+        if rowspad % 256 == 0:
+            rowsnb = rowspad + 1
+        if colspad % 256 == 0:
+            colsnb = colspad + 1
+    dimsnb = (rowsnb, colsnb)
 
     Poisson_filt = Params_pre['Poisson_filt']
     gauss_filt_size = Params_pre['gauss_filt_size']
@@ -263,56 +274,56 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
     # Spatial filtering preparation
     if useSF==True:
         # lateral dimensions slightly larger than the raw video but faster for FFT
-        rows1 = cv2.getOptimalDFTSize(rowspad)
-        cols1 = cv2.getOptimalDFTSize(colspad)
+        rowsfft = cv2.getOptimalDFTSize(rowsnb)
+        colsfft = cv2.getOptimalDFTSize(colsnb)
         
         # if the learned 2D and 3D wisdom files have been saved, load them. 
         # Otherwise, learn wisdom later
-        Length_data2=str((rows1, cols1))
+        Length_data2=str((rowsfft, colsfft))
         cc2 = load_wisdom_txt('wisdom\\'+Length_data2)
         
-        Length_data3=str((frames_init, rows1, cols1))
+        Length_data3=str((frames_init, rowsfft, colsfft))
         cc3 = load_wisdom_txt('wisdom\\'+Length_data3)
         if cc3:
             pyfftw.import_wisdom(cc3)
 
         # mask for spatial filter
-        mask2 = plan_mask2(dims, (rows1, cols1), gauss_filt_size)
+        mask2 = plan_mask2(dims, (rowsfft, colsfft), gauss_filt_size)
         # FFT planning
-        (bb, bf, fft_object_b, fft_object_c) = plan_fft(frames_init, (rows1, cols1), prealloc)
+        (bb, bf, fft_object_b, fft_object_c) = plan_fft(frames_init, (rowsfft, colsfft), prealloc)
     else:
+        bb=np.zeros((frames_init, rowsnb, colsnb), dtype='float32')
         (mask2, bf, fft_object_b, fft_object_c) = (None, None, None, None)
-        bb=np.zeros((frames_init, rowspad, colspad), dtype='float32')
 
     # Temporal filtering preparation
     frames_initf = frames_init - leng_tf + 1
     if useTF==True:
         if prealloc:
             # past frames stored for temporal filtering
-            past_frames = np.ones((leng_past, rowspad, colspad), dtype='float32')
+            past_frames = np.ones((leng_past, rowsnb, colsnb), dtype='float32')
         else:
-            past_frames = np.zeros((leng_past, rowspad, colspad), dtype='float32')
+            past_frames = np.zeros((leng_past, rowsnb, colsnb), dtype='float32')
     else:
         past_frames = None
     
     if prealloc: # Pre-allocate memory for some future variables
-        med_frame2 = np.ones((rowspad, colspad, 2), dtype='float32')
-        video_input = np.ones((frames_initf, rowspad, colspad), dtype='float32')        
+        med_frame2 = np.ones((rowsnb, colsnb, 2), dtype='float32')
+        video_input = np.ones((frames_initf, rowsnb, colsnb), dtype='float32')        
         pmaps_b_init = np.ones((frames_initf, Lx, Ly), dtype='uint8')        
-        frame_SNR = np.ones(dimspad, dtype='float32')
+        frame_SNR = np.ones(dimsnb, dtype='float32')
         pmaps_b = np.ones(dims, dtype='uint8')
         if update_baseline:
-            video_tf_past = np.ones((frames_init, rowspad, colspad), dtype='float32')        
-            video_tf_past_fix = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
+            video_tf_past = np.ones((frames_init, rowsnb, colsnb), dtype='float32')        
+            video_tf_past_fix = np.zeros((frames_init, rowsnb, colsnb), dtype='float32')        
     else:
-        med_frame2 = np.zeros((rowspad, colspad, 2), dtype='float32')
-        video_input = np.zeros((frames_initf, rowspad, colspad), dtype='float32')        
+        med_frame2 = np.zeros((rowsnb, colsnb, 2), dtype='float32')
+        video_input = np.zeros((frames_initf, rowsnb, colsnb), dtype='float32')        
         pmaps_b_init = np.zeros((frames_initf, Lx, Ly), dtype='uint8')        
-        frame_SNR = np.zeros(dimspad, dtype='float32')
+        frame_SNR = np.zeros(dimsnb, dtype='float32')
         pmaps_b = np.zeros(dims, dtype='uint8')
         if update_baseline:
-            video_tf_past = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
-            video_tf_past_fix = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
+            video_tf_past = np.zeros((frames_init, rowsnb, colsnb), dtype='float32')        
+            video_tf_past_fix = np.zeros((frames_init, rowsnb, colsnb), dtype='float32')        
 
     if display:
         time_init = time.time()
@@ -321,11 +332,11 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
     if update_baseline: # Set the parameters for median update
         distri_update = False
         if useSF: # If spatial filtering is used, the padded rows and columns are nonzero
-            Lu2 = colspad
+            Lu2 = colsnb
         else: # If spatial filtering is not used, we can ignore the padded rows and columns
             Lu2 = Ly
         Lu1 = int(np.round(frames_initf / Lu2))
-        px_update = int(np.ceil(rowspad / Lu1))
+        px_update = int(np.ceil(rowsnb / Lu1))
         Lu = Lu1 * Lu2
         start_update = frames_initf + frames_init
         med_frame2_update = np.ones((px_update, 1, 2), dtype='float32')
@@ -349,7 +360,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
     if display:
         start_init = time.time()
     med_frame3, segs_all, recent_frames = init_online(
-        bb, dims, video_input, pmaps_b_init, fff, thresh_pmap_float, Params_post, \
+        bb, dims, dimsnb, video_input, pmaps_b_init, fff, thresh_pmap_float, Params_post, \
         med_frame2, mask2, bf, fft_object_b, fft_object_c, Poisson_filt, \
         useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
         useWT=useWT, batch_size_init=batch_size_init, p=p)
@@ -373,10 +384,10 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
     if useSF:
         if cc2:
             pyfftw.import_wisdom(cc2)
-        (bb, bf, fft_object_b, fft_object_c) = plan_fft2((rows1, cols1))
+        (bb, bf, fft_object_b, fft_object_c) = plan_fft2((rowsfft, colsfft))
     else:
         (bf, fft_object_b, fft_object_c) = (None, None, None)
-        bb=np.zeros(dimspad, dtype='float32')
+        bb=np.zeros(dimsnb, dtype='float32')
     if update_baseline:
         med_frame3_temp = np.zeros_like(med_frame3)
     
@@ -394,10 +405,16 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
         bb[:, Ly:] = 0
         
         # PreProcessing
-        frame_SNR, frame_tf = preprocess_online(bb, dimspad, med_frame3, frame_SNR, \
-            past_frames[current_frame-leng_tf:current_frame], mask2, bf, fft_object_b, \
-            fft_object_c, Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR, \
-            med_subtract=med_subtract, update_baseline=update_baseline)
+        if useTF:
+            frame_SNR, frame_tf = preprocess_online(bb, dimspad, dimsnb, med_frame3, frame_SNR, \
+                past_frames[current_frame-leng_tf:current_frame], mask2, bf, fft_object_b, \
+                fft_object_c, Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR, \
+                med_subtract=med_subtract, update_baseline=update_baseline)
+        else:
+            frame_SNR, frame_tf = preprocess_online(bb, dimspad, dimsnb, med_frame3, frame_SNR, \
+                None, mask2, bf, fft_object_b, \
+                fft_object_c, Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR, \
+                med_subtract=med_subtract, update_baseline=update_baseline)
 
         if update_baseline:
             t_past = (t-frames_initf) % frames_init
@@ -409,7 +426,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
                 nu2 = nu % Lu1
                 med_frame3_temp[:, nu2*px_update:(nu2+1)*px_update, nu1:nu1+1] = median_calculation(
                     video_tf_past_fix[:, nu2*px_update:(nu2+1)*px_update, nu1:nu1+1], \
-                    med_frame2_update, (px_update,1), 1, display=False)
+                    med_frame2_update, 1, display=False)
                 if nu == Lu-1: # update the baseline, noise, and buffer of recent frames
                     med_frame3 = med_frame3_temp.copy()
                     (video_tf_past_fix, video_tf_past) = (video_tf_past, video_tf_past_fix)
@@ -418,7 +435,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
                 (video_tf_past_fix, video_tf_past) = (video_tf_past, video_tf_past_fix)
 
         # CNN inference
-        frame_prob = CNN_online(frame_SNR, fff, dims)
+        frame_prob = CNN_online(frame_SNR[:rowspad, :colspad], fff, dims)
 
         # first step of post-processing
         segs = separate_neuron_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT)
@@ -483,11 +500,12 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
             if show_intermediate:
                 Masks_2 = select_cons(tuple_temp)
 
-        current_frame +=1
-        # Update the stored latest frames when it runs out: move them "leng_tf" ahead
-        if current_frame > leng_past:
-            current_frame = leng_tf+1
-            past_frames[:leng_tf] = past_frames[-leng_tf:]
+        if useTF:
+            current_frame +=1
+            # Update the stored latest frames when it runs out: move them "leng_tf" ahead
+            if current_frame > leng_past:
+                current_frame = leng_tf+1
+                past_frames[:leng_tf] = past_frames[-leng_tf:]
         if display:
             end_frame = time.time()
             list_time_per[t] = end_frame - start_frame
@@ -592,6 +610,16 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
     rowspad = math.ceil(Lx/8)*8
     colspad = math.ceil(Ly/8)*8
     dimspad = (rowspad, colspad)
+    
+    rowsnb = rowspad
+    colsnb = colspad
+    if 'win' in sys.platform.lower() and 'AMD' in get_cpu_info()['brand_raw'].upper():
+        # Avoid crashing
+        if rowspad % 256 == 0:
+            rowsnb = rowspad + 1
+        if colspad % 256 == 0:
+            colsnb = colspad + 1
+    dimsnb = (rowsnb, colsnb)
 
     Poisson_filt = Params_pre['Poisson_filt']
     gauss_filt_size = Params_pre['gauss_filt_size']
@@ -630,56 +658,56 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
     # Spatial filtering preparation
     if useSF==True:
         # lateral dimensions slightly larger than the raw video but faster for FFT
-        rows1 = cv2.getOptimalDFTSize(rowspad)
-        cols1 = cv2.getOptimalDFTSize(colspad)
+        rowsfft = cv2.getOptimalDFTSize(rowsnb)
+        colsfft = cv2.getOptimalDFTSize(colsnb)
         
         # if the learned 2D and 3D wisdom files have been saved, load them. 
         # Otherwise, learn wisdom later
-        Length_data2=str((rows1, cols1))
+        Length_data2=str((rowsfft, colsfft))
         cc2 = load_wisdom_txt('wisdom\\'+Length_data2)
         
-        Length_data3=str((frames_init, rows1, cols1))
+        Length_data3=str((frames_init, rowsfft, colsfft))
         cc3 = load_wisdom_txt('wisdom\\'+Length_data3)
         if cc3:
             pyfftw.import_wisdom(cc3)
 
         # mask for spatial filter
-        mask2 = plan_mask2(dims, (rows1, cols1), gauss_filt_size)
+        mask2 = plan_mask2(dims, (rowsfft, colsfft), gauss_filt_size)
         # FFT planning
-        (bb, bf, fft_object_b, fft_object_c) = plan_fft(frames_init, (rows1, cols1), prealloc)
+        (bb, bf, fft_object_b, fft_object_c) = plan_fft(frames_init, (rowsfft, colsfft), prealloc)
     else:
+        bb=np.zeros((frames_init, rowsnb, colsnb), dtype='float32')
         (mask2, bf, fft_object_b, fft_object_c) = (None, None, None, None)
-        bb=np.zeros((frames_init, rowspad, colspad), dtype='float32')
 
     # Temporal filtering preparation
     frames_initf = frames_init - leng_tf + 1
     if useTF==True:
         if prealloc:
             # past frames stored for temporal filtering
-            past_frames = np.ones((leng_past, rowspad, colspad), dtype='float32')
+            past_frames = np.ones((leng_past, rowsnb, colsnb), dtype='float32')
         else:
-            past_frames = np.zeros((leng_past, rowspad, colspad), dtype='float32')
+            past_frames = np.zeros((leng_past, rowsnb, colsnb), dtype='float32')
     else:
         past_frames = None
     
     if prealloc: # Pre-allocate memory for some future variables
-        med_frame2 = np.ones((rowspad, colspad, 2), dtype='float32')
-        video_input = np.ones((frames_initf, rowspad, colspad), dtype='float32')        
+        med_frame2 = np.ones((rowsnb, colsnb, 2), dtype='float32')
+        video_input = np.ones((frames_initf, rowsnb, colsnb), dtype='float32')        
         pmaps_b_init = np.ones((frames_initf, Lx, Ly), dtype='uint8')        
-        frame_SNR = np.ones(dimspad, dtype='float32')
+        frame_SNR = np.ones(dimsnb, dtype='float32')
         pmaps_b = np.ones(dims, dtype='uint8')
         if update_baseline:
-            video_tf_past = np.ones((frames_init, rowspad, colspad), dtype='float32')        
-            video_tf_past_fix = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
+            video_tf_past = np.ones((frames_init, rowsnb, colsnb), dtype='float32')        
+            video_tf_past_fix = np.zeros((frames_init, rowsnb, colsnb), dtype='float32')        
     else:
-        med_frame2 = np.zeros((rowspad, colspad, 2), dtype='float32')
-        video_input = np.zeros((frames_initf, rowspad, colspad), dtype='float32')        
+        med_frame2 = np.zeros((rowsnb, colsnb, 2), dtype='float32')
+        video_input = np.zeros((frames_initf, rowsnb, colsnb), dtype='float32')        
         pmaps_b_init = np.zeros((frames_initf, Lx, Ly), dtype='uint8')        
-        frame_SNR = np.zeros(dimspad, dtype='float32')
+        frame_SNR = np.zeros(dimsnb, dtype='float32')
         pmaps_b = np.zeros(dims, dtype='uint8')
         if update_baseline:
-            video_tf_past = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
-            video_tf_past_fix = np.zeros((frames_init, rowspad, colspad), dtype='float32')        
+            video_tf_past = np.zeros((frames_init, rowsnb, colsnb), dtype='float32')        
+            video_tf_past_fix = np.zeros((frames_init, rowsnb, colsnb), dtype='float32')        
 
     if display:
         time_init = time.time()
@@ -688,11 +716,11 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
     if update_baseline: # Set the parameters for median update
         distri_update = False
         if useSF: # If spatial filtering is used, the padded rows and columns are nonzero
-            Lu2 = colspad
+            Lu2 = colsnb
         else: # If spatial filtering is not used, we can ignore the padded rows and columns
             Lu2 = Ly
         Lu1 = int(np.round(frames_initf / Lu2))
-        px_update = int(np.ceil(rowspad / Lu1))
+        px_update = int(np.ceil(rowsnb / Lu1))
         Lu = Lu1 * Lu2
         start_update = frames_initf + frames_init
         med_frame2_update = np.ones((px_update, 1, 2), dtype='float32')
@@ -716,7 +744,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
     if display:
         start_init = time.time()
     med_frame3, segs_all, recent_frames = init_online(
-        bb, dims, video_input, pmaps_b_init, fff, thresh_pmap_float, Params_post, \
+        bb, dims, dimsnb, video_input, pmaps_b_init, fff, thresh_pmap_float, Params_post, \
         med_frame2, mask2, bf, fft_object_b, fft_object_c, Poisson_filt, \
         useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
         useWT=useWT, batch_size_init=batch_size_init, p=p)
@@ -760,10 +788,10 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
     if useSF:
         if cc2:
             pyfftw.import_wisdom(cc2)
-        (bb, bf, fft_object_b, fft_object_c) = plan_fft2((rows1, cols1))
+        (bb, bf, fft_object_b, fft_object_c) = plan_fft2((rowsfft, colsfft))
     else:
         (bf, fft_object_b, fft_object_c) = (None, None, None)
-        bb=np.zeros(dimspad, dtype='float32')
+        bb=np.zeros(dimsnb, dtype='float32')
     if update_baseline:
         med_frame3_temp = np.zeros_like(med_frame3)
 
@@ -781,10 +809,16 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
         bb[:, Ly:] = 0
 
         # PreProcessing
-        frame_SNR, frame_tf = preprocess_online(bb, dimspad, med_frame3, frame_SNR, \
-            past_frames[current_frame-leng_tf:current_frame], mask2, bf, fft_object_b, fft_object_c, \
-            Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR, \
-            med_subtract=med_subtract, update_baseline=update_baseline)
+        if useTF:
+            frame_SNR, frame_tf = preprocess_online(bb, dimspad, dimsnb, med_frame3, frame_SNR, \
+                past_frames[current_frame-leng_tf:current_frame], mask2, bf, fft_object_b, fft_object_c, \
+                Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR, \
+                med_subtract=med_subtract, update_baseline=update_baseline)
+        else:
+            frame_SNR, frame_tf = preprocess_online(bb, dimspad, dimsnb, med_frame3, frame_SNR, \
+                None, mask2, bf, fft_object_b, fft_object_c, \
+                Poisson_filt, useSF=useSF, useTF=useTF, useSNR=useSNR, \
+                med_subtract=med_subtract, update_baseline=update_baseline)
 
         if update_baseline:
             t_past = (t-frames_initf) % frames_init
@@ -796,7 +830,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
                 nu2 = nu % Lu1
                 med_frame3_temp[:, nu2*px_update:(nu2+1)*px_update, nu1:nu1+1] = median_calculation(
                     video_tf_past_fix[:, nu2*px_update:(nu2+1)*px_update, nu1:nu1+1], \
-                    med_frame2_update, (px_update,1), 1, display=False)
+                    med_frame2_update, 1, display=False)
                 if nu == Lu-1: # update the baseline, noise, and buffer of recent frames
                     med_frame3 = med_frame3_temp.copy()
                     (video_tf_past_fix, video_tf_past) = (video_tf_past, video_tf_past_fix)
@@ -805,7 +839,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
                 (video_tf_past_fix, video_tf_past) = (video_tf_past, video_tf_past_fix)
 
         # CNN inference
-        frame_prob = CNN_online(frame_SNR, fff, dims)
+        frame_prob = CNN_online(frame_SNR[:rowspad, :colspad], fff, dims)
 
         # first step of post-processing
         segs = separate_neuron_online(frame_prob, pmaps_b, thresh_pmap_float, minArea, avgArea, useWT)
@@ -929,11 +963,12 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
             ind_cons = ind_cons_new
             t_merge += merge_every
 
-        current_frame +=1
-        # Update the stored latest frames when it runs out: move them "leng_tf" ahead
-        if current_frame > leng_past:
-            current_frame = leng_tf+1
-            past_frames[:leng_tf] = past_frames[-leng_tf:]
+        if useTF:
+            current_frame +=1
+            # Update the stored latest frames when it runs out: move them "leng_tf" ahead
+            if current_frame > leng_past:
+                current_frame = leng_tf+1
+                past_frames[:leng_tf] = past_frames[-leng_tf:]
         if display:
             end_frame = time.time()
             list_time_per[t] = end_frame - start_frame

@@ -25,9 +25,9 @@ end
 
 list_spikes=cell(ncells,1);
 F0=median(traces_raw,2);
-if min(F0)<=0
-    warning('Please input raw trace rather than df/f or SNR');
-end
+% if min(F0)<=0
+%     warning('Please input raw trace rather than df/f or SNR');
+% end
 sigma = median(abs(traces_raw-F0),2)/(sqrt(2)*erfinv(1/2)); 
 d=(traces_raw-F0)./sigma; % SNR trace
 

@@ -21,3 +21,4 @@ dependencies:
     - fissa==0.7.2
     - pyfftw
     - tensorflow-estimator==1.15.1
+    - py-cpuinfo

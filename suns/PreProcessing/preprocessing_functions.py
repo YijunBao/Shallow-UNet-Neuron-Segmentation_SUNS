@@ -10,6 +10,7 @@ import h5py
 import os
 from scipy.io import loadmat
 import sys
+from cpuinfo import get_cpu_info
 
 from suns.PreProcessing.par1 import fastexp, fastmask, fastlog, \
     fastconv, fastquant, fastnormf, fastnormback, fastmediansubtract
@@ -155,14 +156,13 @@ def temporal_filtering(bb, network_input, Poisson_filt=np.array([1]), display=Fa
         print('temporal filtering: {} s'.format(endtempfilt-start))
 
 
-def median_calculation(network_input, med_frame2=None, dims=None, median_decimate=1, display=True):
+def median_calculation(network_input, med_frame2=None, median_decimate=1, display=True):
     '''Calculate the median and median-based standard deviation of a video.
 
     Inputs: 
         network_input (numpy.ndarray of float32): the input video. 
         med_frame2 (3D empty numpy.ndarray of float32, default to None): 
             empty array to store the median and median-based standard deviation.
-        dims (tuple of int, shape = (2,), default to None): lateral dimension of the video
         median_decimate (int, default to 1): Median and median-based standard deviation are 
             calculate from every "median_decimate" frames of the video
         display (bool, default to True): Indicator of whether display the timing information
@@ -172,15 +172,12 @@ def median_calculation(network_input, med_frame2=None, dims=None, median_decimat
     '''
     if display:
         start = time.time()
-    if dims:
-        (rows, cols) = dims
-    else:
-        (_, rows, cols) = network_input.shape
+    (_, rows, cols) = network_input.shape
     if med_frame2 is None:
         med_frame2 = np.zeros(rows, cols, 2, dtype='float32')
 
-    result = np.copy(network_input[::median_decimate, :rows, :cols].transpose([1, 2, 0]))
-    fastquant(result, np.array([0.5, 0.25], dtype='float32'), med_frame2)
+    result = np.copy(network_input[::median_decimate].transpose([1, 2, 0]))
+    fastquant(result[:rows, :cols, :], np.array([0.5, 0.25], dtype='float32'), med_frame2[:rows, :cols, :])
     # med_frame2[:, :, 0] stores the median
     
     # Noise is estimated using median-based standard deviation calculated from 
@@ -200,6 +197,7 @@ def median_calculation(network_input, med_frame2=None, dims=None, median_decimat
 
     # med_frame2[:, :, 1] stores the median-based standard deviation
     med_frame2[:, :, 1] = np.reciprocal(temp_noise).astype('float32')
+    # med_frame3 = med_frame2.transpose([2,0,1])
     med_frame3 = np.copy(med_frame2.transpose([2,0,1])) # Using copy to avoid computer crashing
     if display:
         endmedtime = time.time()
@@ -208,61 +206,57 @@ def median_calculation(network_input, med_frame2=None, dims=None, median_decimat
     return med_frame3
 
 
-def median_calculation_nopar(network_input, med_frame2=None, dims=None, median_decimate=1, display=True):
-    '''Calculate the median and median-based standard deviation of a video.
-        Does not use parallel computation
+# def median_calculation_nopar(network_input, med_frame2=None, median_decimate=1, display=True):
+#     '''Calculate the median and median-based standard deviation of a video.
+#         Does not use parallel computation
 
-    Inputs: 
-        network_input (numpy.ndarray of float32): the input video. 
-        med_frame2 (3D empty numpy.ndarray of float32, default to None): 
-            empty array to store the median and median-based standard deviation.
-        dims (tuple of int, shape = (2,), default to None): lateral dimension of the video
-        median_decimate (int, default to 1): Median and median-based standard deviation are 
-            calculate from every "median_decimate" frames of the video
-        display (bool, default to True): Indicator of whether display the timing information
+#     Inputs: 
+#         network_input (numpy.ndarray of float32): the input video. 
+#         med_frame2 (3D empty numpy.ndarray of float32, default to None): 
+#             empty array to store the median and median-based standard deviation.
+#         median_decimate (int, default to 1): Median and median-based standard deviation are 
+#             calculate from every "median_decimate" frames of the video
+#         display (bool, default to True): Indicator of whether display the timing information
 
-    Outputs:
-        med_frame3 (3D numpy.ndarray of float32): the median and median-based standard deviation.
-    '''
-    if display:
-        start = time.time()
-    if dims:
-        (rows, cols) = dims
-    else:
-        (_, rows, cols) = network_input.shape
-    if med_frame2 is None:
-        med_frame2 = np.zeros(rows, cols, 2, dtype='float32')
+#     Outputs:
+#         med_frame3 (3D numpy.ndarray of float32): the median and median-based standard deviation.
+#     '''
+#     if display:
+#         start = time.time()
+#     (_, rows, cols) = network_input.shape
+#     if med_frame2 is None:
+#         med_frame2 = np.zeros(rows, cols, 2, dtype='float32')
 
-    result = np.copy(network_input[::median_decimate, :rows, :cols].transpose([1, 2, 0]))
-    med_frame2 = np.quantile(result, np.array([0.5, 0.25], dtype='float32'), axis=-1).transpose([1, 2, 0])
-    # med_frame2[:, :, 0] stores the median
+#     result = np.copy(network_input[::median_decimate].transpose([1, 2, 0]))
+#     med_frame2 = np.quantile(result, np.array([0.5, 0.25], dtype='float32'), axis=-1).transpose([1, 2, 0])
+#     # med_frame2[:, :, 0] stores the median
     
-    # Noise is estimated using median-based standard deviation calculated from 
-    # the difference bwtween 0.5 quantile and 0.25 quantile
-    temp_noise = (med_frame2[:, :, 0]-med_frame2[:, :, 1])/(math.sqrt(2)*special.erfinv(0.5))
-    zeronoise = (temp_noise==0)
-    # if the calculated temp_noise is 0 at some pixels, replace the median-based standard deviation 
-    # with conventional stantard deviation
-    if np.any(zeronoise):
-        [x0, y0] = zeronoise.nonzero()
-        for (x,y) in zip(x0, y0):
-            new_noise = np.std(network_input[:, x, y])
-            if new_noise>0:
-                temp_noise[x, y] = new_noise
-            else:
-                temp_noise[x, y] = np.inf
+#     # Noise is estimated using median-based standard deviation calculated from 
+#     # the difference bwtween 0.5 quantile and 0.25 quantile
+#     temp_noise = (med_frame2[:rows, :cols, 0]-med_frame2[:rows, :cols, 1])/(math.sqrt(2)*special.erfinv(0.5))
+#     zeronoise = (temp_noise==0)
+#     # if the calculated temp_noise is 0 at some pixels, replace the median-based standard deviation 
+#     # with conventional stantard deviation
+#     if np.any(zeronoise):
+#         [x0, y0] = zeronoise.nonzero()
+#         for (x,y) in zip(x0, y0):
+#             new_noise = np.std(network_input[:, x, y])
+#             if new_noise>0:
+#                 temp_noise[x, y] = new_noise
+#             else:
+#                 temp_noise[x, y] = np.inf
 
-    # med_frame2[:, :, 1] stores the median-based standard deviation
-    med_frame2[:, :, 1] = np.reciprocal(temp_noise).astype('float32')
-    med_frame3 = np.copy(med_frame2.transpose([2,0,1])) # Using copy to avoid computer crashing
-    if display:
-        endmedtime = time.time()
-        print('median computation: {} s'.format(endmedtime - start))
+#     # med_frame2[:, :, 1] stores the median-based standard deviation
+#     med_frame2[:rows, :cols, 1] = np.reciprocal(temp_noise).astype('float32')
+#     med_frame3 = np.copy(med_frame2.transpose([2,0,1])) # Using copy to avoid computer crashing
+#     if display:
+#         endmedtime = time.time()
+#         print('median computation: {} s'.format(endmedtime - start))
 
-    return med_frame3
+#     return med_frame3
 
 
-def SNR_normalization(network_input, med_frame2=None, dims=None, median_decimate=1, display=True):
+def SNR_normalization(network_input, med_frame2=None, median_decimate=1, display=True):
     '''Normalize the video to be an SNR video.
         network_input(t,x,y) = (network_input(t,x,y) - median(x,y)) / (median_based_standard_deviation(x,y)).
 
@@ -270,7 +264,6 @@ def SNR_normalization(network_input, med_frame2=None, dims=None, median_decimate
         network_input (numpy.ndarray of float32): the input video. 
         med_frame2 (3D empty numpy.ndarray of float32, default to None): 
             empty array to store the median and median-based standard deviation.
-        dims (tuple of int, shape = (2,), default to None): lateral dimension of the video
         median_decimate (int, default to 1): Median and median-based standard deviation are 
             calculate from every "median_decimate" frames of the video
         display (bool, default to True): Indicator of whether display the timing information
@@ -281,20 +274,17 @@ def SNR_normalization(network_input, med_frame2=None, dims=None, median_decimate
     '''
     if display:
         start = time.time()
-    if dims:
-        (rows, cols) = dims
-    else:
-        (_, rows, cols) = network_input.shape
+    (_, rows, cols) = network_input.shape
     if med_frame2 is None:
         med_frame2 = np.zeros(rows, cols, 2, dtype='float32')
 
-    result = np.copy(network_input[::median_decimate, :rows, :cols].transpose([1, 2, 0]))
-    fastquant(result, np.array([0.5, 0.25], dtype='float32'), med_frame2)
+    result = np.copy(network_input[::median_decimate].transpose([1, 2, 0]))
+    fastquant(result[:rows, :cols, :], np.array([0.5, 0.25], dtype='float32'), med_frame2[:rows, :cols, :])
     # med_frame2[:, :, 0] stores the median
     
     # Noise is estimated using median-based standard deviation calculated from 
     # the difference bwtween 0.5 quantile and 0.25 quantile
-    temp_noise = (med_frame2[:, :, 0]-med_frame2[:, :, 1])/(math.sqrt(2)*special.erfinv(0.5))
+    temp_noise = (med_frame2[:rows, :cols, 0]-med_frame2[:rows, :cols, 1])/(math.sqrt(2)*special.erfinv(0.5))
     zeronoise = (temp_noise==0)
     # if the calculated temp_noise is 0 at some pixels, replace the median-based standard deviation 
     # with conventional stantard deviation
@@ -308,20 +298,21 @@ def SNR_normalization(network_input, med_frame2=None, dims=None, median_decimate
                 temp_noise[x, y] = np.inf
 
     # med_frame2[:, :, 1] stores the median-based standard deviation
-    med_frame2[:, :, 1] = np.reciprocal(temp_noise).astype('float32')
+    med_frame2[:rows, :cols, 1] = np.reciprocal(temp_noise).astype('float32')
+    # med_frame3 = med_frame2.transpose([2,0,1])
     med_frame3 = np.copy(med_frame2.transpose([2,0,1])) # Using copy to avoid computer crashing
     if display:
         endmedtime = time.time()
         print('median computation: {} s'.format(endmedtime - start))
 
-    fastnormf(network_input[:, :rows, :cols], med_frame3)
+    fastnormf(network_input, med_frame3)
     if display:
         endnormtime = time.time()
         print('normalization: {} s'.format(endnormtime - endmedtime))
     return med_frame3
 
 
-def median_normalization(network_input, med_frame2=None, dims=None, median_decimate=1, display=True):
+def median_normalization(network_input, med_frame2=None, median_decimate=1, display=True):
     '''Normalize the video by dividing to its temporal median.
         network_input(t,x,y) = network_input(t,x,y) / mean(median(x,y)).
 
@@ -329,7 +320,6 @@ def median_normalization(network_input, med_frame2=None, dims=None, median_decim
         network_input (numpy.ndarray of float32, shape = (T,Lx,Ly)): the input video. 
         med_frame2 (3D empty numpy.ndarray of float32, default to None): 
             empty array to store the median.
-        dims (tuple of int, shape = (2,), default to None): lateral dimension of the video
         median_decimate (int, default to 1): Median is 
             calculate from every "median_decimate" frames of the video
         display (bool, default to True): Indicator of whether display the timing information
@@ -340,21 +330,19 @@ def median_normalization(network_input, med_frame2=None, dims=None, median_decim
     '''
     if display:
         start = time.time()
-    if dims:
-        (rows, cols) = dims
-    else:
-        (_, rows, cols) = network_input.shape
+    (_, rows, cols) = network_input.shape
     if med_frame2 is None:
         med_frame2 = np.zeros(rows, cols, 2, dtype='float32')
 
-    result = np.copy(network_input[::median_decimate, :rows, :cols].transpose([1, 2, 0]))
-    fastquant(result, np.array([0.5], dtype='float32'), med_frame2[:,:,0:1])
+    result = np.copy(network_input[::median_decimate].transpose([1, 2, 0]))
+    fastquant(result[:rows, :cols, :], np.array([0.5], dtype='float32'), med_frame2[:rows, :cols,0:1])
     # med_frame2[:, :, 0] stores the median
     if display:
         endmedtime = time.time()
         print('median computation: {} s'.format(endmedtime - start))
 
-    fastnormback(network_input[:, :rows, :cols], max(1, med_frame2[:,:,0].mean()))
+    fastnormback(network_input[:, :rows, :cols], max(1, med_frame2[:rows, :cols, 0].mean()))
+    # med_frame3 = med_frame2.transpose([2,0,1])
     med_frame3 = np.copy(med_frame2.transpose([2,0,1])) # Using copy to avoid computer crashing
     if display:
         endnormtime = time.time()
@@ -362,7 +350,7 @@ def median_normalization(network_input, med_frame2=None, dims=None, median_decim
     return med_frame3
     
 
-def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisson_filt=np.array([1]), mask2=None, \
+def preprocess_complete(bb, dimspad, dimsnb, network_input=None, med_frame2=None, Poisson_filt=np.array([1]), mask2=None, \
         bf=None, fft_object_b=None, fft_object_c=None, median_decimate=1, \
         useSF=False, useTF=True, useSNR=True, med_subtract=False, prealloc=True, display=False):
     '''Pre-process the input video "bb" into an SNR video "network_input".
@@ -371,7 +359,8 @@ def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisso
 
     Inputs: 
         bb (3D numpy.ndarray of float32, shape = (T0,Lx0f,Ly0f)): array storing the raw video.
-        dimspad (tuplel of int, shape = (2,)): lateral dimension of the padded images.
+        dimspad (tuplel of int, shape = (2,)): lateral dimension of the padded images to be multiples of 8.
+        dimsnb (tuplel of int, shape = (2,)): lateral dimension of the padded images for numba calculation in pre-processing.
         network_input (3D empty numpy.ndarray of float32, shape = (T,Lx,Ly)): empty array to store the SNR video.
         med_frame2 (3D empty numpy.ndarray of float32, default to None): 
             empty array to store the median and median-based standard deviation.
@@ -393,7 +382,9 @@ def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisso
         network_input (3D numpy.ndarray of float32): the SNR video.
         med_frame3 (3D numpy.ndarray of float32): the median and median-based standard deviation.
     '''
+
     (rowspad, colspad) = dimspad
+    (rowsnb, colsnb) = dimsnb
     
     if useSF: # Homomorphic spatial filtering based on FFT
         spatial_filtering(bb, bf, fft_object_b, fft_object_c, mask2, display=display)
@@ -401,17 +392,17 @@ def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisso
     #     del bf
 
     if useTF: # Temporal filtering
-        # temporal_filtering(bb[:, :rowspad, :colspad], network_input, Poisson_filt, display=display)
+        temporal_filtering(bb[:, :rowspad, :colspad], network_input[:, :rowspad, :colspad], Poisson_filt, display=display)
         # use copy() to enhance the stability when the lateral size of bb is 512.
-        temporal_filtering(bb[:, :rowspad, :colspad].copy(), network_input, Poisson_filt, display=display)
+        # temporal_filtering(bb[:, :rowsnb, :colsnb].copy(), network_input, Poisson_filt, display=display)
     else:
-        network_input = bb[:, :rowspad, :colspad]
+        network_input = bb[:, :rowsnb, :colsnb]
 
     if med_subtract and not useSF: # Subtract every frame with its median.
         if display:
             start = time.time()
         temp = np.zeros(network_input.shape[:2], dtype = 'float32')
-        fastmediansubtract(network_input, temp, 2)
+        fastmediansubtract(network_input[:, :rowspad, :colspad], temp[:, :rowspad], 2)
         if display:
             endmedsubtr = time.time()
             print('median subtraction: {} s'.format(endmedsubtr-start))
@@ -419,10 +410,10 @@ def preprocess_complete(bb, dimspad, network_input=None, med_frame2=None, Poisso
     # Median computation and normalization
     if useSNR:
         med_frame3 = SNR_normalization(
-            network_input, med_frame2, (rowspad, colspad), median_decimate, display=display)
+            network_input[:, :rowspad, :colspad], med_frame2, median_decimate, display=display)
     else:
         med_frame3 = median_normalization(
-            network_input, med_frame2, (rowspad, colspad), median_decimate, display=display)
+            network_input[:, :rowspad, :colspad], med_frame2, median_decimate, display=display)
 
     return network_input, med_frame3
 
@@ -474,6 +465,7 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     # Make the lateral number of pixels a multiple of 8, so that the CNN can process them 
     rowspad = math.ceil(rows/8)*8 
     colspad = math.ceil(cols/8)*8
+    dimspad = (rowspad, colspad)
     # Only keep the first "nn" frames to process
     if 'nn' in Params.keys():
         nn = Params['nn']
@@ -481,35 +473,42 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     else:
         nn = nframes
     
+    rowsnb = rowspad
+    colsnb = colspad
+    if 'win' in sys.platform.lower() and 'AMD' in get_cpu_info()['brand_raw'].upper():
+        # Avoid crashing
+        if rowspad % 256 == 0:
+            rowsnb = rowspad + 1
+        if colspad % 256 == 0:
+            colsnb = colspad + 1
+    dimsnb = (rowsnb, colsnb)
+
     if useSF:
         # lateral dimensions slightly larger than the raw video but faster for FFT
-        rows1 = cv2.getOptimalDFTSize(rows)
-        cols1 = cv2.getOptimalDFTSize(cols)
+        rowsfft = cv2.getOptimalDFTSize(rowsnb)
+        colsfft = cv2.getOptimalDFTSize(colsnb)
 
         if display:
-            print(rows, cols, nn, '->', rows1, cols1, nn)
+            print(rows, cols, nn, '->', rowsfft, colsfft, nn)
             start_plan = time.time()
         # if the learned wisdom files have been saved, load them. Otherwise, learn wisdom later
-        Length_data=str((nn, rows1, cols1))
+        Length_data=str((nn, rowsfft, colsfft))
         cc = load_wisdom_txt('wisdom\\'+Length_data)
         if cc:
             pyfftw.import_wisdom(cc)
 
         # FFT planning
-        bb, bf, fft_object_b, fft_object_c = plan_fft(nn, (rows1, cols1), prealloc)
+        bb, bf, fft_object_b, fft_object_c = plan_fft(nn, (rowsfft, colsfft), prealloc)
         if display:
             end_plan = time.time()
             print('FFT planning: {} s'.format(end_plan - start_plan))
 
         # %% Initialization: Calculate the spatial filter and set variables.
-        mask2 = plan_mask2((rows, cols), (rows1, cols1), gauss_filt_size)
+        mask2 = plan_mask2((rows, cols), (rowsfft, colsfft), gauss_filt_size)
     else:
-        bb=np.zeros((nframes, rowspad, colspad), dtype='float32')
-        fft_object_b = None
-        fft_object_c = None
-        bf = None
+        bb=np.zeros((nframes, rowsnb, colsnb), dtype='float32')
+        (mask2, bf, fft_object_b, fft_object_c) = (None, None, None, None)
         end_plan = time.time()
-        mask2 = None
 
     # %% Initialization: Set variables.
     if useTF:
@@ -518,11 +517,11 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     else:
         nframesf = nframes
     if prealloc:
-        network_input = np.ones((nframesf, rowspad, colspad), dtype='float32')
-        med_frame2 = np.ones((rowspad, colspad, 2), dtype='float32')
+        network_input = np.ones((nframesf, rowsnb, colsnb), dtype='float32')
+        med_frame2 = np.ones((rowsnb, colsnb, 2), dtype='float32')
     else:
-        network_input = np.zeros((nframesf, rowspad, colspad), dtype='float32')
-        med_frame2 = np.zeros((rowspad, colspad, 2), dtype='float32')
+        network_input = np.zeros((nframesf, rowsnb, colsnb), dtype='float32')
+        med_frame2 = np.zeros((rowsnb, colsnb, 2), dtype='float32')
     median_decimate = max(1,nframes//num_median_approx)
     if display:
         end_init = time.time()
@@ -537,8 +536,9 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
         print('data loading: {} s'.format(end_load - end_init))
 
     start = time.time() # The pipline starts after the video is loaded into memory
-    network_input, _ = preprocess_complete(bb, (rowspad,colspad), network_input, med_frame2, Poisson_filt, mask2, \
+    network_input, _ = preprocess_complete(bb, dimspad, dimsnb, network_input, med_frame2, Poisson_filt, mask2, \
         bf, fft_object_b, fft_object_c, median_decimate, useSF, useTF, useSNR, med_subtract, prealloc, display)
+    network_input = network_input[:, :rowspad, :colspad]
 
     if display:
         end = time.time()

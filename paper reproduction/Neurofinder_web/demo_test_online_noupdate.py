@@ -66,7 +66,7 @@ if __name__ == '__main__':
         useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
         med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
             # Can only be used when spatial filtering is not used. 
-        update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
+        update_baseline=False # True if the median and median-based std is updated every "frames_init" frames.
         prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
                 # Achieve faster speed at the cost of higher memory occupation.
         batch_size_init = 100 # batch size in CNN inference during initalization
@@ -78,7 +78,7 @@ if __name__ == '__main__':
 
 
         dir_parent = os.path.join(dir_video, 'noTF') # folder to save all the processed data
-        dir_output = os.path.join(dir_parent, 'output_masks online') # folder to save the segmented masks and the performance scores
+        dir_output = os.path.join(dir_parent, 'output_masks online no_update') # folder to save the segmented masks and the performance scores
         dir_params = os.path.join(dir_parent, 'output_masks') # folder of the optimized hyper-parameters
         weights_path = os.path.join(dir_parent, 'Weights') # folder of the trained CNN
         if not os.path.exists(dir_output):

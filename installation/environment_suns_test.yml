@@ -364,4 +364,5 @@ dependencies:
     # - tensorflow-gpu==1.13.2
     - tensorflow==1.15.0
     - tensorflow-gpu==1.15.0
+    - py-cpuinfo
 prefix: C:\ProgramData\Anaconda3

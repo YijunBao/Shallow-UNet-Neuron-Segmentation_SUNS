@@ -1,15 +1,17 @@
-@REM REM Prepare for FFT-based spatial filtering.
-@REM REM This is not needed in the demo, 
-@REM REM because the demo does not use spatial filtering.
-@REM python demo_learn_wisdom.py
-@REM python demo_learn_wisdom_2d.py
+python complete_noCNN_post.py
+python demo_test_batch_noCNN.py
+python complete_noCNN_post_copy.py
+python demo_test_batch_noCNN_copy.py
+REM python demo_train_CNN_params_noSNR.py
+REM python demo_train_CNN_params.py
+REM python demo_test_batch.py
+REM python demo_test_online.py
+REM python demo_test_online_noupdate.py
+REM python demo_test_online_track.py
+python demo_test_online_track_noupdate.py
 
-REM Training pipeline
-python demo_train_CNN_params.py
+REM python demo_test_batch_test.py
+REM python demo_test_online_test.py
+REM python demo_test_online_track_test.py
 
-REM Run SUNS batch
-python demo_test_batch.py
-REM Run SUNS online
-python demo_test_online.py
-REM Run SUNS online with tracking
-python demo_test_online_track.py
+python "C:\Matlab Files\timer\timer_stop.py"
