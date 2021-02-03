@@ -20,7 +20,8 @@ from suns.Online.functions_online import merge_2, merge_2_nocons, merge_complete
     preprocess_online, CNN_online, separate_neuron_online, refine_seperate_cons_online, final_merge
 from suns.Online.functions_init import init_online, plan_fft2
 from suns.PreProcessing.preprocessing_functions import preprocess_video, \
-    plan_fft, plan_mask2, load_wisdom_txt, SNR_normalization, median_normalization, median_calculation #, 
+    plan_fft, plan_mask2, load_wisdom_txt, export_wisdom_txt, \
+    SNR_normalization, median_normalization, median_calculation #, 
 # from suns.Online.preprocessing_functions_online import preprocess_video_online
 from suns.Network.shallow_unet import get_shallow_unet
 from suns.PostProcessing.par3 import fastthreshold
@@ -285,12 +286,18 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
         Length_data3=str((frames_init, rowsfft, colsfft))
         cc3 = load_wisdom_txt('wisdom\\'+Length_data3)
         if cc3:
+            export = False
             pyfftw.import_wisdom(cc3)
+        else:
+            export = True
 
         # mask for spatial filter
         mask2 = plan_mask2(dims, (rowsfft, colsfft), gauss_filt_size)
         # FFT planning
         (bb, bf, fft_object_b, fft_object_c) = plan_fft(frames_init, (rowsfft, colsfft), prealloc)
+        if export:
+            cc = pyfftw.export_wisdom()
+            export_wisdom_txt(cc, 'wisdom\\'+Length_data3)
     else:
         bb=np.zeros((frames_init, rowsnb, colsnb), dtype='float32')
         (mask2, bf, fft_object_b, fft_object_c) = (None, None, None, None)
@@ -383,8 +390,14 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
     # Attention: this part counts to the total time
     if useSF:
         if cc2:
+            export = False
             pyfftw.import_wisdom(cc2)
+        else:
+            export = True
         (bb, bf, fft_object_b, fft_object_c) = plan_fft2((rowsfft, colsfft))
+        if export:
+            cc2 = pyfftw.export_wisdom()
+            export_wisdom_txt(cc2, 'wisdom\\'+Length_data2)
     else:
         (bf, fft_object_b, fft_object_c) = (None, None, None)
         bb=np.zeros(dimsnb, dtype='float32')
@@ -669,12 +682,18 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
         Length_data3=str((frames_init, rowsfft, colsfft))
         cc3 = load_wisdom_txt('wisdom\\'+Length_data3)
         if cc3:
+            export = False
             pyfftw.import_wisdom(cc3)
+        else:
+            export = True
 
         # mask for spatial filter
         mask2 = plan_mask2(dims, (rowsfft, colsfft), gauss_filt_size)
         # FFT planning
         (bb, bf, fft_object_b, fft_object_c) = plan_fft(frames_init, (rowsfft, colsfft), prealloc)
+        if export:
+            cc = pyfftw.export_wisdom()
+            export_wisdom_txt(cc, 'wisdom\\'+Length_data3)
     else:
         bb=np.zeros((frames_init, rowsnb, colsnb), dtype='float32')
         (mask2, bf, fft_object_b, fft_object_c) = (None, None, None, None)
@@ -787,8 +806,14 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
     # Attention: this part counts to the total time
     if useSF:
         if cc2:
+            export = False
             pyfftw.import_wisdom(cc2)
+        else:
+            export = True
         (bb, bf, fft_object_b, fft_object_c) = plan_fft2((rowsfft, colsfft))
+        if export:
+            cc2 = pyfftw.export_wisdom()
+            export_wisdom_txt(cc2, 'wisdom\\'+Length_data2)
     else:
         (bf, fft_object_b, fft_object_c) = (None, None, None)
         bb=np.zeros(dimsnb, dtype='float32')

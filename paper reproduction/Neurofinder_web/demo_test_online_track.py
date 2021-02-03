@@ -35,7 +35,7 @@ if __name__ == '__main__':
     list_rate_hz = [7, 7.5, 8, 7.5, 6.75, 3]
     list_px_um = [1/1.15, 1/0.8, 1/1.15, 1.17, 0.8, 1.25]
 
-    for ind_set in [0,1,2,3,4,5]: # [4]: # 
+    for ind_set in [3,4]: # [0,1,2,3,4,5]:# 
         # %% set video parameters
         list_Exp_ID = list_Exp_ID_full[ind_set]
         rate_hz = list_rate_hz[ind_set] # frame rate of the video
@@ -63,7 +63,7 @@ if __name__ == '__main__':
         # %% Set processing options
         useSF=True # True if spatial filtering is used in pre-processing.
         useTF=False # True if temporal filtering is used in pre-processing.
-        useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
+        useSNR=False # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
         med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
             # Can only be used when spatial filtering is not used. 
         update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
@@ -76,8 +76,8 @@ if __name__ == '__main__':
         #-------------- End user-defined parameters --------------#
 
 
-        dir_parent = os.path.join(dir_video, 'noTF') # folder to save all the processed data
-        dir_output = os.path.join(dir_parent, 'output_masks track') # folder to save the segmented masks and the performance scores
+        dir_parent = os.path.join(dir_video, 'complete') # folder to save all the processed data
+        dir_output = os.path.join(dir_parent, 'output_masks wisdom') # folder to save the segmented masks and the performance scores
         dir_params = os.path.join(dir_parent, 'output_masks') # folder of the optimized hyper-parameters
         weights_path = os.path.join(dir_parent, 'Weights') # folder of the trained CNN
         if not os.path.exists(dir_output):

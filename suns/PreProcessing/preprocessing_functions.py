@@ -40,6 +40,26 @@ def load_wisdom_txt(dir_wisdom):
     return cc
 
 
+def export_wisdom_txt(cc, dir_wisdom):
+    '''Export the learned wisdom files. This speeds up FFT planing
+
+    Inputs: 
+        cc: learned wisdom. Return None if the files do not exist.
+        dir_wisdom (dir): the folder of the saved wisdom files.
+
+    Outputs: None
+    '''
+    file = open(dir_wisdom+'x1.txt', "wb")
+    file.write(cc[0])
+    file.close
+    file = open(dir_wisdom+'x2.txt', "wb")
+    file.write(cc[1])
+    file.close
+    file = open(dir_wisdom+'x3.txt', "wb")
+    file.write(cc[2])
+    file.close()
+
+
 def plan_fft(frames_init, dims1, prealloc=True):
     '''Plan FFT for pyfftw for a 3D video.
 
@@ -495,10 +515,17 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
         Length_data=str((nn, rowsfft, colsfft))
         cc = load_wisdom_txt('wisdom\\'+Length_data)
         if cc:
+            export = False
             pyfftw.import_wisdom(cc)
+        else:
+            export = True
 
         # FFT planning
         bb, bf, fft_object_b, fft_object_c = plan_fft(nn, (rowsfft, colsfft), prealloc)
+        if export:
+            cc = pyfftw.export_wisdom()
+            export_wisdom_txt(cc, 'wisdom\\'+Length_data)
+
         if display:
             end_plan = time.time()
             print('FFT planning: {} s'.format(end_plan - start_plan))
