@@ -42,15 +42,15 @@ list_Tables = cell(num_list,1);
     thresh_IOU_all, thresh_consume_all, cons_all, win_avg_all] = deal(zeros(num_list,1));
 Table_max = zeros(num_list,3);
 
-for lid = [0,4,5]+1 % 1:num_list
+for lid = 1:num_list % [0,4,5]+1 % 
     list_Exp_ID = list_list_Exp_ID{lid};
     % folder of the raw video
     dir_video=['E:\NeuroFinder\web\train videos\',list_Exp_ID{1}(1:2),'\'];
     % folder of the GT Masks
-    dir_optim_info=fullfile(dir_video,'complete 512\output_masks');
-    dir_output=fullfile(dir_video,'complete 512\output_masks track 540'); %  track no_update
+    dir_optim_info=fullfile(dir_video,'complete\output_masks');
+    dir_output=fullfile(dir_video,'complete\output_masks'); %  track no_update
 
-    load(fullfile(dir_output,'Output_Info_All.mat'));
+    load(fullfile(dir_output,'Output_Info_All_offical.mat'));
     Table_time=[list_Recall, list_Precision, list_F1, list_time, list_time_frame];
     Table_time_ext=[Table_time;nanmean(Table_time,1);nanstd(Table_time,1,1)];
     list_Tables{lid} = Table_time_ext;
@@ -67,15 +67,15 @@ for lid = [0,4,5]+1 % 1:num_list
     Table_max(lid,:) = Table(indmax,end-2:end);
 end
 % list_Tables = cell2mat(list_Tables);
-for lid = [1,2,3]+1 % 1:num_list
-    list_Tables{lid} = zeros(3,9);
-end
+% for lid = [1,2,3]+1 % 1:num_list
+%     list_Tables{lid} = zeros(3,9);
+% end
 
 list_Tables_summary = cell2mat(cellfun(@(x) x(end-1,1:3), list_Tables,'UniformOutput',false));
 list_time_summary = cell2mat(cellfun(@(x) x(end-1,end), list_Tables,'UniformOutput',false));
 
 Params_all=[minArea_all, avgArea_all, thresh_pmap_all, thresh_COM_all, ...
     cons_all, list_Tables_summary, Table_max, list_time_summary]; %, Time_frame_all
-Params_all = Params_all([1,5,6],:);
+% Params_all = Params_all([1,5,6],:);
 Params_all_ext=[Params_all;nanmean(Params_all,1);nanstd(Params_all,1,1)]; %([1,2,4:10],:)
 disp(Params_all_ext(end-1,end-6:end-4))
