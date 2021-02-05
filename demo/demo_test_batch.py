@@ -118,10 +118,12 @@ if __name__ == '__main__':
             'cons':Params_post_mat['cons'][0][0,0]}
 
         # The entire process of SUNS batch
-        Masks, Masks_2, time_total, time_frame = suns_batch(
+        Masks, Masks_2, times_active, time_total, time_frame = suns_batch(
             dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, batch_size_eval, \
             useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
             useWT=useWT, prealloc=prealloc, display=display, p=p)
+        savemat(os.path.join(dir_output, 'Output_Masks_{}.mat'.format(Exp_ID)), \
+            {'Masks':Masks, 'times_active':times_active}, do_compression=True)
 
         # %% Evaluation of the segmentation accuracy compared to manual ground truth
         filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
@@ -129,7 +131,6 @@ if __name__ == '__main__':
         GTMasks_2 = data_GT['GTMasks_2'].transpose().astype('bool')
         (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
         print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-        savemat(os.path.join(dir_output, 'Output_Masks_{}.mat'.format(Exp_ID)), {'Masks':Masks}, do_compression=True)
 
         # %% Save recall, precision, F1, total processing time, and average processing time per frame
         list_Recall[CV] = Recall

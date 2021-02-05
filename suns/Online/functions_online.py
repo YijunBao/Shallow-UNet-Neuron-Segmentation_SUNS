@@ -196,25 +196,25 @@ def select_cons(tuple_final):
     return Masksb_final
 
 
-def select_cons_output(tuple_final):
-    '''Select the segmented masks that satisfy consecutive frame requirement.
-        The output is the binary masks of the neurons that satisfy the requirement.
+# def select_cons_output(tuple_final):
+#     '''Select the segmented masks that satisfy consecutive frame requirement.
+#         The output is the binary masks of the neurons that satisfy the requirement.
 
-    Inputs: 
-        tuple_final (tuple, shape = (5,)):  Segmented masks with statistics.
+#     Inputs: 
+#         tuple_final (tuple, shape = (5,)):  Segmented masks with statistics.
 
-    Outputs:
-        Masksb_final(sparse.csc_matrix of bool): 2D representation of the segmented binary masks.
-        times_final (list of 1D numpy.ndarray of int): indices of frames when each neuron is active.
-    '''
-    Masksb_final, _, times_final, _, have_cons = tuple_final
-    if np.any(have_cons):
-        Masksb_final = [el for (bl,el) in zip(have_cons,Masksb_final) if bl]
-        times_final = [el for (bl,el) in zip(have_cons,times_final) if bl]
-    else:
-        Masksb_final = sparse.csc_matrix((0,Masksb_final[0].shape[1]), dtype='bool')
-        times_final = sparse.csc_matrix((0,times_final[0].shape[1]), dtype='bool')
-    return Masksb_final, times_final
+#     Outputs:
+#         Masksb_final(sparse.csc_matrix of bool): 2D representation of the segmented binary masks.
+#         times_final (list of 1D numpy.ndarray of int): indices of frames when each neuron is active.
+#     '''
+#     Masksb_final, _, times_final, _, have_cons = tuple_final
+#     if np.any(have_cons):
+#         Masksb_final = [el for (bl,el) in zip(have_cons,Masksb_final) if bl]
+#         times_final = [el for (bl,el) in zip(have_cons,times_final) if bl]
+#     else:
+#         Masksb_final = sparse.csc_matrix((0,Masksb_final[0].shape[1]), dtype='bool')
+#         times_final = sparse.csc_matrix((0,times_final[0].shape[1]), dtype='bool')
+#     return Masksb_final, times_final
 
 
 def merge_complete(segs, dims, Params):
@@ -541,13 +541,13 @@ def merge_2_nocons(tuple1, tuple2, dims, Params):
 
 
 def final_merge(tuple_temp, Params):
-    '''Merge newly segmented masks to previously segmented masks
-        that do not satisfy consecutive frame requirement.
-        The output are the merged neuron masks and their statistics 
-        (acitve frame indices, areas, whether satisfy consecutive activation).
+    '''An extra round of merging at the end of online processing,
+        to merge all previously detected neurons according their to IoU and consume ratio, like in batch mode.
+        The output are "Masks_2b", a 2D sparse matrix of the final segmented neurons,
+        and "times_cons", a list of indices of frames when the final neuron is active.
 
     Inputs: 
-        tuple_temp (tuple, shape = (5,)): Segmented masks with statistics for the previous frames.
+        tuple_temp (tuple, shape = (5,)): Segmented masks with statistics.
         Params (dict): Parameters for post-processing.
             Params['thresh_mask']: Threashold to binarize the real-number mask.
             Params['thresh_IOU']: Threshold of IOU used for merging neurons.
@@ -556,17 +556,8 @@ def final_merge(tuple_temp, Params):
             Params['avgArea']: The typical neuron area (unit: pixels).
 
     Outputs:
-        Masksb_merge (list of sparse.csr_matrix of bool, shape = (1,Lx*Ly)): 
-            2D representation of each segmented binary mask.
-        masks_merge (list of sparse.csr_matrix of float32, shape = (1,Lx*Ly)): 
-            2D representation of each segmented real-number mask.
-        times_merge (list of 1D numpy.ndarray of int): 
-            indices of frames when each neuron is active.
-        area_merge (1D numpy.ndarray of float32): areas of each mask.
-        have_cons_merge (1D numpy.ndarray of bool): 
-            indices of whether each neuron satisfy consecutive frame requirement.
-        The above outputs are often grouped into a tuple (shape = (5,)): 
-            Segmented masks with statistics after update.
+        Masks_2b (sparse.csr_matrix of bool): the final segmented binary neuron masks after consecutive refinement. 
+        times_cons (list of 1D numpy.array): indices of frames when the final neuron is active.
     '''
     _, masks, times, _, _ = tuple_temp
     if len(masks)==0: # If no masks is found, the output is tuple_temp
@@ -582,6 +573,6 @@ def final_merge(tuple_temp, Params):
 
     masks_1, times_1 = piece_neurons_IOU(masks, thresh_mask, thresh_IOU, times)
     masks_final_2, times_final = piece_neurons_consume(masks_1, avgArea, thresh_mask, thresh_consume, times_1)
-    Masks_2b = refine_seperate(masks_final_2, times_final, cons, thresh_mask)
+    Masks_2b, times_final = refine_seperate(masks_final_2, times_final, cons, thresh_mask)
 
-    return Masks_2b #, times_final
+    return Masks_2b, times_final

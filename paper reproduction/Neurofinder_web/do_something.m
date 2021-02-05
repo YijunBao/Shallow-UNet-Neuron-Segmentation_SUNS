@@ -47,8 +47,8 @@ for lid = 1:num_list % [0,4,5]+1 %
     % folder of the raw video
     dir_video=['E:\NeuroFinder\web\train videos\',list_Exp_ID{1}(1:2),'\'];
     % folder of the GT Masks
-    dir_optim_info=fullfile(dir_video,'complete\output_masks');
-    dir_output=fullfile(dir_video,'complete\output_masks'); %  track no_update
+    dir_optim_info=fullfile(dir_video,'noSF\trial 2\output_masks');
+    dir_output=fullfile(dir_video,'noSF\trial 2\output_masks online'); %  track no_update
 
     load(fullfile(dir_output,'Output_Info_All_offical.mat'));
     Table_time=[list_Recall, list_Precision, list_F1, list_time, list_time_frame];

@@ -29,7 +29,7 @@ if __name__ == '__main__':
         list_Exp_ID = list_Exp_ID_full[ind_set]
         dir_origin = 'E:\\NeuroFinder\\train videos\\neurofinder.'
         dir_video = 'E:\\NeuroFinder\\web\\train videos\\' + list_Exp_ID[0][:2]
-        dir_output = dir_video + '\\complete\\output_masks\\'
+        dir_output = dir_video + '\\noSF\\trial 1\\output_masks track\\'
 
         nvideo = len(list_Exp_ID)
         list_CV = list(range(0,nvideo))

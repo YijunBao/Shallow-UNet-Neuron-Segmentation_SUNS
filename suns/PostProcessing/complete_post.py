@@ -8,7 +8,7 @@ import multiprocessing as mp
 
 from suns.PostProcessing.seperate_neurons import watershed_neurons, separate_neuron
 from suns.PostProcessing.combine import segs_results, unique_neurons2_simp, group_neurons, piece_neurons_IOU, piece_neurons_consume
-from suns.PostProcessing.refine_cons import refine_seperate, refine_seperate_output, refine_seperate_multi
+from suns.PostProcessing.refine_cons import refine_seperate, refine_seperate_multi
 
 
 # %%
@@ -20,7 +20,8 @@ def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, d
         uses optional watershed (if useWT=True) to further segment regions larger than Params['avgArea'],
         merge the regions from different frames with close COM, large IoU, or large consume ratio,
         and finally selects masks that are active for at least Params['cons'] frames. 
-        The output is "Masks_2", a 2D sparse matrix of the final segmented neurons.
+        The output are "Masks_2", a 2D sparse matrix of the final segmented neurons,
+        and "times_cons", a list of indices of frames when the final neuron is active.
 
     Inputs: 
         pmaps (3D numpy.ndarray of uint8, shape = (nframes,Lx,Ly)): the probability map obtained after CNN inference.
@@ -44,6 +45,7 @@ def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, d
 
     Outputs:
         Masks_2 (sparse.csr_matrix of bool): the final segmented binary neuron masks after consecutive refinement. 
+        times_cons (list of 1D numpy.array): indices of frames when the final neuron is active.
     '''
     dims=pmaps.shape
     (nframes, Lx, Ly) = dims
@@ -118,127 +120,7 @@ def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, d
             
         # Refine neurons using consecutive occurence requirement
         start = time.time()
-        Masks_2 = refine_seperate(masks_final_2, times_final, cons, thresh_mask)
-        end_all = time.time()
-        if display:
-            print('{:25s}: Used {:9.6f} s, {:9.6f} ms/frame, '\
-                .format('refine_seperate', end_all - start, (end_all - start) / nframes * 1000),\
-                    '{:6d} segmented neurons.'.format(len(times_final)))
-            print('{:25s}: Used {:9.6f} s, {:9.6f} ms/frame, '\
-                .format('Total time', end_all - start_all, (end_all - start_all) / nframes * 1000),\
-                    '{:6d} segmented neurons.'.format(len(times_final)))
-
-    return Masks_2 # times_final
-
-
-# %%
-def complete_segment_output(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, display=False, p=None):
-    '''Complete post-processing procedure. 
-        This can be run after or before probablity thresholding, depending on whether Params['thresh_pmap'] is None.
-        It first thresholds the "pmaps" (if Params['thresh_pmap'] is not None) into binary array, 
-        then seperates the active pixels into connected regions, disgards regions smaller than Params['minArea'], 
-        uses optional watershed (if useWT=True) to further segment regions larger than Params['avgArea'],
-        merge the regions from different frames with close COM, large IoU, or large consume ratio,
-        and finally selects masks that are active for at least Params['cons'] frames. 
-        The output is "Masks_2", a 2D sparse matrix of the final segmented neurons.
-
-    Inputs: 
-        pmaps (3D numpy.ndarray of uint8, shape = (nframes,Lx,Ly)): the probability map obtained after CNN inference.
-            If Params['thresh_pmap']==None, pmaps must be previously thresholded.
-        Params (dict): Parameters for post-processing.
-            Params['minArea']: Minimum area of a valid neuron mask (unit: pixels).
-            Params['avgArea']: The typical neuron area (unit: pixels).
-            Params['thresh_pmap']: The probablity threshold. Values higher than thresh_pmap are active pixels. 
-                if Params['thresh_pmap']==None, then thresholding is not performed. 
-                This is used when thresholding is done before this function.
-            Params['thresh_mask']: Threashold to binarize the real-number mask.
-            Params['thresh_COM0']: Threshold of COM distance (unit: pixels) used for the first COM-based merging. 
-            Params['thresh_COM']: Threshold of COM distance (unit: pixels) used for the second COM-based merging. 
-            Params['thresh_IOU']: Threshold of IOU used for merging neurons.
-            Params['thresh_consume']: Threshold of consume ratio used for merging neurons.
-            Params['cons']: Minimum number of consecutive frames that a neuron should be active for.
-        useMP (bool, defaut to True): indicator of whether multiprocessing is used to speed up. 
-        useWT (bool, default to False): Indicator of whether watershed is used. 
-        display (bool, default to False): Indicator of whether to show intermediate information
-        p (multiprocessing.Pool, default to None): 
-
-    Outputs:
-        Masks_2 (sparse.csr_matrix of bool): the final segmented binary neuron masks after consecutive refinement. 
-    '''
-    dims=pmaps.shape
-    (nframes, Lx, Ly) = dims
-    minArea = Params['minArea']
-    avgArea = Params['avgArea']
-    thresh_pmap = Params['thresh_pmap']
-    thresh_mask = Params['thresh_mask']
-    thresh_COM0 = Params['thresh_COM0']
-    thresh_COM = Params['thresh_COM']
-    thresh_IOU = Params['thresh_IOU']
-    thresh_consume = Params['thresh_consume']
-    cons = Params['cons']
-    start_all = time.time()
-
-    # Segment neuron masks from each frame of probability map 
-    start = time.time()
-    if useMP:
-        segs = p.starmap(separate_neuron, [(frame, thresh_pmap, minArea, avgArea, useWT) for frame in pmaps], chunksize=1)
-    else:
-        segs =[separate_neuron(frame, thresh_pmap, minArea, avgArea, useWT) for frame in pmaps]
-    end = time.time()
-    num_neurons = sum([x[1].size for x in segs])
-    if display:
-        print('{:25s}: Used {:9.6f} s, {:9.6f} ms/frame, '\
-            .format('separate Neurons', end-start,(end-start)/nframes*1000),
-                '{:6d} segmented neurons.'.format(num_neurons))
-
-    if num_neurons==0:
-        print('No masks found. Please lower minArea or thresh_pmap.')
-        Masks_2 = sparse.csc_matrix((0,Lx*Ly), dtype='bool')
-    else: # find active neurons
-        start = time.time()
-        # Initally merge neurons with close COM.
-        totalmasks, neuronstate, COMs, areas, probmapID = segs_results(segs)
-        uniques, times_uniques = unique_neurons2_simp(totalmasks, neuronstate, COMs, \
-            areas, probmapID, minArea=0, thresh_COM0=thresh_COM0)
-        end_unique = time.time()
-        if display:
-            print('{:25s}: Used {:9.6f} s, {:9.6f} ms/frame, '\
-                .format('unique_neurons1', end_unique - start, (end_unique - start) / nframes * 1000),\
-                    '{:6d} segmented neurons.'.format(len(times_uniques)))
-
-        # Further merge neurons with close COM.
-        groupedneurons, times_groupedneurons = \
-            group_neurons(uniques, thresh_COM, thresh_mask, (dims[1], dims[2]), times_uniques)
-        end_COM = time.time()
-        if display:
-            print('{:25s}: Used {:9.6f} s, {:9.6f} ms/frame, '\
-                .format('group_neurons', end_COM - end_unique, (end_COM - end_unique) / nframes * 1000),\
-                    '{:6d} segmented neurons.'.format(len(times_groupedneurons)))
-
-        # Merge neurons with high IoU.
-        piecedneurons_1, times_piecedneurons_1 = \
-            piece_neurons_IOU(groupedneurons, thresh_mask, thresh_IOU, times_groupedneurons)
-        end_IOU = time.time()
-        if display:
-            print('{:25s}: Used {:9.6f} s, {:9.6f} ms/frame, '\
-                .format('piece_neurons_IOU', end_IOU - end_COM, (end_IOU - end_COM) / nframes * 1000),\
-                    '{:6d} segmented neurons.'.format(len(times_piecedneurons_1)))
-
-        # Merge neurons with high consume ratio.
-        piecedneurons, times_piecedneurons = \
-            piece_neurons_consume(piecedneurons_1, avgArea, thresh_mask, thresh_consume, times_piecedneurons_1)
-        end_consume = time.time()
-        if display:
-            print('{:25s}: Used {:9.6f} s, {:9.6f} ms/frame, '\
-                .format('piece_neurons_consume', end_consume - end_IOU, (end_consume - end_IOU) / nframes * 1000),\
-                    '{:6d} segmented neurons.'.format(len(times_piecedneurons)))
-
-        masks_final_2 = piecedneurons
-        times_final = [np.unique(x) for x in times_piecedneurons]
-            
-        # Refine neurons using consecutive occurence requirement
-        start = time.time()
-        Masks_2, times_cons = refine_seperate_output(masks_final_2, times_final, cons, thresh_mask)
+        Masks_2, times_cons = refine_seperate(masks_final_2, times_final, cons, thresh_mask)
         end_all = time.time()
         if display:
             print('{:25s}: Used {:9.6f} s, {:9.6f} ms/frame, '\

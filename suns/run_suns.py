@@ -76,6 +76,7 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, \
     Outputs:
         Masks (3D numpy.ndarray of bool, shape = (n,Lx0,Ly0)): the final segmented masks. 
         Masks_2 (scipy.csr_matrix of bool, shape = (n,Lx0*Ly0)): the final segmented masks in the form of sparse matrix. 
+        times_active (list of 1D numpy.array): indices of frames when the final neuron is active.
         time_total (list of float, shape = (4,)): the total time spent 
             for pre-processing, CNN inference, post-processing, and total processing
         time_frame (list of float, shape = (4,)): the average time spent on every frame
@@ -135,7 +136,7 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, \
     fastthreshold(prob_map, pmaps_b, thresh_pmap_float)
 
     # the rest of post-processing. The result is a 2D sparse matrix of the segmented neurons
-    Masks_2 = complete_segment(pmaps_b, Params_post_copy, display=display, p=p, useWT=useWT)
+    Masks_2, times_active = complete_segment(pmaps_b, Params_post_copy, display=display, p=p, useWT=useWT)
     if display:
         finish = time.time()
         time_post = finish-end_network
@@ -156,7 +157,7 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, \
         time_total = np.zeros((4,))
         time_frame = np.zeros((4,))
 
-    return Masks, Masks_2, time_total, time_frame
+    return Masks, Masks_2, times_active, time_total, time_frame
 
 
 def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
@@ -210,6 +211,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
     Outputs:
         Masks (3D numpy.ndarray of bool, shape = (n,Lx0,Ly0)): the final segmented masks. 
         Masks_2 (scipy.csr_matrix of bool, shape = (n,Lx0*Ly0)): the final segmented masks in the form of sparse matrix. 
+        times_active (list of 1D numpy.array): indices of frames when the final neuron is active.
         time_total (list of float, shape = (3,)): the total time spent 
             for initalization, online processing, and total processing
         time_frame (list of float, shape = (3,)): the average time spent on every frame
@@ -525,14 +527,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
         if t % 1000 == 0:
             print('{} frames have been processed'.format(t))
 
-    Masks_2 = final_merge(tuple_temp, Params_post)
-    # if not show_intermediate:
-    #     Masks_2 = select_cons(tuple_temp)
-    # # final result. Masks_2 is a 2D sparse matrix of the segmented neurons
-    # if len(Masks_2):
-    #     Masks_2 = sparse.vstack(Masks_2)
-    # else:
-    #     Masks_2 = sparse.csc_matrix((0,dims[0]*dims[1]))
+    Masks_2, times_active = final_merge(tuple_temp, Params_post)
 
     if display:
         end_online = time.time()
@@ -554,7 +549,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
 
     # convert to a 3D array of the segmented neurons
     Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly)).astype('bool')
-    return Masks, Masks_2, time_total, time_frame, list_time_per
+    return Masks, Masks_2, times_active, time_total, time_frame, list_time_per
 
 
 def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
@@ -606,6 +601,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
     Outputs:
         Masks (3D numpy.ndarray of bool, shape = (n,Lx0,Ly0)): the final segmented masks. 
         Masks_2 (scipy.csr_matrix of bool, shape = (n,Lx0*Ly0)): the final segmented masks in the form of sparse matrix. 
+        times_active (list of 1D numpy.array): indices of frames when the final neuron is active.
         time_total (list of float, shape = (3,)): the total time spent 
             for initalization, online processing, and total processing
         time_frame (list of float, shape = (3,)): the average time spent on every frame
@@ -1000,13 +996,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
         if t % 1000 == 0:
             print('{} frames have been processed'.format(t))
 
-    Masks_2 = final_merge(tuple_temp, Params_post)
-    # Masks_cons = select_cons(tuple_temp)
-    # # final result. Masks_2 is a 2D sparse matrix of the segmented neurons
-    # if len(Masks_cons):
-    #     Masks_2 = sparse.vstack(Masks_cons)
-    # else:
-    #     Masks_2 = sparse.csc_matrix((0,dims[0]*dims[1]))
+    Masks_2, times_active = final_merge(tuple_temp, Params_post)
 
     if display:
         end_online = time.time()
@@ -1028,4 +1018,4 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
 
     # convert to a 3D array of the segmented neurons
     Masks = np.reshape(Masks_2.toarray(), (Masks_2.shape[0], Lx, Ly)).astype('bool')
-    return Masks, Masks_2, time_total, time_frame, list_time_per # , times_temp
+    return Masks, Masks_2, times_active, time_total, time_frame, list_time_per

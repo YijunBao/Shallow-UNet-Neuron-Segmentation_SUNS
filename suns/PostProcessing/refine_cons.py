@@ -7,7 +7,8 @@ from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
 
 def refine_seperate(masks_final_2, times_final, cons=1, thresh_mask=0.5, ThreshJ=0.5):
     '''Refine segmented neurons by requiring them to be active for "cons" consecutive frames.
-        The output is "Masks_2", a 2D sparse matrix of the final segmented neurons.
+        The output are "Masks_2", a 2D sparse matrix of the final segmented neurons, 
+        and "times_cons", a list of indices of frames when the final neuron is active.
 
     Inputs: 
         masks_final_2 (sparse.csr_matrix of float32): the segmented neuron masks. 
@@ -19,44 +20,7 @@ def refine_seperate(masks_final_2, times_final, cons=1, thresh_mask=0.5, ThreshJ
 
     Outputs:
         Masks_2 (sparse.csr_matrix of bool): the final segmented binary neuron masks after consecutive refinement. 
-    '''
-    num_masks=len(times_final)
-    if num_masks:
-        if cons>1:
-            have_cons=np.zeros(num_masks, dtype='bool')
-            for kk in range(num_masks):
-                times_diff1 = times_final[kk][cons-1:] - times_final[kk][:1-cons]
-                # indicators of whether the neuron was active for "cons" frames
-                have_cons[kk] = np.any(times_diff1==cons-1) 
-            if np.any(have_cons):
-                masks_select_2 = masks_final_2[have_cons]
-                Masks_2 = sparse.vstack([x >= x.max() * thresh_mask for x in masks_select_2])
-            else:
-                print('No masks found. Please lower cons.')
-                Masks_2 = sparse.csc_matrix((0,masks_final_2.shape[1]), dtype='bool')
-        else:
-            masks_select_2 = masks_final_2
-            Masks_2 = sparse.vstack([x >= x.max() * thresh_mask for x in masks_select_2])
-    else:
-        Masks_2 = sparse.csc_matrix((0,masks_final_2.shape[1]), dtype='bool')
-
-    return Masks_2
-
-
-def refine_seperate_output(masks_final_2, times_final, cons=1, thresh_mask=0.5, ThreshJ=0.5):
-    '''Refine segmented neurons by requiring them to be active for "cons" consecutive frames.
-        The output is "Masks_2", a 2D sparse matrix of the final segmented neurons.
-
-    Inputs: 
-        masks_final_2 (sparse.csr_matrix of float32): the segmented neuron masks. 
-        times_final (list of 1D numpy.array): indices of frames when the neuron is active.
-        cons (int, default to 1): Minimum number of consecutive frames that a neuron should be active for.
-        thresh_mask (float between 0 and 1, default to 0.5): Threashold to binarize the real-number mask.
-            values higher than "thresh_mask" times the maximum value are set to be True.
-        ThreshJ (float between 0 and 1, default to 0.5): Threshold Jaccard distance for two neurons to match.
-
-    Outputs:
-        Masks_2 (sparse.csr_matrix of bool): the final segmented binary neuron masks after consecutive refinement. 
+        times_cons (list of 1D numpy.array): indices of frames when the final neuron is active.
     '''
     num_masks=len(times_final)
     if num_masks:

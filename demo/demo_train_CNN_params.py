@@ -206,5 +206,5 @@ if __name__ == '__main__':
 
     # %% parameter optimization
     parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
-        (rows, cols), (rowspad, colspad), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
+        (rows, cols), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
         batch_size_eval, useWT=useWT, useMP=useMP, load_exist=load_exist)
