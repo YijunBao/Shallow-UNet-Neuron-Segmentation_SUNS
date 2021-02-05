@@ -572,7 +572,7 @@ def final_merge(tuple_temp, Params):
     masks = sparse.vstack(masks)
 
     masks_1, times_1 = piece_neurons_IOU(masks, thresh_mask, thresh_IOU, times)
-    masks_final_2, times_final = piece_neurons_consume(masks_1, avgArea, thresh_mask, thresh_consume, times_1)
-    Masks_2b, times_final = refine_seperate(masks_final_2, times_final, cons, thresh_mask)
+    masks_final_2, times_2 = piece_neurons_consume(masks_1, avgArea, thresh_mask, thresh_consume, times_1)
+    Masks_2b, times_final = refine_seperate(masks_final_2, times_2, cons, thresh_mask)
 
     return Masks_2b, times_final

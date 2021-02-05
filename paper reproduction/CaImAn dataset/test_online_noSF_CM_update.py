@@ -33,7 +33,7 @@ if __name__ == '__main__':
     useSF=False # True if spatial filtering is used in pre-processing.
     useTF=True # True if temporal filtering is used in pre-processing.
     useSNR=True # True if pixel-by-pixel SNR normalization filtering is used in pre-processing.
-    med_subtract=True # True if the spatial median of every frame is subtracted before temporal filtering.
+    med_subtract=False # True if the spatial median of every frame is subtracted before temporal filtering.
         # Can only be used when spatial filtering is not used. 
     update_baseline=True # True if the median and median-based std is updated every "frames_init" frames.
     prealloc=True # True if pre-allocate memory space for large variables in pre-processing. 
@@ -57,9 +57,9 @@ if __name__ == '__main__':
         frames_init = 30 * rate_hz # number of frames used for initialization
         batch_size_init = 100 # batch size in CNN inference during initalization
 
-        dir_parent = dir_video + 'noSF_subtract\\' # folder to save all the processed data
-        dir_sub = dir_sub = '1skip\\'
-        dir_output = dir_parent + dir_sub + 'output_masks online update\\' # folder to save the segmented masks and the performance scores
+        dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
+        dir_sub = ''
+        dir_output = dir_parent + dir_sub + 'output_masks online update new\\' # folder to save the segmented masks and the performance scores
         dir_params = dir_parent + dir_sub + 'output_masks\\' # folder of the optimized hyper-parameters
         weights_path = dir_parent + dir_sub + 'Weights\\' # folder of the trained CNN
         if not os.path.exists(dir_output):
@@ -115,9 +115,9 @@ if __name__ == '__main__':
                 'cons':Params_post_mat['cons'][0][0,0]}
 
             # The entire process of SUNS online
-            Masks, Masks_2, time_total, time_frame, _ = suns_online(
+            Masks, Masks_2, times_active, time_total, time_frame, _ = suns_online(
                 filename_video, filename_CNN, Params_pre, Params_post, \
-                dims, frames_init, merge_every, batch_size_init, \
+                frames_init, merge_every, batch_size_init, \
                 useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
                 update_baseline=update_baseline, useWT=useWT, \
                 show_intermediate=show_intermediate, prealloc=prealloc, display=display, p=p)

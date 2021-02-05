@@ -32,16 +32,19 @@ def refine_seperate(masks_final_2, times_final, cons=1, thresh_mask=0.5, ThreshJ
                 have_cons[kk] = np.any(times_diff1==cons-1) 
             if np.any(have_cons):
                 masks_select_2 = masks_final_2[have_cons]
-                times_cons = [x for (c,x) in zip(have_cons,times_final) if c]
                 Masks_2 = sparse.vstack([x >= x.max() * thresh_mask for x in masks_select_2])
+                times_cons = [x for (c,x) in zip(have_cons,times_final) if c]
             else:
                 print('No masks found. Please lower cons.')
                 Masks_2 = sparse.csc_matrix((0,masks_final_2.shape[1]), dtype='bool')
+                times_cons = []
         else:
             masks_select_2 = masks_final_2
             Masks_2 = sparse.vstack([x >= x.max() * thresh_mask for x in masks_select_2])
+            times_cons = times_final
     else:
         Masks_2 = sparse.csc_matrix((0,masks_final_2.shape[1]), dtype='bool')
+        times_cons = times_final
 
     return Masks_2, times_cons
 

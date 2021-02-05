@@ -77,8 +77,8 @@ if __name__ == '__main__':
         #-------------- End user-defined parameters --------------#
 
 
-        dir_parent = os.path.join(dir_video, 'noSF\\trial 2') # folder to save all the processed data
-        dir_parent_train = os.path.join(dir_train, 'noSF\\trial 2') # folder to save all the processed data
+        dir_parent = os.path.join(dir_video, 'noSF\\trial 1') # folder to save all the processed data
+        dir_parent_train = os.path.join(dir_train, 'noSF\\trial 1') # folder to save all the processed data
         dir_output = os.path.join(dir_parent, 'output_masks track') # folder to save the segmented masks and the performance scores
         dir_params = os.path.join(dir_parent_train, 'output_masks') # folder of the optimized hyper-parameters
         weights_path = os.path.join(dir_parent_train, 'Weights') # folder of the trained CNN
