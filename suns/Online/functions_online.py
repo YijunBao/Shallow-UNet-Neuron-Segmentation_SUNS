@@ -196,27 +196,6 @@ def select_cons(tuple_final):
     return Masksb_final
 
 
-# def select_cons_output(tuple_final):
-#     '''Select the segmented masks that satisfy consecutive frame requirement.
-#         The output is the binary masks of the neurons that satisfy the requirement.
-
-#     Inputs: 
-#         tuple_final (tuple, shape = (5,)):  Segmented masks with statistics.
-
-#     Outputs:
-#         Masksb_final(sparse.csc_matrix of bool): 2D representation of the segmented binary masks.
-#         times_final (list of 1D numpy.ndarray of int): indices of frames when each neuron is active.
-#     '''
-#     Masksb_final, _, times_final, _, have_cons = tuple_final
-#     if np.any(have_cons):
-#         Masksb_final = [el for (bl,el) in zip(have_cons,Masksb_final) if bl]
-#         times_final = [el for (bl,el) in zip(have_cons,times_final) if bl]
-#     else:
-#         Masksb_final = sparse.csc_matrix((0,Masksb_final[0].shape[1]), dtype='bool')
-#         times_final = sparse.csc_matrix((0,times_final[0].shape[1]), dtype='bool')
-#     return Masksb_final, times_final
-
-
 def merge_complete(segs, dims, Params):
     '''Temporally merge segmented masks in a few frames.
         The output are the merged neuron masks and their statistics 
