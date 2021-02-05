@@ -84,7 +84,7 @@ def preprocess_online(bb, dimspad, dimsnb, med_frame3, frame_SNR=None, past_fram
 
     if useTF: # Temporal filtering
         past_frames[-1] = bb[:rowsnb, :colsnb]
-        fastconv_2(past_frames[:rowspad, :colspad], frame_SNR[:rowspad, :colspad], Poisson_filt)
+        fastconv_2(past_frames[:, :rowspad, :colspad], frame_SNR[:rowspad, :colspad], Poisson_filt)
     else:
         frame_SNR = bb[:rowsnb, :colsnb]
 
