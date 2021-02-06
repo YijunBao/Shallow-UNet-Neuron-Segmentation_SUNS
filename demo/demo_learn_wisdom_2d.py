@@ -8,7 +8,8 @@ import multiprocessing as mp
 ''' This script is used to learn 2D wistom used to speed up FFT-based spatial homomorphic filtering
     2D wistom is only used in SUNS online.
 '''
-dir_wisdom = 'wisdom'
+folder = 'train_3_test_1'
+dir_wisdom = os.path.join(folder, 'wisdom')
 if not os.path.exists(dir_wisdom):
     os.makedirs(dir_wisdom) 
 Dimens = (120,88) # lateral dimension of the video

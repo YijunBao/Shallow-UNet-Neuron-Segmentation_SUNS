@@ -14,7 +14,7 @@ import sys
 from suns.PreProcessing.par1 import fastexp, fastmask, fastlog, \
     fastconv, fastquant, fastnormf, fastnormback, fastmediansubtract
 from suns.PreProcessing.preprocessing_functions import load_wisdom_txt, \
-    plan_fft, plan_mask2, spatial_filtering, temporal_filtering
+    plan_fft, plan_mask2, spatial_filtering, temporal_filtering, find_dataset
 
 
 def median_std(result, med_frame2):
@@ -239,7 +239,8 @@ def preprocess_video_online(dir_video:str, Exp_ID:str, Params:dict, frames_init=
 
     Inputs: 
         dir_video (str): The folder containing the input video.
-            Each file must be a ".h5" file, with dataset "mov" being the input video (shape = (T0,Lx0,Ly0)).
+            Each file must be a ".h5" file.
+            The video dataset can have any name, but cannot be under any group.
         Exp_ID (str): The filer name of the input video. 
         Params (dict): Parameters for pre-processing.
             Params['gauss_filt_size'] (float): The standard deviation of the spatial Gaussian filter in pixels
@@ -276,7 +277,8 @@ def preprocess_video_online(dir_video:str, Exp_ID:str, Params:dict, frames_init=
 
     h5_video = os.path.join(dir_video, Exp_ID + '.h5')
     h5_file = h5py.File(h5_video,'r')
-    (nframes, rows, cols) = h5_file['mov'].shape
+    dset = find_dataset(h5_file)
+    (nframes, rows, cols) = h5_file[dset].shape
     # Make the lateral number of pixels a multiple of 8, so that the CNN can process them 
     rowspad = math.ceil(rows/8)*8 
     colspad = math.ceil(cols/8)*8
@@ -333,7 +335,7 @@ def preprocess_video_online(dir_video:str, Exp_ID:str, Params:dict, frames_init=
     
     # %% Load the raw video into "bb"
     for t in range(nframes): # use this one to save memory
-        bb[t, :rows, :cols] = np.array(h5_file['mov'][t])
+        bb[t, :rows, :cols] = np.array(h5_file[dset][t])
     h5_file.close()
     if display:
         end_load = time.time()

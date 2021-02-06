@@ -10,11 +10,11 @@ import h5py
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
 
-sys.path.insert(1, '..') # the path containing "suns" folder
+sys.path.insert(1, '../..') # the path containing "suns" folder
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
-from suns.PreProcessing.preprocessing_functions import preprocess_video
+from suns.PreProcessing.preprocessing_functions import preprocess_video, find_dataset
 from suns.PreProcessing.generate_masks import generate_masks
 from suns.train_CNN_params import train_CNN, parameter_optimization_cross_validation
 
@@ -32,7 +32,7 @@ if __name__ == '__main__':
     # file names of the ".h5" files storing the raw videos. 
     list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
     # folder of the raw videos
-    dir_video = 'data' 
+    dir_video = '../data' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
     dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
     
@@ -62,9 +62,10 @@ if __name__ == '__main__':
     # %% set pre-processing parameters
     gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
     num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
-    filename_TF_template = 'YST_spike_tempolate.h5' # File name storing the temporal filter kernel
+    filename_TF_template = '../YST_spike_tempolate.h5' # File name storing the temporal filter kernel
     h5f = h5py.File(filename_TF_template,'r')
     Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
+    h5f.close()
     Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
     Poisson_filt = Poisson_filt/Poisson_filt.sum()
     # # Alternative temporal filter kernel using a single exponential decay function
@@ -125,7 +126,8 @@ if __name__ == '__main__':
     for (eid,Exp_ID) in enumerate(list_Exp_ID):
         h5_video = os.path.join(dir_video, Exp_ID + '.h5')
         h5_file = h5py.File(h5_video,'r')
-        list_Dimens[eid] = h5_file['mov'].shape
+        dset = find_dataset(h5_file)
+        list_Dimens[eid] = h5_file[dset].shape
         h5_file.close()
 
     nframes = np.unique(list_Dimens[:,0])
@@ -161,48 +163,48 @@ if __name__ == '__main__':
     print(Params_set)
 
 
-    # pre-processing for training
-    for Exp_ID in list_Exp_ID: #
-        # %% Pre-process video
-        video_input, _ = preprocess_video(dir_video, Exp_ID, Params_pre, dir_network_input, \
-            useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, prealloc=prealloc) #
+    # # pre-processing for training
+    # for Exp_ID in list_Exp_ID: #
+    #     # %% Pre-process video
+    #     video_input, _ = preprocess_video(dir_video, Exp_ID, Params_pre, dir_network_input, \
+    #         useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, prealloc=prealloc) #
 
-        # %% Determine active neurons in all frames using FISSA
-        file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
-        generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
-        del video_input
+    #     # %% Determine active neurons in all frames using FISSA
+    #     file_mask = dir_GTMasks + Exp_ID + '.mat' # foldr to save the temporal masks
+    #     generate_masks(video_input, file_mask, list_thred_ratio, dir_parent, Exp_ID)
+    #     del video_input
 
-    # %% CNN training
-    if cross_validation == "use_all":
-        list_CV = [nvideo]
-    else: 
-        list_CV = list(range(0,nvideo))
-    for CV in list_CV:
-        if cross_validation == "leave_one_out":
-            list_Exp_ID_train = list_Exp_ID.copy()
-            list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
-        elif cross_validation == "train_1_test_rest":
-            list_Exp_ID_val = list_Exp_ID.copy()
-            list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
-        elif cross_validation == "use_all":
-            list_Exp_ID_val = None
-            list_Exp_ID_train = list_Exp_ID.copy() 
-        else:
-            raise('wrong "cross_validation"')
-        if not use_validation:
-            list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
-        file_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV))
-        results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
-            BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rowspad, colspad), Params_loss)
+    # # %% CNN training
+    # if cross_validation == "use_all":
+    #     list_CV = [nvideo]
+    # else: 
+    #     list_CV = list(range(0,nvideo))
+    # for CV in list_CV:
+    #     if cross_validation == "leave_one_out":
+    #         list_Exp_ID_train = list_Exp_ID.copy()
+    #         list_Exp_ID_val = [list_Exp_ID_train.pop(CV)]
+    #     elif cross_validation == "train_1_test_rest":
+    #         list_Exp_ID_val = list_Exp_ID.copy()
+    #         list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
+    #     elif cross_validation == "use_all":
+    #         list_Exp_ID_val = None
+    #         list_Exp_ID_train = list_Exp_ID.copy() 
+    #     else:
+    #         raise('wrong "cross_validation"')
+    #     if not use_validation:
+    #         list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
+    #     file_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV))
+    #     results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
+    #         BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rowspad, colspad), Params_loss)
 
-        # save training and validation loss after each eopch
-        f = h5py.File(os.path.join(training_output_path, "training_output_CV{}.h5".format(CV)), "w")
-        f.create_dataset("loss", data=results.history['loss'])
-        f.create_dataset("dice_loss", data=results.history['dice_loss'])
-        if use_validation:
-            f.create_dataset("val_loss", data=results.history['val_loss'])
-            f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
-        f.close()
+    #     # save training and validation loss after each eopch
+    #     f = h5py.File(os.path.join(training_output_path, "training_output_CV{}.h5".format(CV)), "w")
+    #     f.create_dataset("loss", data=results.history['loss'])
+    #     f.create_dataset("dice_loss", data=results.history['dice_loss'])
+    #     if use_validation:
+    #         f.create_dataset("val_loss", data=results.history['val_loss'])
+    #         f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
+    #     f.close()
 
     # %% parameter optimization
     parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \

@@ -7,7 +7,8 @@ import multiprocessing as mp
 
 ''' This script is used to learn wistom used to speed up FFT-based spatial homomorphic filtering
 '''
-dir_wisdom = 'wisdom'
+folder = 'train_3_test_1'
+dir_wisdom = os.path.join(folder, 'wisdom')
 if not os.path.exists(dir_wisdom):
     os.makedirs(dir_wisdom) 
 Dimens = (120,88) # lateral dimensions of the video

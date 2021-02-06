@@ -16,6 +16,32 @@ from suns.PreProcessing.par1 import fastexp, fastmask, fastlog, \
     fastconv, fastquant, fastnormf, fastnormback, fastmediansubtract
 
 
+def find_dataset(h5_file): 
+    '''Automatically find the dataset name in the h5 file containing the input movie.
+
+    Inputs: 
+        h5_file (h5py.File): the input h5 file containing the movie.
+
+    Outputs:
+        dset (str): the dataset name in the h5 file containing the input movie.
+    '''
+    list_dset = list(h5_file.keys())
+    num_dset = len(list_dset)
+    if num_dset == 1:
+        dset = list_dset[0]
+    else:
+        list_size = np.zeros(num_dset, dtype='uint64')
+        for (ind,dset) in enumerate(list_dset):
+            if isinstance(h5_file[dset], h5py.Dataset):
+                list_size[ind] = h5_file[dset].size
+        ind_dset = list_size.argmax()
+        if list_size[ind_dset] > 0:
+            dset = list_dset[ind_dset]
+        else:
+            raise(KeyError('Cannot find any dataset. Please do not put the movie under any group'))
+    return dset
+
+
 def load_wisdom_txt(dir_wisdom):
     '''Load the learned wisdom files. This speeds up FFT planing
 
@@ -373,7 +399,8 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
 
     Inputs: 
         dir_video (str): The folder containing the input video.
-            Each file must be a ".h5" file, with dataset "mov" being the input video (shape = (T0,Lx0,Ly0)).
+            Each file must be a ".h5" file.
+            The video dataset can have any name, but cannot be under any group.
         Exp_ID (str): The filer name of the input video. 
         Params (dict): Parameters for pre-processing.
             Params['gauss_filt_size'] (float): The standard deviation of the spatial Gaussian filter in pixels
@@ -406,7 +433,8 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
 
     h5_video = os.path.join(dir_video, Exp_ID + '.h5')
     h5_file = h5py.File(h5_video,'r')
-    (nframes, rows, cols) = h5_file['mov'].shape
+    dset = find_dataset(h5_file)
+    (nframes, rows, cols) = h5_file[dset].shape
     # Make the lateral number of pixels a multiple of 8, so that the CNN can process them 
     rowspad = math.ceil(rows/8)*8 
     colspad = math.ceil(cols/8)*8
@@ -481,7 +509,7 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     
     # %% Load the raw video into "bb"
     for t in range(nframes): # use this one to save memory
-        bb[t, :rows, :cols] = np.array(h5_file['mov'][t])
+        bb[t, :rows, :cols] = np.array(h5_file[dset][t])
     h5_file.close()
     if display:
         end_load = time.time()

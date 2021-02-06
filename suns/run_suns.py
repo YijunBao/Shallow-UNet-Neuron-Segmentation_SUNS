@@ -21,7 +21,7 @@ from suns.Online.functions_online import merge_2, merge_2_nocons, merge_complete
 from suns.Online.functions_init import init_online, plan_fft2
 from suns.PreProcessing.preprocessing_functions import preprocess_video, \
     plan_fft, plan_mask2, load_wisdom_txt, export_wisdom_txt, \
-    SNR_normalization, median_normalization, median_calculation #, 
+    SNR_normalization, median_normalization, median_calculation, find_dataset
 # from suns.Online.preprocessing_functions_online import preprocess_video_online
 from suns.Network.shallow_unet import get_shallow_unet
 from suns.PostProcessing.par3 import fastthreshold
@@ -39,7 +39,8 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, \
 
     Inputs: 
         dir_video (str): The folder containing the input video.
-            Each file must be a ".h5" file, with dataset "mov" being the input video (shape = (T0,Lx0,Ly0)).
+            Each file must be a ".h5" file.
+            The video dataset can have any name, but cannot be under any group.
         Exp_ID (str): The filer name of the input raw video. 
         filename_CNN (str): The path of the trained CNN model. 
         Params_pre (dict): Parameters for pre-processing.
@@ -87,7 +88,8 @@ def suns_batch(dir_video, Exp_ID, filename_CNN, Params_pre, Params_post, \
     # Read the dimensions of the video
     h5_video = os.path.join(dir_video, Exp_ID + '.h5')
     h5_file = h5py.File(h5_video,'r')
-    (nframes, Lx, Ly) = h5_file['mov'].shape
+    dset = find_dataset(h5_file)
+    (nframes, Lx, Ly) = h5_file[dset].shape
     h5_file.close()
     rowspad = math.ceil(Lx/8)*8
     colspad = math.ceil(Ly/8)*8
@@ -170,7 +172,8 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
 
     Inputs: 
         filename_video (str): The path of the file of the input raw video.
-            The file must be a ".h5" file, with dataset "mov" being the input video (shape = (T0,Lx0,Ly0)).
+            Each file must be a ".h5" file.
+            The video dataset can have any name, but cannot be under any group.
         filename_CNN (str): The path of the trained CNN model. 
         Params_pre (dict): Parameters for pre-processing.
             Params_pre['gauss_filt_size'] (float): The standard deviation of the spatial Gaussian filter in pixels
@@ -222,7 +225,8 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
         start = time.time()
     # Read the dimensions of the video
     h5_file = h5py.File(filename_video, 'r')
-    (nframes, Lx, Ly) = h5_file['mov'].shape
+    dset = find_dataset(h5_file)
+    (nframes, Lx, Ly) = h5_file[dset].shape
     h5_file.close()
     dims = (Lx, Ly)
     # zero-pad the lateral dimensions to multiples of 8, suitable for CNN
@@ -353,7 +357,7 @@ def suns_online(filename_video, filename_CNN, Params_pre, Params_post, \
 
     # %% Load raw video
     h5_file = h5py.File(filename_video, 'r')
-    video_raw = np.array(h5_file['mov'])
+    video_raw = np.array(h5_file[dset])
     h5_file.close()
     nframes = video_raw.shape[0]
     nframesf = nframes - leng_tf + 1
@@ -562,7 +566,8 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
 
     Inputs: 
         filename_video (str): The path of the file of the input raw video.
-            The file must be a ".h5" file, with dataset "mov" being the input video (shape = (T0,Lx0,Ly0)).
+            Each file must be a ".h5" file.
+            The video dataset can have any name, but cannot be under any group.
         filename_CNN (str): The path of the trained CNN model. 
         Params_pre (dict): Parameters for pre-processing.
             Params_pre['gauss_filt_size'] (float): The standard deviation of the spatial Gaussian filter in pixels
@@ -612,7 +617,8 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
         start = time.time()
     # Read the dimensions of the video
     h5_file = h5py.File(filename_video, 'r')
-    (nframes, Lx, Ly) = h5_file['mov'].shape
+    dset = find_dataset(h5_file)
+    (nframes, Lx, Ly) = h5_file[dset].shape
     h5_file.close()
     dims = (Lx, Ly)
     # zero-pad the lateral dimensions to multiples of 8, suitable for CNN
@@ -743,7 +749,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
 
     # %% Load raw video
     h5_file = h5py.File(filename_video, 'r')
-    video_raw = np.array(h5_file['mov'])
+    video_raw = np.array(h5_file[dset])
     h5_file.close()
     nframes = video_raw.shape[0]
     nframesf = nframes - leng_tf + 1

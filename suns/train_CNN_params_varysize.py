@@ -111,10 +111,12 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
         val_gen = None
         NO_OF_VAL_IMAGES = 0
 
-
     fff = get_shallow_unet(size=None, Params_loss=Params_loss)
     # The alternative line has more options to choose
     # fff = get_shallow_unet_more(size=None, n_depth=3, n_channel=4, skip=[1], activation='elu', Params_loss=Params_loss)
+    if exist_model is not None:
+        fff.load_weights(exist_model)
+
 
     class LossAndErrorPrintingCallback(tf.keras.callbacks.Callback):
         def on_epoch_end(self, epoch, logs=None):
@@ -189,7 +191,7 @@ def parameter_optimization_pipeline(file_CNN, network_input, dims, \
 
 
 def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, list_Mag, \
-        list_dims, list_dims1, dir_img, weights_path, dir_GTMasks, dir_temp, dir_output, \
+        list_dims, dir_img, weights_path, dir_GTMasks, dir_temp, dir_output, \
             batch_size_eval=1, useWT=False, useMP=True, load_exist=False, max_eid=None):
     '''The parameter optimization for a complete cross validation.
         For each cross validation, it uses "parameter_optimization_pipeline" to calculate 
@@ -216,7 +218,6 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
             Params_set['list_cons']: (list) Range of minimum number of consecutive frames that a neuron should be active for.
         list_Mag (list of float): Spatial magnification of the video.
         list_dims (list of tuplel of int, shape = (2,)): lateral dimension of the raw video.
-        list_dims1 (list of tuplel of int, shape = (2,)): lateral dimension of the padded video.
         dir_img (str): The path containing the SNR video after pre-processing.
             Each file must be a ".h5" file, with dataset "network_input" being the SNR video (shape = (T,Lx,Ly)).
         weights_path (str): The path containing the trained CNN model, saved as ".h5" files.
@@ -277,7 +278,6 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
                 continue
         Mag = list_Mag[eid]
         (Lx, Ly) = list_dims[eid]
-        (rows, cols) = list_dims1[eid]
         list_saved_results = glob.glob(os.path.join(dir_temp, 'Parameter Optimization CV* Exp{}.mat'.format(Exp_ID)))
         saved_results_CVall = os.path.join(dir_temp, 'Parameter Optimization CV{} Exp{}.mat'.format(nvideo, Exp_ID))
         if saved_results_CVall in list_saved_results:
@@ -291,7 +291,7 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
             print('Video '+Exp_ID)
             start = time.time()
             h5_img = h5py.File(os.path.join(dir_img, Exp_ID+'.h5'), 'r')
-            nframes = h5_img['network_input'].shape[0]
+            (nframes, rows, cols) = h5_img['network_input'].shape
             network_input = np.zeros((nframes, rows, cols, 1), dtype='float32')
             for t in range(nframes):
                 network_input[t, :,:,0] = np.array(h5_img['network_input'][t])
@@ -319,7 +319,7 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         
             else: # Calculate recall, precision, and F1 for various parameters
                 start = time.time()
-                file_CNN = os.path.join(weights_path, 'Model_{}.h5'.format(CV))
+                file_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV))
                 # dictionary of all fixed and searched post-processing parameters after spatial magnification.
                 Params_set_Mag = {'list_minArea': list(np.round(np.array(list_minArea) * Mag**2)), \
                     'list_avgArea': list(np.round(np.array(list_avgArea) * Mag**2)), \

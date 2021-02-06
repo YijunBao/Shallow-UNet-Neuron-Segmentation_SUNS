@@ -9,12 +9,12 @@ from scipy import sparse
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
 
-sys.path.insert(1, '..') # the path containing "suns" folder
+sys.path.insert(1, '../..') # the path containing "suns" folder
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
-from suns.run_suns import suns_online
+from suns.run_suns import suns_online_track
 
 # import tensorflow as tf
 # config = tf.ConfigProto()
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     # file names of the ".h5" files storing the raw videos. 
     list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
     # folder of the raw videos
-    dir_video = 'data' 
+    dir_video = '../data' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
     dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
 
@@ -42,9 +42,10 @@ if __name__ == '__main__':
     gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
     frames_init = 30 * rate_hz # number of frames used for initialization
     num_median_approx = frames_init # number of frames used to caluclate median and median-based standard deviation
-    filename_TF_template = 'YST_spike_tempolate.h5' # file name of the temporal filter kernel
+    filename_TF_template = '../YST_spike_tempolate.h5' # file name of the temporal filter kernel
     h5f = h5py.File(filename_TF_template,'r')
     Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
+    h5f.close()
     Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
     Poisson_filt = Poisson_filt/Poisson_filt.sum()
     # # Alternative temporal filter kernel using a single exponential decay function
@@ -64,14 +65,13 @@ if __name__ == '__main__':
             # Achieve faster speed at the cost of higher memory occupation.
     batch_size_init = 100 # batch size in CNN inference during initalization
     useWT=False # True if using additional watershed
-    show_intermediate=True # True if screen neurons with consecutive frame requirement after every merge
     display=True # True if display information about running time 
     merge_every = rate_hz # number of frames every merge
     #-------------- End user-defined parameters --------------#
 
 
     dir_parent = os.path.join(dir_video, 'noSF 1to3') # folder to save all the processed data
-    dir_output = os.path.join(dir_parent, 'output_masks online') # folder to save the segmented masks and the performance scores
+    dir_output = os.path.join(dir_parent, 'output_masks track') # folder to save the segmented masks and the performance scores
     dir_params = os.path.join(dir_parent, 'output_masks') # folder of the optimized hyper-parameters
     weights_path = os.path.join(dir_parent, 'Weights') # folder of the trained CNN
     if not os.path.exists(dir_output):
@@ -128,12 +128,12 @@ if __name__ == '__main__':
             filename_video = os.path.join(dir_video, Exp_ID+'.h5') # The path of the file of the input video.
 
             # The entire process of SUNS online
-            Masks, Masks_2, times_active, time_total, time_frame, list_time_per = suns_online(
+            Masks, Masks_2, times_active, time_total, time_frame, list_time_per = suns_online_track(
                 filename_video, filename_CNN, Params_pre, Params_post, \
                 frames_init, merge_every, batch_size_init, \
                 useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
                 update_baseline=update_baseline, useWT=useWT, \
-                show_intermediate=show_intermediate, prealloc=prealloc, display=display, p=p)
+                prealloc=prealloc, display=display, p=p)
             savemat(os.path.join(dir_output, 'Output_Masks_CV{}_{}.mat'.format(CV, Exp_ID)), \
                 {'Masks':Masks, 'times_active':times_active, 'list_time_per':list_time_per}, do_compression=True)
 

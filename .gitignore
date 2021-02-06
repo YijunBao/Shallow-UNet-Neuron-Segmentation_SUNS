@@ -1,14 +1,14 @@
 demo/data/complete*
 demo/data float32
 demo/data/noSF*
-demo/wisdom
+demo/*/wisdom
 .vscode
 __pycache__
 demo/FISSA
 *.html
 *.asv
 *.txt
-demo/demo_train_pre.py
+demo/else/demo_train_pre.py
 paper reproduction/utils/temporal filter/*.mat
 paper reproduction/utils/temporal filter/*.h5
 paper reproduction/utils/temporal filter/temporal_filter_NF_all.m
@@ -18,3 +18,4 @@ paper reproduction/ABO/pipeline_ABO.bat
 *.lprof
 *.zip
 *.json
+*YST_full*

@@ -9,7 +9,7 @@ from scipy import sparse
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
 
-sys.path.insert(1, '..') # the path containing "suns" folder
+sys.path.insert(1, '../..') # the path containing "suns" folder
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
 
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     # file names of the ".h5" files storing the raw videos. 
     list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
     # folder of the raw videos
-    dir_video = 'data' 
+    dir_video = '../data' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
     dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
 
@@ -42,9 +42,10 @@ if __name__ == '__main__':
     gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
     frames_init = 30 * rate_hz # number of frames used for initialization
     num_median_approx = frames_init # number of frames used to caluclate median and median-based standard deviation
-    filename_TF_template = 'YST_spike_tempolate.h5' # file name of the temporal filter kernel
+    filename_TF_template = '../YST_spike_tempolate.h5' # file name of the temporal filter kernel
     h5f = h5py.File(filename_TF_template,'r')
     Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
+    h5f.close()
     Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
     Poisson_filt = Poisson_filt/Poisson_filt.sum()
     # # Alternative temporal filter kernel using a single exponential decay function
@@ -69,7 +70,7 @@ if __name__ == '__main__':
     #-------------- End user-defined parameters --------------#
 
 
-    dir_parent = os.path.join(dir_video, 'noSF 1to3') # folder to save all the processed data
+    dir_parent = os.path.join(dir_video, 'noSF') # folder to save all the processed data
     dir_output = os.path.join(dir_parent, 'output_masks track') # folder to save the segmented masks and the performance scores
     dir_params = os.path.join(dir_parent, 'output_masks') # folder of the optimized hyper-parameters
     weights_path = os.path.join(dir_parent, 'Weights') # folder of the trained CNN
@@ -87,14 +88,17 @@ if __name__ == '__main__':
     list_CV = list(range(0,nvideo))
     num_CV = len(list_CV)
     # arrays to save the recall, precision, F1, total processing time, and average processing time per frame
-    list_Recall = np.zeros((num_CV, nvideo, 1))
-    list_Precision = np.zeros((num_CV, nvideo, 1))
-    list_F1 = np.zeros((num_CV, nvideo, 1))
-    list_time = np.zeros((num_CV, nvideo, 3))
-    list_time_frame = np.zeros((num_CV, nvideo, 3))
+    list_Recall = np.zeros((num_CV, 1))
+    list_Precision = np.zeros((num_CV, 1))
+    list_F1 = np.zeros((num_CV, 1))
+    list_time = np.zeros((num_CV, 3))
+    list_time_frame = np.zeros((num_CV, 3))
 
 
     for CV in list_CV:
+        Exp_ID = list_Exp_ID[CV]
+        print('Video ', Exp_ID)
+        filename_video = os.path.join(dir_video, Exp_ID+'.h5') # The path of the file of the input video.
         filename_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV)) # The path of the CNN model.
         # Load post-processing hyper-parameters
         filename_params_post = os.path.join(dir_params, 'Optimization_Info_{}.mat'.format(CV))
@@ -120,35 +124,29 @@ if __name__ == '__main__':
             # minimum consecutive number of frames of active neurons
             'cons':Params_post_mat['cons'][0][0,0]}
 
-        for (eid, Exp_ID) in enumerate(list_Exp_ID):
-            if eid == CV:
-                continue
-            print('CV ', CV, ', Video ', Exp_ID)
-            filename_video = os.path.join(dir_video, Exp_ID+'.h5') # The path of the file of the input video.
+        # The entire process of SUNS online
+        Masks, Masks_2, times_active, time_total, time_frame, list_time_per = suns_online_track(
+            filename_video, filename_CNN, Params_pre, Params_post, \
+            frames_init, merge_every, batch_size_init, \
+            useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
+            update_baseline=update_baseline, useWT=useWT, \
+            prealloc=prealloc, display=display, p=p)
+        savemat(os.path.join(dir_output, 'Output_Masks_{}.mat'.format(Exp_ID)), \
+            {'Masks':Masks, 'times_active':times_active, 'list_time_per':list_time_per}, do_compression=True)
 
-            # The entire process of SUNS online
-            Masks, Masks_2, times_active, time_total, time_frame, list_time_per = suns_online_track(
-                filename_video, filename_CNN, Params_pre, Params_post, \
-                frames_init, merge_every, batch_size_init, \
-                useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
-                update_baseline=update_baseline, useWT=useWT, \
-                prealloc=prealloc, display=display, p=p)
-            savemat(os.path.join(dir_output, 'Output_Masks_CV{}_{}.mat'.format(CV, Exp_ID)), \
-                {'Masks':Masks, 'times_active':times_active, 'list_time_per':list_time_per}, do_compression=True)
+        # %% Evaluation of the segmentation accuracy compared to manual ground truth
+        filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
+        data_GT=loadmat(filename_GT)
+        GTMasks_2 = data_GT['GTMasks_2'].transpose()
+        (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
+        print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
 
-            # %% Evaluation of the segmentation accuracy compared to manual ground truth
-            filename_GT = dir_GTMasks + Exp_ID + '_sparse.mat'
-            data_GT=loadmat(filename_GT)
-            GTMasks_2 = data_GT['GTMasks_2'].transpose()
-            (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
-            print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
-
-            # %% Save recall, precision, F1, total processing time, and average processing time per frame
-            list_Recall[CV, eid] = Recall
-            list_Precision[CV, eid] = Precision
-            list_F1[CV, eid] = F1
-            list_time[CV, eid] = time_total
-            list_time_frame[CV, eid] = time_frame
+        # %% Save recall, precision, F1, total processing time, and average processing time per frame
+        list_Recall[CV] = Recall
+        list_Precision[CV] = Precision
+        list_F1[CV] = F1
+        list_time[CV] = time_total
+        list_time_frame[CV] = time_frame
 
         Info_dict = {'list_Recall':list_Recall, 'list_Precision':list_Precision, 'list_F1':list_F1, 
             'list_time':list_time, 'list_time_frame':list_time_frame}
