@@ -18,6 +18,7 @@ REM Run SUNS online
 REM python test_online_NF_complete_transfer.py
 REM python test_online_NF_complete.py
 
+python test_batch_NF_noSF.py
+python test_online_NF_noSF.py
 python test_online_track_NF_noSF.py
-python test_online_track_NF_noSF_noupdate.py
-REM python "C:\Matlab Files\timer\timer_stop.py"
+python "C:\Matlab Files\timer\timer_stop.py"

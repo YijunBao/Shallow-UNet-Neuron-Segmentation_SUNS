@@ -1,16 +1,17 @@
+REM python "C:\Matlab Files\timer\timer_start_next.py"
 REM python demo_train_CNN_params.py
-REM python demo_test_batch.py
+python demo_test_batch.py
 REM python demo_test_online.py
 REM python demo_test_online_track.py
 REM python demo_test_online_noupdate.py
 REM python demo_test_online_track_noupdate.py
+@echo off
 
 REM python demo_test_batch_test.py
 REM python demo_test_online_test.py
 REM python demo_test_online_track_test.py
-
-python demo_test_online_vary_part.py 0 1 1 "noSF\\trial 1"
-python demo_test_online_vary.py 0 1 1 "noSF\\trial 2"
+REM python demo_test_online_vary_part.py 0 1 1 "noSF\\trial 1"
+REM python demo_test_online_vary.py 0 1 1 "noSF\\trial 2"
 REM python demo_test_online_vary.py 1 1 1 "complete"
 REM python demo_test_online_vary.py 1 1 0 "noTF"
 REM python demo_test_online_vary.py 1 1 0 "noSNR"

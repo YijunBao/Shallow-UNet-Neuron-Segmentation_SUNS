@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
         dir_parent = dir_video + 'noSF\\' # folder to save all the processed data
         dir_parent_train = dir_video_train + 'noSF\\' # folder to save all the processed data
-        dir_output = dir_parent + 'output_masks track update\\' # folder to save the segmented masks and the performance scores
+        dir_output = dir_parent + 'output_masks track update new\\' # folder to save the segmented masks and the performance scores
         dir_params = dir_parent_train + 'output_masks\\' # folder of the optimized hyper-parameters
         weights_path = dir_parent_train + 'Weights\\' # folder of the trained CNN
         if not os.path.exists(dir_output):
@@ -150,7 +150,7 @@ if __name__ == '__main__':
                 'cons':Params_post_mat['cons'][0][0,0]}
 
             # The entire process of SUNS online
-            Masks, Masks_2, time_total, time_frame, list_time_per = suns_online_track(
+            Masks, Masks_2, times_active, time_total, time_frame, list_time_per = suns_online_track(
                 filename_video, filename_CNN, Params_pre, Params_post, \
                 frames_init, merge_every, batch_size_init, \
                 useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, \
@@ -164,7 +164,7 @@ if __name__ == '__main__':
             (Recall,Precision,F1) = GetPerformance_Jaccard_2(GTMasks_2, Masks_2, ThreshJ=0.5)
             print({'Recall':Recall, 'Precision':Precision, 'F1':F1})
             savemat(dir_output+'Output_Masks_{}.mat'.format(Exp_ID), \
-            {'Masks':Masks, 'list_time_per':list_time_per}, do_compression=True)
+                {'Masks':Masks, 'times_active':times_active, 'list_time_per':list_time_per}, do_compression=True)
 
             # %% Save recall, precision, F1, total processing time, and average processing time per frame
             list_Recall[ind_video] = Recall

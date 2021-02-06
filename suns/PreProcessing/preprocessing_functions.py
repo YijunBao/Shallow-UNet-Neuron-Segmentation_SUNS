@@ -202,7 +202,7 @@ def median_calculation(network_input, med_frame2=None, median_decimate=1, displa
     
     # Noise is estimated using median-based standard deviation calculated from 
     # the difference bwtween 0.5 quantile and 0.25 quantile
-    temp_noise = (med_frame2[:, :, 0]-med_frame2[:, :, 1])/(math.sqrt(2)*special.erfinv(0.5))
+    temp_noise = (med_frame2[:rows, :cols, 0]-med_frame2[:rows, :cols, 1])/(math.sqrt(2)*special.erfinv(0.5))
     zeronoise = (temp_noise==0)
     # if the calculated temp_noise is 0 at some pixels, replace the median-based standard deviation 
     # with conventional stantard deviation
@@ -216,7 +216,7 @@ def median_calculation(network_input, med_frame2=None, median_decimate=1, displa
                 temp_noise[x, y] = np.inf
 
     # med_frame2[:, :, 1] stores the median-based standard deviation
-    med_frame2[:, :, 1] = np.reciprocal(temp_noise).astype('float32')
+    med_frame2[:rows, :cols, 1] = np.reciprocal(temp_noise).astype('float32')
     # med_frame3 = med_frame2.transpose([2,0,1])
     med_frame3 = np.copy(med_frame2.transpose([2,0,1])) # Using copy to avoid computer crashing
     if display:
