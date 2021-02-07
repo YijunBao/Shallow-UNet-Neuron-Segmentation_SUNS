@@ -19,4 +19,6 @@ paper reproduction/ABO/pipeline_ABO.bat
 *.zip
 *.json
 *YST_full*
-Application/*
+Application
+suns/test
+demo/else
