@@ -82,7 +82,7 @@ def parameter_optimization_pipeline_online(file_CNN, network_input, dims, frames
 
 
 def parameter_optimization_cross_validation_online(cross_validation, list_Exp_ID, frames_initf, merge_every, \
-        Params_set, dims, dims1, dir_img, weights_path, dir_GTMasks, dir_temp, dir_output, \
+        Params_set, dims, dir_img, weights_path, dir_GTMasks, dir_temp, dir_output, \
         batch_size_eval=1, useWT=False, useMP=True, load_exist=False, max_eid=None):
     '''The parameter optimization for a complete cross validation.
         For each cross validation, it uses "parameter_optimization_pipeline" to calculate 
@@ -110,7 +110,6 @@ def parameter_optimization_cross_validation_online(cross_validation, list_Exp_ID
             Params_set['thresh_consume']: (float) Threshold of consume ratio used for merging neurons.
             Params_set['list_cons']: (list) Range of minimum number of consecutive frames that a neuron should be active for.
         dims (tuplel of int, shape = (2,)): lateral dimension of the raw video.
-        dims1 (tuplel of int, shape = (2,)): lateral dimension of the padded video.
         dir_img (str): The path containing the SNR video after pre-processing.
             Each file must be a ".h5" file, with dataset "network_input" being the SNR video (shape = (T,Lx,Ly)).
         weights_path (str): The path containing the trained CNN model, saved as ".h5" files.
@@ -141,7 +140,6 @@ def parameter_optimization_cross_validation_online(cross_validation, list_Exp_ID
     else:
         raise('wrong "cross_validation"')
     (Lx, Ly) = dims
-    (rows, cols) = dims1
 
     list_minArea = Params_set['list_minArea']
     list_avgArea = Params_set['list_avgArea']
@@ -184,7 +182,7 @@ def parameter_optimization_cross_validation_online(cross_validation, list_Exp_ID
             print('Video '+Exp_ID)
             start = time.time()
             h5_img = h5py.File(os.path.join(dir_img, Exp_ID+'.h5'), 'r')
-            nframes = h5_img['network_input'].shape[0]
+            (nframes, rows, cols) = h5_img['network_input'].shape
             network_input = np.zeros((nframes, rows, cols, 1), dtype='float32')
             for t in range(nframes):
                 network_input[t, :,:,0] = np.array(h5_img['network_input'][t])
