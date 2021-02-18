@@ -25,6 +25,7 @@ Copyright (C) 2020 Duke University NeuroToolbox
   - [No training data?](#no-training-data)
   - [Use optional spatial filtering?](#use-optional-spatial-filtering)
 - [Links to Datasets and Manual Markings](#links-to-datasets-and-manual-markings)
+- [Known issues](#known-issues)
 - [Citing](#citing)
 - [Licensing and Copyright](#licensing-and-copyright)
 - [Sponsors](#sponsors)
@@ -173,6 +174,8 @@ We have an optional spatial filtering step in the pre-processing. Althought it d
 # Links to Datasets and Manual Markings
 In our paper, we used two-photon imaging videos from [Allen Brain Observatory dataset](https://github.com/AllenInstitute/AllenSDK/wiki/Use-the-Allen-Brain-Observatory-%E2%80%93-Visual-Coding-on-AWS), [Neurofinder Challenge website](https://github.com/codeneuro/neurofinder), and [CaImAn dataset](https://zenodo.org/record/1659149). We used the manual markings of Allen Brain Observatory and Neurofinder from [STNeuroNet](https://github.com/soltanianzadeh/STNeuroNet) repository, and used the manual markings of CaImAn dataset from [CaImAn dataset](https://zenodo.org/record/1659149). A more detailed instruction is given under the folder `paper reproduction`. 
 
+# Known issues
+There are some known issues with the code. We have listed them in the issues page, including [#1](https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/issues/1) and [#5](https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/issues/5).The issue [#5](https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/issues/5) is particularly troublesome, because it may cause computer crash, and it will slow down the pre-processing speed signficantly when the operation system is Windows, the CPU is AMD, and the lateral size is a multiple of 256. We have solutions to bypass the issues, but we welcome any feedback, analysis, or better solutions to the issues. 
 
 # Citing 
 If you use any part of this software in your work, please cite Bao et al. 2021:
