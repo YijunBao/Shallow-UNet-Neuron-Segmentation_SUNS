@@ -5,6 +5,8 @@ Shallow UNet Neuron Segmentation (SUNS) is an automatic algorithm to segment act
 
 Copyright (C) 2020 Duke University NeuroToolbox
 
+If you want to reproduce our paper results, please visit the [legacy version](https://github.com/YijunBao/SUNS_paper_reproduction) 
+
 ![Example video](readme/Masks%202%20raw.gif)
 
 - [SUNS](#suns)
@@ -24,7 +26,6 @@ Copyright (C) 2020 Duke University NeuroToolbox
   - [Set your processing options](#set-your-processing-options)
   - [No training data?](#no-training-data)
   - [Use optional spatial filtering?](#use-optional-spatial-filtering)
-- [Links to Datasets and Manual Markings](#links-to-datasets-and-manual-markings)
 - [Known issues](#known-issues)
 - [Citing](#citing)
 - [Licensing and Copyright](#licensing-and-copyright)
@@ -170,9 +171,6 @@ You can read the code for explanations of other options and parameters.
 ## Use optional spatial filtering?
 We have an optional spatial filtering step in the pre-processing. Althought it did not improve the performance in many of our experiements, it sometimes can improve the accuracy. If you want to try spatial filtering, you need to set `useSF=True` in all python scripts. After running spatial filtering once, you will find some text files under `demo/{train_3_test_1}/wisdom`, which stores the learned wisdom used for spatial filtering. The next time you run your video with the same dimensions, the preparation of spatial filtering will be faster. Alternatively, you can run `demo/demo_learn_wisdom.py` and `demo/demo_learn_wisdom_2d.py` to generate the wisdom files before processing the videos, but make sure to change the dimensions in these scripts to fit your videos (e.g., `Dimens = (120,88)` and `Nframes = 3000`) and set `folder` to your the folder of your training and testing scripts (e.g., `folder = 'train_3_test_1'`) before running.
 
-
-# Links to Datasets and Manual Markings
-In our paper, we used two-photon imaging videos from [Allen Brain Observatory dataset](https://github.com/AllenInstitute/AllenSDK/wiki/Use-the-Allen-Brain-Observatory-%E2%80%93-Visual-Coding-on-AWS), [Neurofinder Challenge website](https://github.com/codeneuro/neurofinder), and [CaImAn dataset](https://zenodo.org/record/1659149). We used the manual markings of Allen Brain Observatory and Neurofinder from [STNeuroNet](https://github.com/soltanianzadeh/STNeuroNet) repository, and used the manual markings of CaImAn dataset from [CaImAn dataset](https://zenodo.org/record/1659149). A more detailed instruction is given under the folder `paper reproduction`. 
 
 # Known issues
 There are some known issues with the code. We have listed them in the issues page, including [#1](https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/issues/1) and [#5](https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/issues/5).The issue [#5](https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/issues/5) is particularly troublesome, because it may cause computer crash, and it will slow down the pre-processing speed signficantly when the operation system is Windows, the CPU is AMD, and the lateral size is a multiple of 256. We have solutions to bypass the issues, but we welcome any feedback, analysis, or better solutions to the issues. 
