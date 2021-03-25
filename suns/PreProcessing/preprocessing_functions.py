@@ -75,6 +75,9 @@ def export_wisdom_txt(cc, dir_wisdom):
 
     Outputs: None
     '''
+    if not os.path.exists(dir_wisdom):
+        os.makedirs(dir_wisdom) 
+
     file = open(dir_wisdom+'x1.txt', "wb")
     file.write(cc[0])
     file.close
@@ -526,6 +529,8 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
 
     # if "dir_network_input" is not None, save network_input to an ".h5" file
     if dir_network_input:
+        if not os.path.exists(dir_network_input):
+            os.makedirs(dir_network_input) 
         f = h5py.File(os.path.join(dir_network_input, Exp_ID+".h5"), "w")
         f.create_dataset("network_input", data = network_input)
         f.close()
