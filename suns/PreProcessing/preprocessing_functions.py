@@ -512,7 +512,7 @@ def preprocess_video(dir_video:str, Exp_ID:str, Params:dict,
     
     # %% Load the raw video into "bb"
     for t in range(nframes): # use this one to save memory
-        bb[t, :rows, :cols] = np.array(h5_file[dset][t])
+        bb[t, :rows, :cols] = np.clip(np.array(h5_file[dset][t]), 0, None)
     h5_file.close()
     if display:
         end_load = time.time()

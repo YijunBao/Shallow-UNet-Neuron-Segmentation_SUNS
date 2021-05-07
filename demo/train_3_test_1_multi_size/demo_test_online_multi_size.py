@@ -16,11 +16,11 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
 from suns.run_suns import suns_online
 
-# import tensorflow as tf
-# config = tf.ConfigProto()
-# config.gpu_options.allow_growth = True
-# # tf_config.gpu_options.per_process_gpu_memory_fraction = 0.5
-# sess = tf.Session(config = config)
+import tensorflow as tf
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+# tf_config.gpu_options.per_process_gpu_memory_fraction = 0.5
+sess = tf.Session(config = config)
 
 
 # %%
