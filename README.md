@@ -1,5 +1,7 @@
 ![NeuroToolbox logo](readme/neurotoolbox-logo.svg)
 
+[![DOI](https://zenodo.org/badge/205919974.svg)](https://zenodo.org/badge/latestdoi/205919974)
+
 # SUNS
 Shallow UNet Neuron Segmentation (SUNS) is an automatic algorithm to segment active neurons from two-photon calcium imaging videos. It used temporal filtering and whitening schemes to extract temporal features associated with active neurons, and used a compact shallow U-Net to extract spatial features of neurons.
 
