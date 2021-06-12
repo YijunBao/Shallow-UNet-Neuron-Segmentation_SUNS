@@ -118,7 +118,7 @@ if __name__ == '__main__':
         h5_video = os.path.join(dir_video, Exp_ID + '.h5')
         h5_file = h5py.File(h5_video,'r')
         dset = find_dataset(h5_file)
-        list_Dimens[eid] = h5_file[dset].shape
+        list_Dimens3[eid] = h5_file[dset].shape
         h5_file.close()
 
     list_nframes = list_Dimens3[:,0]
@@ -188,7 +188,7 @@ if __name__ == '__main__':
             list_Exp_ID_val = list_Exp_ID.copy()
             list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
         elif cross_validation == "use_all":
-            list_Exp_ID_val = None
+            use_validation = False
             list_Exp_ID_train = list_Exp_ID.copy() 
         else:
             raise('wrong "cross_validation"')

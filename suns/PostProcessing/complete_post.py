@@ -76,6 +76,7 @@ def complete_segment(pmaps: np.ndarray, Params: dict, useMP=True, useWT=False, d
     if num_neurons==0:
         print('No masks found. Please lower minArea or thresh_pmap.')
         Masks_2 = sparse.csc_matrix((0,Lx*Ly), dtype='bool')
+        times_cons = []
     else: # find active neurons
         start = time.time()
         # Initally merge neurons with close COM.

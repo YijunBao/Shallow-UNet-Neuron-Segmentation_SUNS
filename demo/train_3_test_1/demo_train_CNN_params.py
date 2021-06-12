@@ -187,7 +187,7 @@ if __name__ == '__main__':
             list_Exp_ID_val = list_Exp_ID.copy()
             list_Exp_ID_train = [list_Exp_ID_val.pop(CV)]
         elif cross_validation == "use_all":
-            list_Exp_ID_val = None
+            use_validation = False
             list_Exp_ID_train = list_Exp_ID.copy() 
         else:
             raise('wrong "cross_validation"')
