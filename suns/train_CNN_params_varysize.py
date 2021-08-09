@@ -80,7 +80,7 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
         # select a frame every "train_every" frames, totally "train_val_per" frames  
         h5_img = h5py.File(os.path.join(dir_img, Exp_ID+'.h5'), 'r')
         nframes = h5_img['network_input'].shape[0]
-        train_every = nframes//num_train_per
+        train_every = max(1,nframes//num_train_per)
         start_frame = random.randint(0,train_every-1)
         list_train_imgs.append(np.array(h5_img['network_input'][start_frame:train_every*num_train_per:train_every]))
         h5_img.close()
@@ -94,7 +94,7 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
         for Exp_ID in list_Exp_ID_val:
             h5_img = h5py.File(os.path.join(dir_img, Exp_ID+'.h5'), 'r')
             nframes = h5_img['network_input'].shape[0]
-            val_every = nframes//num_val_per
+            val_every = max(1,nframes//num_val_per)
             start_frame = random.randint(0,val_every-1)
             list_val_imgs.append(np.array(h5_img['network_input'][start_frame:val_every*num_val_per:val_every]))
             h5_img.close()

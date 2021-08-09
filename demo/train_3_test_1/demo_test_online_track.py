@@ -100,8 +100,13 @@ if __name__ == '__main__':
         print('Video ', Exp_ID)
         filename_video = os.path.join(dir_video, Exp_ID+'.h5') # The path of the file of the input video.
         filename_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV)) # The path of the CNN model.
+        # If you used cross_validation == 'use_all' in training, you need to change the "CV" in "format(CV)"
+        # to the number of tranining videos used. 
+
         # Load post-processing hyper-parameters
         filename_params_post = os.path.join(dir_params, 'Optimization_Info_{}.mat'.format(CV))
+        # If you used cross_validation == 'use_all' in training, you need to change the "CV" in "format(CV)"
+        # to the number of tranining videos used. 
         Optimization_Info = loadmat(filename_params_post)
         Params_post_mat = Optimization_Info['Params'][0]
         Params_post={

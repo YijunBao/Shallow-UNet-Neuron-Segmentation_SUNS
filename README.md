@@ -164,7 +164,7 @@ We determined `avgArea` according to the typical neuron area reported in the lit
 * `use_validation` indicates if a validation set outside the training set is used in training CNN for validation purpose (True in demo); it does not affect the training result;
 * `update_baseline` indicates whether the baseline and noise are updated every a few frames during the online processing (False in demo).
 
-You can read the code for explanations of other options and parameters.
+You can read the code for explanations of other options and parameters. You can choose diffferent start up scripts depending on the `cross_validation` option: When using "leave-one-out", you can use the scripts under the folder `demo/data/train_3_test_1`; When using "use_all", you can use the same scripts to start, but set `cross_validation = "use_all"` in `demo_train_CNN_params.py`, and change the variable `CV` to the number of training videos used when defining the strings `filename_CNN` and `filename_params_post` in the test scripts (`demo_test_xxxx.py`); When using "train_1_test_rest", you can use the scripts under the folder `demo/data/train_1_test_3`;
 
 ## No training data?
 * SUNS requires a CNN model and post-processing parameters to process a video. It is best to train your own CNN models and post-processing parameters for your dataset, because the optimal CNN models and post-processing parameters, especially parameters, can be different with different imaging conditions. Therefore, our expectation is that you manually label at least one video recorded by your two-photon microscope, and use that to train the CNN and parameters. 

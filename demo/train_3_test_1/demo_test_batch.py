@@ -27,7 +27,7 @@ if __name__ == '__main__':
     #-------------- Start user-defined parameters --------------#
     # %% set folders
     # file names of the ".h5" files storing the raw videos. 
-    list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
+    list_Exp_ID = ['YST_part11_part12', 'YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
     # folder of the raw videos
     dir_video = '../data' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
@@ -93,9 +93,13 @@ if __name__ == '__main__':
         Exp_ID = list_Exp_ID[CV]
         print('Video ', Exp_ID)
         filename_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV)) # The path of the CNN model.
+        # If you used cross_validation == 'use_all' in training, you need to change the "CV" in "format(CV)"
+        # to the number of tranining videos used. 
 
         # load optimal post-processing parameters
         Optimization_Info = loadmat(os.path.join(dir_params, 'Optimization_Info_{}.mat'.format(CV)))
+        # If you used cross_validation == 'use_all' in training, you need to change the "CV" in "format(CV)"
+        # to the number of tranining videos used. 
         Params_post_mat = Optimization_Info['Params'][0]
         # dictionary of all optimized post-processing parameters.
         Params_post={

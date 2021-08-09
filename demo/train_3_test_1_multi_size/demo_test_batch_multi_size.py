@@ -109,9 +109,13 @@ if __name__ == '__main__':
         Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
             'Poisson_filt': Poisson_filt}
         filename_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV)) # The path of the CNN model.
+        # If you used cross_validation == 'use_all' in training, you need to change the "CV" in "format(CV)"
+        # to the number of tranining videos used. 
 
         # load optimal post-processing parameters, and adjust with magnification
         Optimization_Info = loadmat(os.path.join(dir_params, 'Optimization_Info_{}.mat'.format(CV)))
+        # If you used cross_validation == 'use_all' in training, you need to change the "CV" in "format(CV)"
+        # to the number of tranining videos used. 
         Params_post_mat = Optimization_Info['Params'][0]
         # dictionary of all optimized post-processing parameters.
         Params_post={
