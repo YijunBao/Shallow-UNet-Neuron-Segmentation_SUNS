@@ -1,3 +1,6 @@
+REM Generate sparse GT masks
+python generate_sparse_GT.py
+
 REM Training pipeline
 python demo_train_CNN_params_multi_size.py
 

@@ -1,4 +1,7 @@
 #!/bin/sh 
+# Generate sparse GT masks
+python generate_sparse_GT.py;
+
 # Training pipeline
 python demo_train_CNN_params_1to3.py;
 

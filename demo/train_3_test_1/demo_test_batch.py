@@ -27,7 +27,7 @@ if __name__ == '__main__':
     #-------------- Start user-defined parameters --------------#
     # %% set folders
     # file names of the ".h5" files storing the raw videos. 
-    list_Exp_ID = ['YST_part11_part12', 'YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
+    list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
     # folder of the raw videos
     dir_video = '../data' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
