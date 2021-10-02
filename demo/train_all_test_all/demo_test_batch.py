@@ -26,16 +26,37 @@ sess = tf.Session(config = config)
 if __name__ == '__main__':
     #-------------- Start user-defined parameters --------------#
     # %% set folders
-    # file names of the ".h5" files storing the raw videos. 
+    # file names of the ".h5" files storing the raw test videos. 
+    # They usually should not overlap with the train videos, and the number of videos do not need to be the same as well.
+    # We used the same videos as the train videos here only for demo. 
     list_Exp_ID = ['YST_part11', 'YST_part12', 'YST_part21', 'YST_part22'] 
-    # folder of the raw videos
+    # number of train videos. Do not need to be the same as the number of test videos
+    nvideo_train = 4 
+    # folder of the raw test videos
     dir_video = '../data' 
+    # folder of the raw train videos
+    dir_video_train = '../data' 
     # folder of the ".mat" files stroing the GT masks in sparse 2D matrices. 'FinalMasks_' is a prefix of the file names. 
     dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
 
     # %% set video parameters
-    list_rate_hz = [10] * len(list_Exp_ID) # frame rate of all the videos. Close frame rates are preferred.
-    list_Mag = [6/8] * len(list_Exp_ID) # spatial magnification compared to ABO videos (0.785 um/pixel). # Mag = 0.785 / pixel_size
+    rate_hz = 10 # frame rate of the video
+    Mag = 6/8 # spatial magnification compared to ABO videos (0.785 um/pixel). # Mag = 0.785 / pixel_size
+
+    # %% set pre-processing parameters
+    gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
+    num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
+    filename_TF_template = '../YST_spike_tempolate.h5' # File name storing the temporal filter kernel
+    h5f = h5py.File(filename_TF_template,'r')
+    Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
+    h5f.close()
+    Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+    Poisson_filt = Poisson_filt/Poisson_filt.sum()
+    # # Alternative temporal filter kernel using a single exponential decay function
+    # decay = 0.8 # decay time constant (unit: second)
+    # leng_tf = np.ceil(rate_hz*decay)+1
+    # Poisson_filt = np.exp(-np.arange(leng_tf)/rate_hz/decay)
+    # Poisson_filt = (Poisson_filt / Poisson_filt.sum()).astype('float32')
 
     # %% Set processing options
     useSF=False # True if spatial filtering is used in pre-processing.
@@ -51,12 +72,17 @@ if __name__ == '__main__':
     #-------------- End user-defined parameters --------------#
 
 
-    dir_parent = os.path.join(dir_video, 'noSF_multi_size') # folder to save all the processed data
+    dir_parent = os.path.join(dir_video, 'noSF use_all') # folder to save all the processed data for test videos
+    dir_parent_train = os.path.join(dir_video_train, 'noSF use_all') # folder to save all the processed data for train videos
     dir_output = os.path.join(dir_parent, 'output_masks') # folder to save the segmented masks and the performance scores
-    dir_params = os.path.join(dir_parent, 'output_masks') # folder of the optimized hyper-parameters
-    weights_path = os.path.join(dir_parent, 'Weights') # folder of the trained CNN
+    dir_params = os.path.join(dir_parent_train, 'output_masks') # folder of the optimized hyper-parameters
+    weights_path = os.path.join(dir_parent_train, 'Weights') # folder of the trained CNN
     if not os.path.exists(dir_output):
         os.makedirs(dir_output) 
+
+    # dictionary of pre-processing parameters
+    Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
+        'Poisson_filt': Poisson_filt}
 
     p = mp.Pool()
     nvideo = len(list_Exp_ID)
@@ -73,64 +99,29 @@ if __name__ == '__main__':
     for CV in list_CV:
         Exp_ID = list_Exp_ID[CV]
         print('Video ', Exp_ID)
-        rate_hz = list_rate_hz[CV]
-        Mag = list_Mag[CV]
-        num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
-
-        # %% set temporal filter
-        if useTF:
-            filename_TF_template = '../YST_spike_tempolate.h5' # File name storing the temporal filter kernel
-            h5f = h5py.File(filename_TF_template,'r')
-            Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
-            h5f.close()
-
-            # Rescale the filter template according to "rate_hz"
-            # It assumes the calcium sensors are the same, but the frame rates are different
-            fs_template = 10 # frame rate of the filter tempolate
-            peak = Poisson_filt.argmax()
-            length = Poisson_filt.shape
-            xp = np.arange(-peak,length-peak,1)/fs_template
-            x = np.arange(np.round(-peak*rate_hz/fs_template), np.round(length-peak*rate_hz/fs_template), 1)/rate_hz
-            Poisson_filt = np.interp(x,xp,Poisson_filt).astype('float32')
-
-            Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
-            Poisson_filt = Poisson_filt/Poisson_filt.sum()
-
-            # # Alternative temporal filter kernel using a single exponential decay function
-            # decay = 0.8 # decay time constant (unit: second)
-            # leng_tf = np.ceil(rate_hz*decay)+1
-            # Poisson_filt = np.exp(-np.arange(leng_tf)/rate_hz/decay)
-            # Poisson_filt = (Poisson_filt / Poisson_filt.sum()).astype('float32')
-        else:
-            Poisson_filt=np.array([1], dtype='float32')
-
-        # dictionary of pre-processing parameters
-        gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
-        Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
-            'Poisson_filt': Poisson_filt}
-        filename_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV)) # The path of the CNN model.
+        filename_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(nvideo_train)) # The path of the CNN model.
         # If you used cross_validation == 'use_all' in training, you need to change the "CV" in "format(CV)"
         # to the number of tranining videos used. 
 
-        # load optimal post-processing parameters, and adjust with magnification
-        Optimization_Info = loadmat(os.path.join(dir_params, 'Optimization_Info_{}.mat'.format(CV)))
+        # load optimal post-processing parameters
+        Optimization_Info = loadmat(os.path.join(dir_params, 'Optimization_Info_{}.mat'.format(nvideo_train)))
         # If you used cross_validation == 'use_all' in training, you need to change the "CV" in "format(CV)"
         # to the number of tranining videos used. 
         Params_post_mat = Optimization_Info['Params'][0]
         # dictionary of all optimized post-processing parameters.
         Params_post={
             # minimum area of a neuron (unit: pixels).
-            'minArea': np.round(Params_post_mat['minArea'][0][0,0] * Mag**2), 
+            'minArea': Params_post_mat['minArea'][0][0,0], 
             # average area of a typical neuron (unit: pixels) 
-            'avgArea': np.round(Params_post_mat['avgArea'][0][0,0] * Mag**2),
+            'avgArea': Params_post_mat['avgArea'][0][0,0],
             # uint8 threshould of probablity map (uint8 variable, = float probablity * 256 - 1)
             'thresh_pmap': Params_post_mat['thresh_pmap'][0][0,0], 
             # values higher than "thresh_mask" times the maximum value of the mask are set to one.
             'thresh_mask': Params_post_mat['thresh_mask'][0][0,0], 
             # maximum COM distance of two masks to be considered the same neuron in the initial merging (unit: pixels)
-            'thresh_COM0': np.round(Params_post_mat['thresh_COM0'][0][0,0] * Mag), 
+            'thresh_COM0': Params_post_mat['thresh_COM0'][0][0,0], 
             # maximum COM distance of two masks to be considered the same neuron (unit: pixels)
-            'thresh_COM': np.round(Params_post_mat['thresh_COM'][0][0,0] * Mag), 
+            'thresh_COM': Params_post_mat['thresh_COM'][0][0,0], 
             # minimum IoU of two masks to be considered the same neuron
             'thresh_IOU': Params_post_mat['thresh_IOU'][0][0,0], 
             # minimum consume ratio of two masks to be considered the same neuron

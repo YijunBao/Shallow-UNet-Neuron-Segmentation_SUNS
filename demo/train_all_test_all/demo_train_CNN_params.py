@@ -16,7 +16,7 @@ os.environ['KERAS_BACKEND'] = 'tensorflow'
 
 from suns.PreProcessing.preprocessing_functions import preprocess_video, find_dataset
 from suns.PreProcessing.generate_masks import generate_masks
-from suns.train_CNN_params_varysize import train_CNN, parameter_optimization_cross_validation
+from suns.train_CNN_params import train_CNN, parameter_optimization_cross_validation
 
 import tensorflow as tf
 config = tf.ConfigProto()
@@ -37,8 +37,8 @@ if __name__ == '__main__':
     dir_GTMasks = os.path.join(dir_video, 'GT Masks', 'FinalMasks_') 
     
     # %% set video parameters
-    list_rate_hz = [10] * len(list_Exp_ID) # frame rate of all the videos. Close frame rates are preferred.
-    list_Mag = [6/8] * len(list_Exp_ID) # spatial magnification compared to ABO videos (0.785 um/pixel). # Mag = 0.785 / pixel_size
+    rate_hz = 10 # frame rate of the video
+    Mag = 6/8 # spatial magnification compared to ABO videos (0.785 um/pixel). # Mag = 0.785 / pixel_size
 
     # %% set the range of post-processing hyper-parameters to be optimized in
     # minimum area of a neuron (unit: pixels in ABO videos). must be in ascend order
@@ -59,11 +59,20 @@ if __name__ == '__main__':
     # minimum consecutive number of frames of active neurons
     list_cons = list(range(1, 8, 1)) 
 
-    # dictionary of all fixed and searched post-processing parameters.
-    Params_set = {'list_minArea': list_minArea, 'list_avgArea': list_avgArea, 'list_thresh_pmap': list_thresh_pmap,
-            'thresh_COM0': thresh_COM0, 'list_thresh_COM': list_thresh_COM, 'list_thresh_IOU': list_thresh_IOU,
-            'thresh_mask': thresh_mask, 'list_cons': list_cons}
-    print(Params_set)
+    # %% set pre-processing parameters
+    gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
+    num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
+    filename_TF_template = '../YST_spike_tempolate.h5' # File name storing the temporal filter kernel
+    h5f = h5py.File(filename_TF_template,'r')
+    Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
+    h5f.close()
+    Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
+    Poisson_filt = Poisson_filt/Poisson_filt.sum()
+    # # Alternative temporal filter kernel using a single exponential decay function
+    # decay = 0.8 # decay time constant (unit: second)
+    # leng_tf = np.ceil(rate_hz*decay)+1
+    # Poisson_filt = np.exp(-np.arange(leng_tf)/rate_hz/decay)
+    # Poisson_filt = (Poisson_filt / Poisson_filt.sum()).astype('float32')
 
     # %% set training parameters
     thred_std = 3 # SNR threshold used to determine when neurons are active
@@ -83,16 +92,16 @@ if __name__ == '__main__':
             # Not needed in training.
     useWT=False # True if using additional watershed
     load_exist=False # True if using temp files already saved in the folders
-    use_validation = True # True to use a validation set outside the training set
+    use_validation = False # True to use a validation set outside the training set
     useMP = True # True to use multiprocessing to speed up
     BATCH_SIZE = 20 # Batch size for training 
     # Cross-validation strategy. Can be "leave_one_out", "train_1_test_rest", or "use_all"
-    cross_validation = "leave_one_out"
+    cross_validation = "use_all"
     Params_loss = {'DL':1, 'BCE':20, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
     #-------------- End user-defined parameters --------------#
 
 
-    dir_parent = os.path.join(dir_video, 'noSF_multi_size') # folder to save all the processed data
+    dir_parent = os.path.join(dir_video, 'noSF use_all') # folder to save all the processed data
     dir_network_input = os.path.join(dir_parent, 'network_input') # folder of the SNR videos
     dir_mask = os.path.join(dir_parent, 'temporal_masks({})'.format(thred_std)) # foldr to save the temporal masks
     weights_path = os.path.join(dir_parent, 'Weights') # folder to save the trained CNN
@@ -113,7 +122,7 @@ if __name__ == '__main__':
 
     nvideo = len(list_Exp_ID) # number of videos used for cross validation
     # Get and check the dimensions of all the videos
-    list_Dimens3 = np.zeros((nvideo, 3),dtype='uint16')
+    list_Dimens = np.zeros((nvideo, 3),dtype='uint16')
     for (eid,Exp_ID) in enumerate(list_Exp_ID):
         h5_video = os.path.join(dir_video, Exp_ID + '.h5')
         h5_file = h5py.File(h5_video,'r')
@@ -121,50 +130,41 @@ if __name__ == '__main__':
         list_Dimens[eid] = h5_file[dset].shape
         h5_file.close()
 
-    list_nframes = list_Dimens3[:,0]
-    list_Dimens = [x[1:] for x in list_Dimens3]
-    list_TF_size = np.zeros(nvideo, dtype='uint16')
+    nframes = np.unique(list_Dimens[:,0])
+    Lx = np.unique(list_Dimens[:,1])
+    Ly = np.unique(list_Dimens[:,2])
+    if len(Lx) * len(Ly) !=1:
+        ValueError('''The lateral dimensions of all the training videos must be the same in this version.
+        Use another version if training videos have different dimensions''')
+    nframes = nframes.min()
+    rows = Lx[0]
+    cols = Ly[0]
+
+    rowspad = math.ceil(rows/8)*8  # size of the network input and output
+    colspad = math.ceil(cols/8)*8
+    num_total = nframes - Poisson_filt.size + 1 # number of frames used for CNN training. 
+        # Can be slightly smaller than the number of frames of a video after temporal filtering
+
+    # adjust the units of the hyper-parameters to pixels in the test videos according to relative magnification
+    list_minArea= list(np.round(np.array(list_minArea) * Mag**2))
+    list_avgArea= list(np.round(np.array(list_avgArea) * Mag**2))
+    thresh_COM0= thresh_COM0 * Mag
+    list_thresh_COM= list(np.array(list_thresh_COM) * Mag)
+    # adjust the minimum consecutive number of frames according to different frames rates between ABO videos and the test videos
+    # list_cons=list(np.round(np.array(list_cons) * rate_hz/30).astype('int'))
+
+    # dictionary of pre-processing parameters
+    Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
+        'Poisson_filt': Poisson_filt}
+    # dictionary of all fixed and searched post-processing parameters.
+    Params_set = {'list_minArea': list_minArea, 'list_avgArea': list_avgArea, 'list_thresh_pmap': list_thresh_pmap,
+            'thresh_COM0': thresh_COM0, 'list_thresh_COM': list_thresh_COM, 'list_thresh_IOU': list_thresh_IOU,
+            'thresh_mask': thresh_mask, 'list_cons': list_cons}
+    print(Params_set)
 
 
     # pre-processing for training
-    for (ind_video, Exp_ID) in enumerate(list_Exp_ID): # 
-        rate_hz = list_rate_hz[ind_video]
-        Mag = list_Mag[ind_video]
-        num_median_approx = 1000 # number of frames used to caluclate median and median-based standard deviation
-
-        # %% set temporal filter
-        if useTF:
-            filename_TF_template = '../YST_spike_tempolate.h5' # File name storing the temporal filter kernel
-            h5f = h5py.File(filename_TF_template,'r')
-            Poisson_filt = np.array(h5f['filter_tempolate']).squeeze().astype('float32')
-            h5f.close()
-
-            # Rescale the filter template according to "rate_hz"
-            # It assumes the calcium sensors are the same, but the frame rates are different
-            fs_template = 10 # frame rate of the filter tempolate
-            peak = Poisson_filt.argmax()
-            length = Poisson_filt.shape
-            xp = np.arange(-peak,length-peak,1)/fs_template
-            x = np.arange(np.round(-peak*rate_hz/fs_template), np.round(length-peak*rate_hz/fs_template), 1)/rate_hz
-            Poisson_filt = np.interp(x,xp,Poisson_filt).astype('float32')
-            
-            Poisson_filt = Poisson_filt[Poisson_filt>np.exp(-1)] # temporal filter kernel
-            Poisson_filt = Poisson_filt/Poisson_filt.sum()
-
-            # # Alternative temporal filter kernel using a single exponential decay function
-            # decay = 0.8 # decay time constant (unit: second)
-            # leng_tf = np.ceil(rate_hz*decay)+1
-            # Poisson_filt = np.exp(-np.arange(leng_tf)/rate_hz/decay)
-            # Poisson_filt = (Poisson_filt / Poisson_filt.sum()).astype('float32')
-        else:
-            Poisson_filt=np.array([1], dtype='float32')
-        list_TF_size[ind_video] = Poisson_filt.size
-
-        # dictionary of pre-processing parameters
-        gauss_filt_size = 50*Mag # standard deviation of the spatial Gaussian filter in pixels
-        Params_pre = {'gauss_filt_size':gauss_filt_size, 'num_median_approx':num_median_approx, 
-            'Poisson_filt': Poisson_filt}
-
+    for Exp_ID in list_Exp_ID: #
         # %% Pre-process video
         video_input, _ = preprocess_video(dir_video, Exp_ID, Params_pre, dir_network_input, \
             useSF=useSF, useTF=useTF, useSNR=useSNR, med_subtract=med_subtract, prealloc=prealloc) #
@@ -175,7 +175,6 @@ if __name__ == '__main__':
         del video_input
 
     # %% CNN training
-    num_total = (list_nframes - list_TF_size).min() + 1 # number of frames used for CNN training. 
     if cross_validation == "use_all":
         list_CV = [nvideo]
     else: 
@@ -196,7 +195,7 @@ if __name__ == '__main__':
             list_Exp_ID_val = None # Afternatively, we can get rid of validation steps
         file_CNN = os.path.join(weights_path, 'Model_CV{}.h5'.format(CV))
         results = train_CNN(dir_network_input, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
-            BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, Params_loss)
+            BATCH_SIZE, NO_OF_EPOCHS, num_train_per, num_total, (rowspad, colspad), Params_loss)
 
         # save training and validation loss after each eopch
         f = h5py.File(os.path.join(training_output_path, "training_output_CV{}.h5".format(CV)), "w")
@@ -207,7 +206,7 @@ if __name__ == '__main__':
             f.create_dataset("val_dice_loss", data=results.history['val_dice_loss'])
         f.close()
 
-    # # %% parameter optimization
-    # parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, list_Mag, \
-    #     list_Dimens, dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
-    #     batch_size_eval, useWT=useWT, useMP=useMP, load_exist=load_exist)
+    # %% parameter optimization
+    parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Params_set, \
+        (rows, cols), dir_network_input, weights_path, dir_GTMasks, dir_temp, dir_output, \
+        batch_size_eval, useWT=useWT, useMP=useMP, load_exist=load_exist)

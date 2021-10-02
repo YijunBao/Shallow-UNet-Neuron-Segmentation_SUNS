@@ -92,16 +92,16 @@ if __name__ == '__main__':
             # Not needed in training.
     useWT=False # True if using additional watershed
     load_exist=False # True if using temp files already saved in the folders
-    use_validation = True # True to use a validation set outside the training set
+    use_validation = False # True to use a validation set outside the training set
     useMP = True # True to use multiprocessing to speed up
     BATCH_SIZE = 20 # Batch size for training 
     # Cross-validation strategy. Can be "leave_one_out", "train_1_test_rest", or "use_all"
-    cross_validation = "leave_one_out"
+    cross_validation = "use_all"
     Params_loss = {'DL':1, 'BCE':20, 'FL':0, 'gamma':1, 'alpha':0.25} # Parameters of the loss function
     #-------------- End user-defined parameters --------------#
 
 
-    dir_parent = os.path.join(dir_video, 'noSF') # folder to save all the processed data
+    dir_parent = os.path.join(dir_video, 'noSF use_all') # folder to save all the processed data
     dir_network_input = os.path.join(dir_parent, 'network_input') # folder of the SNR videos
     dir_mask = os.path.join(dir_parent, 'temporal_masks({})'.format(thred_std)) # foldr to save the temporal masks
     weights_path = os.path.join(dir_parent, 'Weights') # folder to save the trained CNN
