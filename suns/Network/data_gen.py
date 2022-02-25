@@ -28,8 +28,8 @@ def data_gen(train_img, train_mask, batch_size, flips=False, rotate=False):
     rotate_all = rotate and (rows!=cols) 
 
     while (True):
-        img = np.zeros((batch_size, rows, cols, 1), dtype='float32')
-        mask = np.zeros((batch_size, rows, cols, 1), dtype='uint8')
+        img = np.zeros((batch_size, rows, cols, 1), dtype=train_img.dtype)
+        mask = np.zeros((batch_size, rows, cols, 1), dtype=train_mask.dtype)
         for i in range(c, c + batch_size):
             current_n = list_n[i]
             test_img = train_img[current_n, :, :]
