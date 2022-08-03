@@ -51,7 +51,9 @@ conda env create -f environment_suns.yml -n suns
 
 The installation should take less than half an hour in total. The first run of the software may take some additional time (up to 20 minutes on a laptop) to add the GPU, but this extra time will not occur in later runs.
 
-**Update**: Because the versions of many modules has changed since the code was developped, new users may see some version incompatibility issues. I have seen such errors caused by h5py (internally) and opencv ([#7](https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/issues/7#issuecomment-1136952261)). Therefore, we provided another file `environment_suns_fix_version.yml` to specify the version used in our computer. This file can be used instead of `environment_suns.yml`, or as a reference for sovling version compatibility issues. 
+**Update**: We mainly tested our code in Tensorflow 1.15. We also did some preliminary test on Tensorflow 2.6, but we observed slower processing speed, especially for SUNS online. If you want to install SUNS in Tensorflow 2.6, use `environment_suns_tf2.yml` instead of `environment_suns.yml`. 
+
+Because the versions of many modules has changed since the code was developped, new users may see some version incompatibility issues. I have seen such errors caused by h5py (internally) and opencv ([#7](https://github.com/YijunBao/Shallow-UNet-Neuron-Segmentation_SUNS/issues/7#issuecomment-1136952261)). Therefore, we provided another file `environment_suns_fix_version.yml` to specify the version used in our computer. This file can be used instead of `environment_suns.yml`, or as a reference for sovling version compatibility issues. For a complete list of the package versions, see `environment_suns_exact.yml`, `environment_suns_exact_tf1.yml`, or `environment_suns_exact_tf2.yml`. These files can also be used instead of `environment_suns.yml` to install SUNS, but the package version may be so machine-specific that they may not work in other computers. 
 
 
 # Demo
