@@ -878,7 +878,7 @@ def suns_online_track(filename_video, filename_CNN, Params_pre, Params_post, \
             new_found = np.zeros(N2, dtype='bool')
             for n2 in range(N2):
                 masks_t2 = masks_t[n2]
-                cents_t2 = np.round(cents_t[n2,1]) * Ly + np.round(cents_t[n2,0])  
+                cents_t2 = int(np.round(cents_t[n2,1]) * Ly + np.round(cents_t[n2,0]))  
                 # If a new masks belongs to an old neuron, the COM of the new mask must be inside the old neuron area.
                 # Select possible old neurons that the new mask can merge to
                 possible_masks1 = Masks_cons_2D[:,cents_t2].nonzero()[0]

@@ -16,10 +16,16 @@ from suns.PostProcessing.evaluate import GetPerformance_Jaccard_2
 from suns.run_suns import suns_batch
 
 import tensorflow as tf
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-# tf_config.gpu_options.per_process_gpu_memory_fraction = 0.5
-sess = tf.Session(config = config)
+tf_version = int(tf.__version__[0])
+if tf_version == 1:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    # tf_config.gpu_options.per_process_gpu_memory_fraction = 0.5
+    sess = tf.Session(config = config)
+else: # tf_version == 2:
+    gpus = tf.config.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
 
 
 # %%
