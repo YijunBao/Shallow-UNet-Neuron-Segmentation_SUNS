@@ -65,7 +65,7 @@ def train_CNN(dir_img, dir_mask, file_CNN, list_Exp_ID_train, list_Exp_ID_val, \
         num_val_per = min(num_val_per, num_total)
         # val_every = num_total//num_val_per
         # start_frame_val = random.randint(0,val_every-1)
-        NO_OF_VAL_IMAGES = num_val_per * nvideo_val
+        NO_OF_VAL_IMAGES = max(num_val_per * nvideo_val, BATCH_SIZE)
 
     # %% Load traiming images and masks from h5 files
     list_train_imgs = []
