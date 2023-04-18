@@ -23,7 +23,7 @@ tf_version = int(tf.__version__[0])
 if tf_version == 1:
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    # tf_config.gpu_options.per_process_gpu_memory_fraction = 0.5
+    # config.gpu_options.per_process_gpu_memory_fraction = 0.5
     sess = tf.Session(config = config)
 else: # tf_version == 2:
     gpus = tf.config.list_physical_devices('GPU')

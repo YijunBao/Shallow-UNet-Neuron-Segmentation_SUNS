@@ -295,7 +295,7 @@ def preprocess_video_online(dir_video:str, Exp_ID:str, Params:dict, frames_init=
             start_plan = time.time()
         # if the learned wisdom files have been saved, load them. Otherwise, learn wisdom later
         Length_data=str((nn, rows1, cols1))
-        cc = load_wisdom_txt('wisdom\\'+Length_data)
+        cc = load_wisdom_txt(os.path.join('wisdom', Length_data))
         if cc:
             pyfftw.import_wisdom(cc)
 
