@@ -9,6 +9,7 @@ import h5py
 from scipy.io import savemat, loadmat
 import multiprocessing as mp
 import tensorflow as tf
+import gc
 
 os.environ['KERAS_BACKEND'] = 'tensorflow'
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0' # Set which GPU to use. '-1' uses only CPU.
@@ -276,6 +277,7 @@ def parameter_optimization_cross_validation(cross_validation, list_Exp_ID, Param
         if max_eid is not None:
             if eid > max_eid:
                 continue
+        gc.collect()
         Mag = list_Mag[eid]
         (Lx, Ly) = list_dims[eid]
         list_saved_results = glob.glob(os.path.join(dir_temp, 'Parameter Optimization CV* Exp{}.mat'.format(Exp_ID)))

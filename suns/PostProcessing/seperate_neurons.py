@@ -225,13 +225,13 @@ def separate_neuron(img: np.array, thresh_pmap=None, minArea=0, avgArea=0, useWT
             current_stat = stats[k]
             k_area = current_stat[4]
             if k_area > minArea: # Only keep the connected regions with area larger than minArea
-                BW = (labels == k)
+                # BW = (labels == k)
                 # Crop a small rectangle containing mask k
                 xmin = max((0, current_stat[0] - 1))
                 xmax = min((dims[1], current_stat[0] + current_stat[2] + 1))
                 ymin = max((0, current_stat[1] - 1))
                 ymax = min((dims[0], current_stat[1] + current_stat[3] + 1))
-                BW1 = BW[ymin:ymax, xmin:xmax]
+                BW1 = labels[ymin:ymax, xmin:xmax] == k
 
                 if useWT and k_area > avgArea: # If useWT==True and the mask area is larger than avgArea, 
                     # then try to use watershed to further segment the mask
